@@ -246,38 +246,40 @@ private fun SoloRecipeList(
         contentPadding = PaddingValues(24.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        if (perishableIngredients.isNotEmpty()) {
+        if (ingredients.isNotEmpty()) {
             item {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(24.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color.White),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                Text(
+                    text = "Detected Ingredients",
+                    style = MaterialTheme.typography.titleSmall,
+                    color = GreenPrimary,
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+                @OptIn(ExperimentalLayoutApi::class)
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxWidth()
                 ) {
-                    Column(modifier = Modifier.padding(20.dp)) {
-                        Text(
-                            text = "Set freshness for your items",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = GreenPrimary
-                        )
-                        Spacer(modifier = Modifier.height(12.dp))
-                        // We filter for a subset for brevity in the UI
-                        perishableIngredients.forEach { item ->
-                            val value = freshness[item] ?: 1f
-                            val days = kotlin.math.ceil(14f * value).toInt() - 1
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text(item, Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
-                                Text(
-                                    text = if(days <= 0) "Today" else "$days days",
-                                    color = if(days == 0) Color.Red else GreenPrimary,
-                                    style = MaterialTheme.typography.labelSmall
-                                )
-                            }
-                            Slider(value = value, onValueChange = {}, enabled = false) // Simplified for the list view
+                    ingredients.forEach { item ->
+                        val isPerishable = perishableIngredients.contains(item)
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(if (isPerishable) GreenPrimary.copy(alpha = 0.15f) else Color.White)
+                                .border(1.dp, if (isPerishable) GreenPrimary else Color(0xFFE0E0E0), RoundedCornerShape(12.dp))
+                                .padding(horizontal = 12.dp, vertical = 8.dp)
+                        ) {
+                            Text(
+                                text = item,
+                                style = MaterialTheme.typography.labelMedium,
+                                color = if (isPerishable) GreenPrimary else GreenOnBackground.copy(alpha = 0.8f),
+                                fontWeight = FontWeight.SemiBold
+                            )
                         }
                     }
                 }
+                Spacer(modifier = Modifier.height(16.dp))
             }
         }
 
@@ -298,33 +300,50 @@ private fun SoloRecipeList(
                     .clickable { onPreview(index) },
                 shape = RoundedCornerShape(24.dp),
                 colors = CardDefaults.cardColors(containerColor = Color.White),
-                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
             ) {
-                Row(
-                    modifier = Modifier.padding(20.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = recipe.title,
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = GreenOnBackground
-                        )
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = "Uses: ${ingredients.take(3).joinToString()}",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = GreenOnBackground.copy(alpha = 0.6f)
-                        )
+                Column(modifier = Modifier.padding(20.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(
+                            modifier = Modifier
+                                .size(48.dp)
+                                .clip(CircleShape)
+                                .background(GreenPrimary.copy(alpha = 0.1f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "✨",
+                                fontSize = 20.sp
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(16.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = recipe.title,
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = GreenOnBackground
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = "Uses: ${ingredients.take(3).joinToString()}",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = GreenPrimary,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
                     }
+                    
+                    Spacer(modifier = Modifier.height(16.dp))
+                    
                     Button(
                         onClick = { onSave(recipe, false); onActionMessage("Recipe saved!") },
-                        shape = CircleShape,
+                        shape = RoundedCornerShape(16.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = GreenPrimary),
-                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
+                        modifier = Modifier.fillMaxWidth(),
+                        contentPadding = PaddingValues(vertical = 12.dp)
                     ) {
-                        Text("Save", fontSize = 12.sp)
+                        Text("Save Recipe", fontWeight = FontWeight.Bold, fontSize = 14.sp)
                     }
                 }
             }

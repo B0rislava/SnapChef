@@ -5,8 +5,10 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -14,25 +16,25 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBarsPadding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.border
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
-import androidx.compose.material3.ExposedDropdownMenuBox
-import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -120,142 +122,148 @@ fun RecipesScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            ExposedDropdownMenuBox(
-                expanded = uiState.expanded,
-                onExpandedChange = { viewModel.setExpanded(!uiState.expanded) },
-                modifier = Modifier
-                    .fillMaxWidth(),
+            LazyRow(
+                modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                OutlinedTextField(
-                    modifier = Modifier
-                        .menuAnchor()
-                        .fillMaxWidth(),
-                    readOnly = true,
-                    value = selectedGroup.name,
-                    onValueChange = {},
-                    label = { Text("Select recipe source") },
-                    trailingIcon = {
-                        ExposedDropdownMenuDefaults.TrailingIcon(expanded = uiState.expanded)
-                    },
-                    colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(
-                        focusedBorderColor = GreenPrimary,
-                        unfocusedBorderColor = GreenSecondary,
-                        focusedLabelColor = GreenPrimary,
-                        focusedContainerColor = Color.White,
-                        unfocusedContainerColor = Color.White,
-                    ),
-                    shape = RoundedCornerShape(18.dp),
-                )
-
-                DropdownMenu(
-                    expanded = uiState.expanded,
-                    onDismissRequest = { viewModel.setExpanded(false) },
-                    modifier = Modifier.background(Color.White, RoundedCornerShape(14.dp)),
-                ) {
-                    uiState.groups.forEach { group ->
-                        DropdownMenuItem(
-                            text = {
-                                Column {
-                                    Text(
-                                        text = group.name,
-                                        style = MaterialTheme.typography.bodyLarge,
-                                        fontWeight = FontWeight.Medium,
-                                    )
-                                    if (!group.isPersonal && group.code != null) {
-                                        Text(
-                                            text = "Code: ${group.code}",
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = GreenOnBackground.copy(alpha = 0.65f),
-                                        )
-                                    }
-                                }
-                            },
-                            onClick = {
-                                viewModel.selectGroup(group.id)
-                            },
+                items(uiState.groups) { group ->
+                    val isSelected = selectedGroup.id == group.id
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(20.dp))
+                            .background(if (isSelected) GreenPrimary else Color.White)
+                            .border(1.dp, if (isSelected) GreenPrimary else GreenPrimary.copy(alpha = 0.3f), RoundedCornerShape(20.dp))
+                            .clickable { viewModel.selectGroup(group.id) }
+                            .padding(horizontal = 16.dp, vertical = 10.dp)
+                    ) {
+                        Text(
+                            text = group.name,
+                            style = MaterialTheme.typography.labelLarge,
+                            color = if (isSelected) Color.White else GreenPrimary,
+                            fontWeight = FontWeight.Bold
                         )
                     }
                 }
             }
 
             if (!selectedGroup.isPersonal && selectedGroup.code != null) {
-                Spacer(modifier = Modifier.height(10.dp))
-                Text(
-                    text = "Group code: ${selectedGroup.code}",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = GreenPrimary,
-                    fontWeight = FontWeight.SemiBold,
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = "Group Code: ",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = GreenOnBackground.copy(alpha = 0.7f)
+                    )
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(GreenPrimary.copy(alpha = 0.15f))
+                            .padding(horizontal = 8.dp, vertical = 4.dp)
+                    ) {
+                        Text(
+                            text = selectedGroup.code,
+                            style = MaterialTheme.typography.labelMedium,
+                            color = GreenPrimary,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.height(8.dp))
             }
             if (infoMessage != null) {
-                Spacer(modifier = Modifier.height(8.dp))
                 Text(
                     text = infoMessage,
                     style = MaterialTheme.typography.bodySmall,
                     color = GreenPrimary,
                 )
+                Spacer(modifier = Modifier.height(8.dp))
             }
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(24.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White),
-                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-            ) {
-                Column(modifier = Modifier.padding(18.dp)) {
-                    Text(
-                        text = if (selectedGroup.isPersonal) "Your recipes" else "Group recipes",
-                        style = MaterialTheme.typography.titleLarge,
-                        color = GreenPrimary,
-                        fontWeight = FontWeight.Bold,
-                    )
-                    Spacer(modifier = Modifier.height(12.dp))
+            Text(
+                text = if (selectedGroup.isPersonal) "Your Saved Recipes" else "${selectedGroup.name} Recipes",
+                style = MaterialTheme.typography.titleLarge,
+                color = GreenPrimary,
+                fontWeight = FontWeight.Bold,
+            )
+            Spacer(modifier = Modifier.height(16.dp))
 
-                    selectedGroup.recipes.forEach { recipe ->
-                        val cardColor = when {
-                            recipe.isExpired() -> Color(0xFFE0E0E0)
-                            recipe.expiresToday() -> Color(0xFFFFD7D7)
-                            else -> GreenBackground
-                        }
-                        Card(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(bottom = 10.dp)
-                                .clickable { viewModel.openRecipe(recipe) },
-                            shape = RoundedCornerShape(16.dp),
-                            colors = CardDefaults.cardColors(containerColor = cardColor),
-                            elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
-                        ) {
-                            Column(modifier = Modifier.padding(14.dp)) {
+            if (selectedGroup.recipes.isEmpty()) {
+                Box(
+                    modifier = Modifier.fillMaxWidth().padding(top = 32.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("No recipes saved yet.", color = GreenOnBackground.copy(alpha = 0.6f))
+                }
+            } else {
+                selectedGroup.recipes.forEach { recipe ->
+                    val days = recipe.earliestDaysLeft()
+                    val statusColor = when {
+                        days == null -> GreenPrimary
+                        days < 0 -> Color.Gray
+                        days == 0 -> Color(0xFFC62828)
+                        else -> GreenPrimary
+                    }
+                    val statusText = when {
+                        days == null -> "Saved"
+                        days < 0 -> "Expired ingredients"
+                        days == 0 -> "Requires action today!"
+                        else -> "Expires in $days days"
+                    }
+
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 16.dp)
+                            .clickable { viewModel.openRecipe(recipe) },
+                        shape = RoundedCornerShape(20.dp),
+                        colors = CardDefaults.cardColors(containerColor = Color.White),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp),
+                    ) {
+                        Row(modifier = Modifier.height(IntrinsicSize.Min)) {
+                            // Left colored border indicating status
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxHeight()
+                                    .width(6.dp)
+                                    .background(statusColor)
+                            )
+                            Column(modifier = Modifier.padding(16.dp).weight(1f)) {
                                 Text(
                                     text = recipe.title,
                                     style = MaterialTheme.typography.titleMedium,
                                     color = GreenOnBackground,
-                                    fontWeight = FontWeight.SemiBold,
+                                    fontWeight = FontWeight.Bold,
                                 )
-                                Spacer(modifier = Modifier.height(4.dp))
-                                Text(
-                                    text = if (recipe.ownerName == "You") "Saved by you" else "Shared by ${recipe.ownerName}",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = GreenOnBackground.copy(alpha = 0.7f),
-                                )
-                                recipe.earliestDaysLeft()?.let { days ->
-                                    Spacer(modifier = Modifier.height(6.dp))
+                                Spacer(modifier = Modifier.height(6.dp))
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(
+                                        imageVector = Icons.Default.Person,
+                                        contentDescription = null,
+                                        tint = GreenPrimary,
+                                        modifier = Modifier.size(14.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
                                     Text(
-                                        text = when {
-                                            days < 0 -> "Expired"
-                                            days == 0 -> "Expires today"
-                                            else -> "$days days left"
-                                        },
-                                        style = MaterialTheme.typography.labelMedium,
-                                        color = when {
-                                            days < 0 -> Color.Gray
-                                            days == 0 -> Color(0xFFC62828)
-                                            else -> GreenPrimary
-                                        },
-                                        fontWeight = FontWeight.SemiBold,
+                                        text = if (recipe.ownerName == "You") "Saved by you" else "Shared by ${recipe.ownerName}",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = GreenOnBackground.copy(alpha = 0.7f),
+                                    )
+                                }
+                                
+                                Spacer(modifier = Modifier.height(14.dp))
+                                
+                                Box(
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .background(statusColor.copy(alpha = 0.1f))
+                                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                                ) {
+                                    Text(
+                                        text = statusText,
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = statusColor,
+                                        fontWeight = FontWeight.SemiBold
                                     )
                                 }
                             }
