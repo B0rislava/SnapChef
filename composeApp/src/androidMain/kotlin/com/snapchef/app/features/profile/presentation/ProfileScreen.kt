@@ -39,6 +39,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -54,11 +56,6 @@ import com.snapchef.app.core.theme.GreenOnBackground
 import com.snapchef.app.core.theme.GreenPrimary
 import com.snapchef.app.core.theme.GreenSecondary
 import com.snapchef.app.core.theme.SnapChefTheme
-
-private data class SavedRecipe(
-    val title: String,
-    val isQuick: Boolean,
-)
 
 @Composable
 private fun Pill(
@@ -92,16 +89,11 @@ fun ProfileScreen(
     onDeleteAccount: () -> Unit,
     onEditProfile: () -> Unit,
     modifier: Modifier = Modifier,
+    viewModel: ProfileViewModel = viewModel(),
 ) {
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val initials = remember(userName) { userName.toInitials() }
-    val recipes = remember {
-        listOf(
-            SavedRecipe("Omelette with Cheese", true),
-            SavedRecipe("Tomato Egg Fried Rice", true),
-            SavedRecipe("Baked Veggie Pasta", false),
-            SavedRecipe("Leftover Chicken Wraps", true),
-        )
-    }
+    val recipes = uiState.recipes
 
     Box(
         modifier = modifier
@@ -343,7 +335,7 @@ private fun ReadOnlyProfileField(
 
 @Composable
 private fun RecipeCard(
-    recipe: SavedRecipe,
+    recipe: ProfileSavedRecipe,
     onPress: () -> Unit,
     modifier: Modifier = Modifier,
 ) {

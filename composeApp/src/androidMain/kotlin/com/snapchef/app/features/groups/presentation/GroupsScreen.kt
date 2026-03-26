@@ -38,9 +38,6 @@ import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -54,77 +51,24 @@ import com.snapchef.app.core.theme.GreenOnBackground
 import com.snapchef.app.core.theme.GreenPrimary
 import com.snapchef.app.core.theme.GreenSecondary
 import com.snapchef.app.core.theme.SnapChefTheme
-import kotlin.random.Random
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
 fun GroupsScreen(
     modifier: Modifier = Modifier,
+    viewModel: GroupsViewModel = viewModel(),
 ) {
-    val personalRecipes = remember {
-        listOf(
-            SharedRecipe(
-                title = "Tomato Omelette",
-                description = "Soft omelette with tomatoes and herbs.",
-                ownerName = "You",
-                missingItems = emptyList(),
-            ),
-            SharedRecipe(
-                title = "Chicken Rice Bowl",
-                description = "Rice bowl with chicken and green vegetables.",
-                ownerName = "You",
-                missingItems = emptyList(),
-            ),
-        )
-    }
-
-    var groups by remember {
-        mutableStateOf(
-            listOf(
-                RecipeGroup(
-                    id = "personal",
-                    name = "Your recipes",
-                    code = null,
-                    recipes = personalRecipes,
-                    isPersonal = true,
-                ),
-                RecipeGroup(
-                    id = "g1",
-                    name = "Flatmates",
-                    code = "A7K2P1",
-                    recipes = listOf(
-                        SharedRecipe(
-                            title = "Pasta Carbonara",
-                            description = "Classic creamy pasta with bacon and parmesan.",
-                            ownerName = "Anton",
-                            missingItems = listOf("2 eggs"),
-                        ),
-                        SharedRecipe(
-                            title = "Veggie Stir Fry",
-                            description = "Fast stir fry with peppers and soy sauce.",
-                            ownerName = "Mira",
-                            missingItems = listOf("1 red pepper"),
-                        ),
-                    ),
-                ),
-            ),
-        )
-    }
-
-    var selectedGroupId by remember { mutableStateOf("personal") }
-    val selectedGroup = groups.firstOrNull { it.id == selectedGroupId } ?: groups.first()
-
-    var expanded by remember { mutableStateOf(false) }
-    var dialogMode by remember { mutableStateOf<GroupDialogMode?>(null) }
-    var joinCodeInput by remember { mutableStateOf("") }
-    var createNameInput by remember { mutableStateOf("") }
-    var selectedRecipe by remember { mutableStateOf<SharedRecipe?>(null) }
-    var infoMessage by remember { mutableStateOf<String?>(null) }
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val selectedGroup = uiState.groups.firstOrNull { it.id == uiState.selectedGroupId } ?: uiState.groups.first()
+    val selectedRecipe = uiState.selectedRecipe
+    val infoMessage = uiState.infoMessage
 
     if (selectedRecipe != null) {
         GroupRecipeDetailsScreen(
-            recipe = selectedRecipe!!,
-            onBack = { selectedRecipe = null },
+            recipe = selectedRecipe,
+            onBack = viewModel::closeRecipeDetails,
             modifier = modifier,
         )
         return
@@ -170,7 +114,7 @@ fun GroupsScreen(
                 )
 
                 IconButton(
-                    onClick = { dialogMode = GroupDialogMode.CHOICE },
+                    onClick = { viewModel.openDialog(GroupDialogMode.CHOICE) },
                 ) {
                     Icon(
                         imageVector = Icons.Filled.Add,
@@ -183,8 +127,8 @@ fun GroupsScreen(
             Spacer(modifier = Modifier.height(16.dp))
 
             ExposedDropdownMenuBox(
-                expanded = expanded,
-                onExpandedChange = { expanded = !expanded },
+                expanded = uiState.expanded,
+                onExpandedChange = { viewModel.setExpanded(!uiState.expanded) },
                 modifier = Modifier
                     .fillMaxWidth(),
             ) {
@@ -197,7 +141,7 @@ fun GroupsScreen(
                     onValueChange = {},
                     label = { Text("Select recipe source") },
                     trailingIcon = {
-                        ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
+                        ExposedDropdownMenuDefaults.TrailingIcon(expanded = uiState.expanded)
                     },
                     colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(
                         focusedBorderColor = GreenPrimary,
@@ -210,11 +154,11 @@ fun GroupsScreen(
                 )
 
                 DropdownMenu(
-                    expanded = expanded,
-                    onDismissRequest = { expanded = false },
+                    expanded = uiState.expanded,
+                    onDismissRequest = { viewModel.setExpanded(false) },
                     modifier = Modifier.background(Color.White, RoundedCornerShape(14.dp)),
                 ) {
-                    groups.forEach { group ->
+                    uiState.groups.forEach { group ->
                         DropdownMenuItem(
                             text = {
                                 Column {
@@ -233,8 +177,7 @@ fun GroupsScreen(
                                 }
                             },
                             onClick = {
-                                selectedGroupId = group.id
-                                expanded = false
+                                viewModel.selectGroup(group.id)
                             },
                         )
                     }
@@ -253,7 +196,7 @@ fun GroupsScreen(
             if (infoMessage != null) {
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = infoMessage!!,
+                    text = infoMessage,
                     style = MaterialTheme.typography.bodySmall,
                     color = GreenPrimary,
                 )
@@ -281,7 +224,7 @@ fun GroupsScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(bottom = 10.dp)
-                                .clickable { selectedRecipe = recipe },
+                                .clickable { viewModel.openRecipe(recipe) },
                             shape = RoundedCornerShape(16.dp),
                             colors = CardDefaults.cardColors(containerColor = GreenBackground),
                             elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
@@ -307,19 +250,19 @@ fun GroupsScreen(
         }
     }
 
-    when (dialogMode) {
+    when (uiState.dialogMode) {
         GroupDialogMode.CHOICE -> {
             AlertDialog(
-                onDismissRequest = { dialogMode = null },
+                onDismissRequest = viewModel::closeDialog,
                 title = { Text("Group options") },
                 text = { Text("Choose what you want to do.") },
                 confirmButton = {
-                    TextButton(onClick = { dialogMode = GroupDialogMode.JOIN }) {
+                    TextButton(onClick = { viewModel.openDialog(GroupDialogMode.JOIN) }) {
                         Text("Join group")
                     }
                 },
                 dismissButton = {
-                    TextButton(onClick = { dialogMode = GroupDialogMode.CREATE }) {
+                    TextButton(onClick = { viewModel.openDialog(GroupDialogMode.CREATE) }) {
                         Text("Create group")
                     }
                 },
@@ -328,94 +271,46 @@ fun GroupsScreen(
 
         GroupDialogMode.JOIN -> {
             AlertDialog(
-                onDismissRequest = { dialogMode = null },
+                onDismissRequest = viewModel::closeDialog,
                 title = { Text("Join group") },
                 text = {
                     OutlinedTextField(
-                        value = joinCodeInput,
-                        onValueChange = { joinCodeInput = it },
+                        value = uiState.joinCodeInput,
+                        onValueChange = viewModel::setJoinCodeInput,
                         label = { Text("Enter group code") },
                         singleLine = true,
                     )
                 },
                 confirmButton = {
                     Button(
-                        onClick = {
-                            val sanitizedCode = joinCodeInput.trim().uppercase()
-                            if (sanitizedCode.length >= 4) {
-                                val existing = groups.firstOrNull { it.code == sanitizedCode }
-                                if (existing != null) {
-                                    selectedGroupId = existing.id
-                                    infoMessage = "You are already in this group."
-                                } else {
-                                    val newGroup = RecipeGroup(
-                                        id = "joined_${Random.nextInt(1000, 9999)}",
-                                        name = "Group ${sanitizedCode.take(4)}",
-                                        code = sanitizedCode,
-                                        recipes = listOf(
-                                            SharedRecipe(
-                                                title = "Shared Soup",
-                                                description = "Group shared soup recipe.",
-                                                ownerName = "Anton",
-                                                missingItems = listOf("2 eggs"),
-                                            ),
-                                        ),
-                                    )
-                                    groups = groups + newGroup
-                                    selectedGroupId = newGroup.id
-                                    infoMessage = "Joined group ${newGroup.name}."
-                                }
-                            } else {
-                                infoMessage = "Please enter a valid group code."
-                            }
-                            joinCodeInput = ""
-                            dialogMode = null
-                        },
+                        onClick = viewModel::joinGroup,
                     ) { Text("Join") }
                 },
                 dismissButton = {
-                    TextButton(onClick = { dialogMode = null }) { Text("Cancel") }
+                    TextButton(onClick = viewModel::closeDialog) { Text("Cancel") }
                 },
             )
         }
 
         GroupDialogMode.CREATE -> {
             AlertDialog(
-                onDismissRequest = { dialogMode = null },
+                onDismissRequest = viewModel::closeDialog,
                 title = { Text("Create group") },
                 text = {
                     OutlinedTextField(
-                        value = createNameInput,
-                        onValueChange = { createNameInput = it },
+                        value = uiState.createNameInput,
+                        onValueChange = viewModel::setCreateNameInput,
                         label = { Text("Group name") },
                         singleLine = true,
                     )
                 },
                 confirmButton = {
                     Button(
-                        onClick = {
-                            val groupName = createNameInput.trim()
-                            if (groupName.isNotBlank()) {
-                                val code = generateGroupCode()
-                                val created = RecipeGroup(
-                                    id = "created_${Random.nextInt(1000, 9999)}",
-                                    name = groupName,
-                                    code = code,
-                                    recipes = emptyList(),
-                                )
-                                groups = groups + created
-                                selectedGroupId = created.id
-                                infoMessage = "Group created. Code: $code"
-                            } else {
-                                infoMessage = "Group name cannot be empty."
-                            }
-                            createNameInput = ""
-                            dialogMode = null
-                        },
+                        onClick = viewModel::createGroup,
                     ) { Text("Create") }
                 },
                 dismissButton = {
-                    TextButton(onClick = { dialogMode = null }) { Text("Cancel") }
+                    TextButton(onClick = viewModel::closeDialog) { Text("Cancel") }
                 },
             )
         }
@@ -560,15 +455,6 @@ private fun GroupRecipeDetailsScreen(
                 }
             }
 
-        }
-    }
-}
-
-private fun generateGroupCode(): String {
-    val chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
-    return buildString {
-        repeat(6) {
-            append(chars[Random.nextInt(chars.length)])
         }
     }
 }

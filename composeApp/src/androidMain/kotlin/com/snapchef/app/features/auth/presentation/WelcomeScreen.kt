@@ -6,7 +6,10 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -23,12 +26,17 @@ import com.snapchef.app.core.theme.GreenOnBackground
 import com.snapchef.app.core.theme.GreenPrimary
 import com.snapchef.app.core.theme.GreenSecondary
 import com.snapchef.app.core.theme.SnapChefTheme
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 
 @Composable
 fun WelcomeScreen(
     onGetStarted: () -> Unit = {},
     onSignIn:     () -> Unit = {},
+    viewModel: WelcomeViewModel = viewModel(),
 ) {
+    val isPreview = LocalInspectionMode.current
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val infiniteTransition = rememberInfiniteTransition(label = "leaf_anim")
     val leafOffset by infiniteTransition.animateFloat(
         initialValue = -6f,
@@ -91,7 +99,7 @@ fun WelcomeScreen(
             Spacer(Modifier.height(40.dp))
 
             Text(
-                text       = "SnapChef",
+                text       = if (isPreview) "SnapChef" else uiState.title,
                 style      = MaterialTheme.typography.displayLarge,
                 color      = GreenPrimary,
                 fontWeight = FontWeight.ExtraBold,
@@ -100,7 +108,7 @@ fun WelcomeScreen(
             Spacer(Modifier.height(12.dp))
 
             Text(
-                text      = "Snap a photo, discover a recipe.\nCook smarter every day.",
+                text = if (isPreview) "Snap a photo, discover a recipe.\nCook smarter every day." else uiState.subtitle,
                 style     = MaterialTheme.typography.bodyLarge,
                 color     = GreenOnBackground.copy(alpha = 0.65f),
                 textAlign = TextAlign.Center,

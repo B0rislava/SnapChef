@@ -37,9 +37,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -60,17 +57,17 @@ import com.snapchef.app.core.theme.GreenOnBackground
 import com.snapchef.app.core.theme.GreenPrimary
 import com.snapchef.app.core.theme.GreenSecondary
 import com.snapchef.app.core.theme.SnapChefTheme
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 
 @Composable
 fun SignInScreen(
     onBack:       () -> Unit = {},
     onSignIn:     () -> Unit = {},
     onSignUp:     () -> Unit = {},
+    viewModel: SignInViewModel = viewModel(),
 ) {
-    var email       by remember { mutableStateOf("") }
-    var password    by remember { mutableStateOf("") }
-    var showPass    by remember { mutableStateOf(false) }
-    var rememberMe  by remember { mutableStateOf(false) }
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
     Box(
         modifier = Modifier
@@ -143,8 +140,8 @@ fun SignInScreen(
                     verticalArrangement = Arrangement.spacedBy(16.dp),
                 ) {
                     AuthTextField(
-                        value         = email,
-                        onValueChange = { email = it },
+                        value         = uiState.email,
+                        onValueChange = viewModel::updateEmail,
                         placeholder   = "Enter your email",
                         leadingIcon   = {
                             Icon(Icons.Outlined.Email, null, tint = GreenPrimary)
@@ -153,22 +150,22 @@ fun SignInScreen(
                     )
 
                     AuthTextField(
-                        value         = password,
-                        onValueChange = { password = it },
+                        value         = uiState.password,
+                        onValueChange = viewModel::updatePassword,
                         placeholder   = "Enter your password",
                         leadingIcon   = {
                             Icon(Icons.Outlined.Lock, null, tint = GreenPrimary)
                         },
                         trailingIcon  = {
-                            IconButton(onClick = { showPass = !showPass }) {
+                            IconButton(onClick = viewModel::toggleShowPassword) {
                                 Icon(
-                                    if (showPass) Icons.Outlined.VisibilityOff else Icons.Outlined.Visibility,
+                                    if (uiState.showPassword) Icons.Outlined.VisibilityOff else Icons.Outlined.Visibility,
                                     contentDescription = "Toggle password",
                                     tint = GreenSecondary,
                                 )
                             }
                         },
-                        visualTransformation = if (showPass) VisualTransformation.None
+                        visualTransformation = if (uiState.showPassword) VisualTransformation.None
                                                else PasswordVisualTransformation(),
                         keyboardType = KeyboardType.Password,
                     )
@@ -180,8 +177,8 @@ fun SignInScreen(
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Checkbox(
-                                checked         = rememberMe,
-                                onCheckedChange = { rememberMe = it },
+                                checked         = uiState.rememberMe,
+                                onCheckedChange = viewModel::setRememberMe,
                                 colors          = CheckboxDefaults.colors(checkedColor = GreenPrimary),
                             )
                             Text(
