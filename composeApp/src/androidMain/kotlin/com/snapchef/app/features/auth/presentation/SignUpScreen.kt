@@ -1,4 +1,4 @@
-package com.snapchef.app.ui.auth
+package com.snapchef.app.features.auth.presentation
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -36,11 +36,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -53,17 +49,16 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.snapchef.app.ui.theme.GreenBackground
-import com.snapchef.app.ui.theme.GreenOnBackground
-import com.snapchef.app.ui.theme.GreenPrimary
-import com.snapchef.app.ui.theme.GreenSecondary
-import com.snapchef.app.ui.theme.SnapChefTheme
+import com.snapchef.app.core.presentation.components.AuthTextField
+import com.snapchef.app.core.presentation.components.OrDivider
+import com.snapchef.app.core.presentation.components.SocialButton
+import com.snapchef.app.core.theme.*
 
 @Composable
 fun SignUpScreen(
-    onBack:   () -> Unit = {},
-    onSignUp: () -> Unit = {},
-    onSignIn: () -> Unit = {},
+    onBack:       () -> Unit = {},
+    onSignUp:     () -> Unit = {},
+    onSignIn:     () -> Unit = {},
 ) {
     var name        by remember { mutableStateOf("") }
     var email       by remember { mutableStateOf("") }
@@ -75,23 +70,15 @@ fun SignUpScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(
-                Brush.verticalGradient(listOf(GreenBackground, GreenSecondary.copy(alpha = 0.50f)))
+                Brush.verticalGradient(listOf(GreenSecondary.copy(alpha = 0.55f), GreenBackground))
             )
     ) {
-        // accent circles
         Box(
             modifier = Modifier
-                .size(180.dp)
-                .offset(x = (-50).dp, y = 300.dp)
+                .size(220.dp)
+                .offset(x = (-100).dp, y = 50.dp)
                 .clip(CircleShape)
-                .background(GreenPrimary.copy(alpha = 0.07f))
-        )
-        Box(
-            modifier = Modifier
-                .size(120.dp)
-                .offset(x = 300.dp, y = (-20).dp)
-                .clip(CircleShape)
-                .background(GreenSecondary.copy(alpha = 0.45f))
+                .background(GreenPrimary.copy(alpha = 0.10f))
         )
 
         Column(
@@ -102,10 +89,8 @@ fun SignUpScreen(
                 .padding(horizontal = 24.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-
             Spacer(Modifier.height(16.dp))
 
-            // ── back ─────────────────────────────────────────────────────
             Row(Modifier.fillMaxWidth()) {
                 IconButton(
                     onClick  = onBack,
@@ -118,66 +103,65 @@ fun SignUpScreen(
                 }
             }
 
-            Spacer(Modifier.height(28.dp))
+            Spacer(Modifier.height(30.dp))
 
-            // ── headline ──────────────────────────────────────────────────
             Text(
-                text       = "Create Account",
+                text       = "Join SnapChef!",
                 style      = MaterialTheme.typography.headlineMedium,
                 color      = GreenPrimary,
                 fontWeight = FontWeight.ExtraBold,
             )
             Spacer(Modifier.height(6.dp))
             Text(
-                text      = "Join for better food insights.",
+                text      = "Start your journey today - Snap, cook, and enjoy.",
                 style     = MaterialTheme.typography.bodyMedium,
                 color     = GreenOnBackground.copy(alpha = 0.55f),
                 textAlign = TextAlign.Center,
             )
 
-            Spacer(Modifier.height(32.dp))
+            Spacer(Modifier.height(40.dp))
 
-            // ── card ──────────────────────────────────────────────────────
             Card(
-                modifier  = Modifier.fillMaxWidth(),
-                shape     = RoundedCornerShape(24.dp),
-                colors    = CardDefaults.cardColors(containerColor = Color.White),
+                modifier = Modifier.fillMaxWidth(),
+                shape    = RoundedCornerShape(24.dp),
+                colors   = CardDefaults.cardColors(containerColor = Color.White),
                 elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
             ) {
                 Column(
                     modifier = Modifier.padding(24.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp),
                 ) {
-                    // name
                     AuthTextField(
                         value         = name,
                         onValueChange = { name = it },
-                        placeholder   = "Enter your name",
-                        leadingIcon   = { Icon(Icons.Outlined.Person, null, tint = GreenPrimary) },
-                        keyboardType  = KeyboardType.Text,
+                        placeholder   = "Full Name",
+                        leadingIcon   = {
+                            Icon(Icons.Outlined.Person, null, tint = GreenPrimary)
+                        },
                     )
 
-                    // email
                     AuthTextField(
                         value         = email,
                         onValueChange = { email = it },
-                        placeholder   = "Enter your email",
-                        leadingIcon   = { Icon(Icons.Outlined.Email, null, tint = GreenPrimary) },
+                        placeholder   = "Email Address",
+                        leadingIcon   = {
+                            Icon(Icons.Outlined.Email, null, tint = GreenPrimary)
+                        },
                         keyboardType  = KeyboardType.Email,
                     )
 
-                    // password
                     AuthTextField(
                         value         = password,
                         onValueChange = { password = it },
-                        placeholder   = "Create a password",
-                        leadingIcon   = { Icon(Icons.Outlined.Lock, null, tint = GreenPrimary) },
+                        placeholder   = "Password",
+                        leadingIcon   = {
+                            Icon(Icons.Outlined.Lock, null, tint = GreenPrimary)
+                        },
                         trailingIcon  = {
                             IconButton(onClick = { showPass = !showPass }) {
                                 Icon(
                                     if (showPass) Icons.Outlined.VisibilityOff else Icons.Outlined.Visibility,
-                                    contentDescription = "Toggle password",
-                                    tint = GreenSecondary,
+                                    null, tint = GreenSecondary,
                                 )
                             }
                         },
@@ -186,44 +170,42 @@ fun SignUpScreen(
                         keyboardType = KeyboardType.Password,
                     )
 
-                    // terms
-                    Row(verticalAlignment = Alignment.CenterVertically) {
+                    Row(verticalAlignment = Alignment.Top) {
                         Checkbox(
                             checked         = agreeTerms,
                             onCheckedChange = { agreeTerms = it },
                             colors          = CheckboxDefaults.colors(checkedColor = GreenPrimary),
                         )
                         Text(
-                            text  = "I agree to the ",
-                            style = MaterialTheme.typography.bodyMedium,
+                            text  = "By creating an account you agree to our Terms & Conditions and our Privacy Policy.",
+                            style = MaterialTheme.typography.bodySmall,
                             color = GreenOnBackground.copy(alpha = 0.65f),
+                            modifier = Modifier.padding(top = 10.dp),
                         )
-                        TextButton(onClick = {}, contentPadding = PaddingValues(0.dp)) {
-                            Text(
-                                text       = "Terms & Privacy",
-                                color      = GreenPrimary,
-                                fontWeight = FontWeight.SemiBold,
-                                style      = MaterialTheme.typography.bodyMedium,
-                            )
-                        }
                     }
                 }
             }
 
             Spacer(Modifier.height(24.dp))
 
-            // ── sign-up button ────────────────────────────────────────────
             Button(
-                onClick   = onSignUp,
-                enabled   = agreeTerms,
-                modifier  = Modifier
+                onClick  = onSignUp,
+                enabled  = agreeTerms,
+                modifier = Modifier
                     .fillMaxWidth()
                     .height(56.dp),
-                shape     = RoundedCornerShape(28.dp),
-                colors    = ButtonDefaults.buttonColors(containerColor = GreenPrimary),
+                shape    = RoundedCornerShape(28.dp),
+                colors   = ButtonDefaults.buttonColors(
+                    containerColor = GreenPrimary,
+                    disabledContainerColor = GreenSecondary,
+                ),
                 elevation = ButtonDefaults.buttonElevation(defaultElevation = 6.dp),
             ) {
-                Text("Sign Up", style = MaterialTheme.typography.labelLarge, color = Color.White)
+                Text(
+                    text  = "Create Account",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = Color.White,
+                )
             }
 
             Spacer(Modifier.height(24.dp))
@@ -232,24 +214,22 @@ fun SignUpScreen(
 
             Spacer(Modifier.height(20.dp))
 
-            SocialButton(label = "Continue with Google",  emoji = "G")
-            Spacer(Modifier.height(12.dp))
-            SocialButton(label = "Continue with Facebook", emoji = "f")
+            SocialButton(label = "Sign up with Google",  emoji = "G")
 
             Spacer(Modifier.height(24.dp))
 
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    text  = "Already have an account? ",
+                    text  = "Member? ",
                     style = MaterialTheme.typography.bodyMedium,
                     color = GreenOnBackground.copy(alpha = 0.6f),
                 )
                 TextButton(onClick = onSignIn, contentPadding = PaddingValues(0.dp)) {
                     Text(
-                        text       = "Login",
-                        color      = GreenPrimary,
+                        text  = "Sign in",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = GreenPrimary,
                         fontWeight = FontWeight.Bold,
-                        style      = MaterialTheme.typography.bodyMedium,
                     )
                 }
             }

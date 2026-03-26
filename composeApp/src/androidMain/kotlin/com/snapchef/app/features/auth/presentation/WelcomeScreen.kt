@@ -1,34 +1,12 @@
-package com.snapchef.app.ui.auth
+package com.snapchef.app.features.auth.presentation
 
-import androidx.compose.animation.core.EaseInOutSine
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.systemBarsPadding
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -40,11 +18,11 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.snapchef.app.ui.theme.GreenBackground
-import com.snapchef.app.ui.theme.GreenOnBackground
-import com.snapchef.app.ui.theme.GreenPrimary
-import com.snapchef.app.ui.theme.GreenSecondary
-import com.snapchef.app.ui.theme.SnapChefTheme
+import com.snapchef.app.core.theme.GreenBackground
+import com.snapchef.app.core.theme.GreenOnBackground
+import com.snapchef.app.core.theme.GreenPrimary
+import com.snapchef.app.core.theme.GreenSecondary
+import com.snapchef.app.core.theme.SnapChefTheme
 
 @Composable
 fun WelcomeScreen(
@@ -71,7 +49,6 @@ fun WelcomeScreen(
                 )
             ),
     ) {
-        // ── top decorative circles ─────────────────────────────────────────
         Box(
             modifier = Modifier
                 .size(260.dp)
@@ -96,7 +73,6 @@ fun WelcomeScreen(
         ) {
             Spacer(Modifier.weight(1f))
 
-            // ── logo/icon area ─────────────────────────────────────────────
             Box(
                 contentAlignment = Alignment.Center,
                 modifier = Modifier
@@ -114,7 +90,6 @@ fun WelcomeScreen(
 
             Spacer(Modifier.height(40.dp))
 
-            // ── headline ──────────────────────────────────────────────────
             Text(
                 text       = "SnapChef",
                 style      = MaterialTheme.typography.displayLarge,
@@ -133,25 +108,17 @@ fun WelcomeScreen(
 
             Spacer(Modifier.weight(1f))
 
-            // ── page dots ─────────────────────────────────────────────────
             Row(
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
                 verticalAlignment     = Alignment.CenterVertically,
             ) {
-                Box(
-                    Modifier.size(10.dp).clip(CircleShape).background(GreenPrimary)
-                )
-                Box(
-                    Modifier.size(7.dp).clip(CircleShape).background(GreenSecondary)
-                )
-                Box(
-                    Modifier.size(7.dp).clip(CircleShape).background(GreenSecondary)
-                )
+                Box(Modifier.size(10.dp).clip(CircleShape).background(GreenPrimary))
+                Box(Modifier.size(7.dp).clip(CircleShape).background(GreenSecondary))
+                Box(Modifier.size(7.dp).clip(CircleShape).background(GreenSecondary))
             }
 
             Spacer(Modifier.height(32.dp))
 
-            // ── CTA button ────────────────────────────────────────────────
             Button(
                 onClick  = onGetStarted,
                 modifier = Modifier
@@ -170,7 +137,6 @@ fun WelcomeScreen(
 
             Spacer(Modifier.height(16.dp))
 
-            // ── sign-in link ──────────────────────────────────────────────
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     text  = "Already have an account? ",

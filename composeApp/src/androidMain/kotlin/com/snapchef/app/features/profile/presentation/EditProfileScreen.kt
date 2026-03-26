@@ -1,8 +1,9 @@
-package com.snapchef.app
+package com.snapchef.app.features.profile.presentation
 
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -48,12 +49,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import com.snapchef.app.ui.auth.AuthTextField
-import com.snapchef.app.ui.theme.GreenBackground
-import com.snapchef.app.ui.theme.GreenOnBackground
-import com.snapchef.app.ui.theme.GreenPrimary
-import com.snapchef.app.ui.theme.GreenSecondary
+import com.snapchef.app.features.profile.presentation.components.ProfilePhoto
+import com.snapchef.app.core.presentation.components.AuthTextField
+import com.snapchef.app.core.theme.GreenBackground
+import com.snapchef.app.core.theme.GreenOnBackground
+import com.snapchef.app.core.theme.GreenPrimary
+import com.snapchef.app.core.theme.GreenSecondary
+import com.snapchef.app.core.theme.SnapChefTheme
+
 
 @Composable
 fun EditProfileScreen(
@@ -236,7 +239,7 @@ fun EditProfileScreen(
                         .weight(1f)
                         .height(56.dp),
                     shape = RoundedCornerShape(28.dp),
-                    border = androidx.compose.foundation.BorderStroke(1.5.dp, GreenSecondary),
+                    border = BorderStroke(1.5.dp, GreenSecondary),
                     colors = ButtonDefaults.outlinedButtonColors(contentColor = GreenOnBackground),
                 ) {
                     Text("Cancel", style = MaterialTheme.typography.labelLarge)
@@ -273,7 +276,7 @@ private fun String.toInitials(): String {
 @Preview(showBackground = true)
 @Composable
 private fun EditProfileScreenPreview() {
-    com.snapchef.app.ui.theme.SnapChefTheme {
+    SnapChefTheme {
         EditProfileScreen(
             userName = "John Doe",
             userEmail = "john.doe@snapchef.app",

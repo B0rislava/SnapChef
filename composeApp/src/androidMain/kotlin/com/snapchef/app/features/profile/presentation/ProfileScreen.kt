@@ -1,4 +1,4 @@
-package com.snapchef.app.ui.profile
+package com.snapchef.app.features.profile.presentation
 
 import android.net.Uri
 import androidx.compose.animation.core.animateFloatAsState
@@ -48,12 +48,12 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import com.snapchef.app.ProfilePhoto
-import com.snapchef.app.ui.theme.GreenBackground
-import com.snapchef.app.ui.theme.GreenOnBackground
-import com.snapchef.app.ui.theme.GreenPrimary
-import com.snapchef.app.ui.theme.GreenSecondary
+import com.snapchef.app.features.profile.presentation.components.ProfilePhoto
+import com.snapchef.app.core.theme.GreenBackground
+import com.snapchef.app.core.theme.GreenOnBackground
+import com.snapchef.app.core.theme.GreenPrimary
+import com.snapchef.app.core.theme.GreenSecondary
+import com.snapchef.app.core.theme.SnapChefTheme
 
 private data class SavedRecipe(
     val title: String,
@@ -432,7 +432,7 @@ private fun BouncyAction(
 @Preview(showBackground = true)
 @Composable
 private fun ProfileScreenPreview() {
-    com.snapchef.app.ui.theme.SnapChefTheme {
+    SnapChefTheme {
         ProfileScreen(
             userName = "John Doe",
             userEmail = "john.doe@snapchef.app",
