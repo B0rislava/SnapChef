@@ -53,19 +53,19 @@ fun SnapChefBottomBar(
             verticalAlignment = Alignment.CenterVertically
         ) {
             BottomBarItem(
-                icon = Icons.Outlined.Home,
-                selectedIcon = Icons.Filled.Home,
-                contentDescription = "Home",
-                isSelected = currentTab == MainTab.HOME,
-                onClick = { onTabSelected(MainTab.HOME) }
-            )
-
-            BottomBarItem(
                 icon = Icons.Outlined.FavoriteBorder,
                 selectedIcon = Icons.Filled.Favorite,
                 contentDescription = "Recipes",
                 isSelected = currentTab == MainTab.RECIPES,
                 onClick = { onTabSelected(MainTab.RECIPES) }
+            )
+
+            BottomBarItem(
+                icon = Icons.Outlined.Home,
+                selectedIcon = Icons.Filled.Home,
+                contentDescription = "Home",
+                isSelected = currentTab == MainTab.HOME,
+                onClick = { onTabSelected(MainTab.HOME) }
             )
 
             BottomBarItem(
