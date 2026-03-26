@@ -220,7 +220,7 @@ fun SignUpScreen(
 
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    text  = "Member? ",
+                    text  = "Already have an account?",
                     style = MaterialTheme.typography.bodyMedium,
                     color = GreenOnBackground.copy(alpha = 0.6f),
                 )

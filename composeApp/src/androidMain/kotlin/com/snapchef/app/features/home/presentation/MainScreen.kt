@@ -59,7 +59,9 @@ fun MainScreen(
                     when (tab) {
                         MainTab.HOME -> {
                             HomeScreen(
-                                onGenerateRecipes = viewModel::openRecipeResults
+                                onGenerateRecipes = viewModel::openRecipeResults,
+                                isCameraActive = uiState.isCameraActive,
+                                onCameraActiveChanged = viewModel::setCameraActive,
                             )
                         }
                         MainTab.RECIPES -> {
@@ -94,9 +96,8 @@ fun MainScreen(
                     }
                 } 
 
-                if ((!uiState.isEditingProfile || uiState.currentTab != MainTab.PROFILE) &&
-                    !(uiState.currentTab == MainTab.RECIPES && isViewingGroupRecipeDetails)
-                ) {
+                if (!uiState.isEditingProfile && uiState.currentTab != MainTab.PROFILE && !uiState.isCameraActive) {
+
                     SnapChefBottomBar(
                         currentTab = uiState.currentTab,
                         onTabSelected = viewModel::selectTab,

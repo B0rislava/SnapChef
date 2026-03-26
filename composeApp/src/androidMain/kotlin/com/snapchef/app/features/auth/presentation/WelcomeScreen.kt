@@ -1,15 +1,15 @@
 package com.snapchef.app.features.auth.presentation
 
 import androidx.compose.animation.core.*
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.ui.platform.LocalInspectionMode
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -26,26 +26,62 @@ import com.snapchef.app.core.theme.GreenOnBackground
 import com.snapchef.app.core.theme.GreenPrimary
 import com.snapchef.app.core.theme.GreenSecondary
 import com.snapchef.app.core.theme.SnapChefTheme
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.CameraAlt
+import androidx.compose.material.icons.rounded.Eco
+import androidx.compose.material.icons.rounded.Restaurant
+import androidx.compose.ui.graphics.vector.ImageVector
+import kotlinx.coroutines.launch
 
+// ── Onboarding slide data ────────────────────────────────────────────────────
+
+private data class OnboardingPage(
+    val icon: ImageVector,
+    val title: String,
+    val subtitle: String,
+    val accentColor: Color,
+)
+
+private val pages = listOf(
+    OnboardingPage(
+        icon     = Icons.Rounded.Restaurant,
+        title    = "SnapChef",
+        subtitle = "Every day, tonnes of food are thrown away while thousands go hungry. It's time to change that.",
+        accentColor = Color(0xFF4CAF50),
+    ),
+    OnboardingPage(
+        icon     = Icons.Rounded.CameraAlt,
+        title    = "Snap your fridge",
+        subtitle = "Take a photo of whatever ingredients you have left. Our AI instantly recognises every item - no manual typing needed.",
+        accentColor = Color(0xFF2E7D32),
+    ),
+    OnboardingPage(
+        icon     = Icons.Rounded.Eco,
+        title    = "Zero Left",
+        subtitle = "Get personalised recipes that use exactly what you have. Less waste, more flavour, a better planet.",
+        accentColor = Color(0xFF1B5E20),
+    ),
+)
+
+// ── Screen ───────────────────────────────────────────────────────────────────
+
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun WelcomeScreen(
     onGetStarted: () -> Unit = {},
-    onSignIn:     () -> Unit = {},
-    viewModel: WelcomeViewModel = viewModel(),
 ) {
-    val isPreview = LocalInspectionMode.current
-    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val infiniteTransition = rememberInfiniteTransition(label = "leaf_anim")
-    val leafOffset by infiniteTransition.animateFloat(
-        initialValue = -6f,
-        targetValue  = 6f,
+    val pagerState = rememberPagerState(pageCount = { pages.size })
+    val scope      = rememberCoroutineScope()
+
+    val infiniteTransition = rememberInfiniteTransition(label = "float")
+    val floatOffset by infiniteTransition.animateFloat(
+        initialValue = -8f,
+        targetValue  = 8f,
         animationSpec = infiniteRepeatable(
-            animation = tween(2400, easing = EaseInOutSine),
+            animation  = tween(2600, easing = EaseInOutSine),
             repeatMode = RepeatMode.Reverse,
         ),
-        label = "leafOffset",
+        label = "floatOffset",
     )
 
     Box(
@@ -59,106 +95,129 @@ fun WelcomeScreen(
     ) {
         Box(
             modifier = Modifier
-                .size(260.dp)
-                .offset(x = (-60).dp, y = (-60).dp)
+                .size(280.dp)
+                .offset(x = (-70).dp, y = (-70).dp)
                 .clip(CircleShape)
-                .background(GreenSecondary.copy(alpha = 0.35f))
+                .background(GreenSecondary.copy(alpha = 0.25f))
         )
         Box(
             modifier = Modifier
-                .size(160.dp)
-                .offset(x = 260.dp, y = (-30).dp)
+                .size(180.dp)
+                .offset(x = 270.dp, y = (-40).dp)
                 .clip(CircleShape)
-                .background(GreenPrimary.copy(alpha = 0.12f))
+                .background(GreenPrimary.copy(alpha = 0.10f))
         )
 
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .systemBarsPadding()
-                .padding(horizontal = 32.dp),
+                .systemBarsPadding(),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Spacer(Modifier.weight(1f))
 
-            Box(
-                contentAlignment = Alignment.Center,
-                modifier = Modifier
-                    .size(140.dp)
-                    .offset(y = leafOffset.dp)
-                    .shadow(16.dp, CircleShape)
-                    .clip(CircleShape)
-                    .background(GreenPrimary),
-            ) {
-                Text(
-                    text     = "🍽️",
-                    fontSize = 64.sp,
-                )
+            // ── Pager ────────────────────────────────────────────────────
+            HorizontalPager(
+                state    = pagerState,
+                modifier = Modifier.weight(1f),
+            ) { pageIndex ->
+                val page = pages[pageIndex]
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 36.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center,
+                ) {
+                    // Floating emoji icon
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier
+                            .size(140.dp)
+                            .offset(y = floatOffset.dp)
+                            .shadow(16.dp, CircleShape)
+                            .clip(CircleShape)
+                            .background(
+                                Brush.radialGradient(
+                                    listOf(page.accentColor, page.accentColor.copy(alpha = 0.7f))
+                                )
+                            ),
+                    ) {
+                        Icon(
+                            imageVector = page.icon,
+                            contentDescription = null,
+                            modifier = Modifier.size(64.dp),
+                            tint = Color.White
+                        )
+                    }
+
+                    Spacer(Modifier.height(48.dp))
+
+                    Text(
+                        text       = page.title,
+                        style      = MaterialTheme.typography.displaySmall,
+                        color      = GreenPrimary,
+                        fontWeight = FontWeight.ExtraBold,
+                        textAlign  = TextAlign.Center,
+                    )
+
+                    Spacer(Modifier.height(16.dp))
+
+                    Text(
+                        text      = page.subtitle,
+                        style     = MaterialTheme.typography.bodyLarge,
+                        color     = GreenOnBackground.copy(alpha = 0.68f),
+                        textAlign = TextAlign.Center,
+                        lineHeight = 26.sp,
+                    )
+                }
             }
 
-            Spacer(Modifier.height(40.dp))
-
-            Text(
-                text       = if (isPreview) "SnapChef" else uiState.title,
-                style      = MaterialTheme.typography.displayLarge,
-                color      = GreenPrimary,
-                fontWeight = FontWeight.ExtraBold,
-            )
-
-            Spacer(Modifier.height(12.dp))
-
-            Text(
-                text = if (isPreview) "Snap a photo, discover a recipe.\nCook smarter every day." else uiState.subtitle,
-                style     = MaterialTheme.typography.bodyLarge,
-                color     = GreenOnBackground.copy(alpha = 0.65f),
-                textAlign = TextAlign.Center,
-            )
-
-            Spacer(Modifier.weight(1f))
-
+            // ── Dot indicators ───────────────────────────────────────────
             Row(
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment     = Alignment.CenterVertically,
+                modifier = Modifier.padding(bottom = 28.dp),
             ) {
-                Box(Modifier.size(10.dp).clip(CircleShape).background(GreenPrimary))
-                Box(Modifier.size(7.dp).clip(CircleShape).background(GreenSecondary))
-                Box(Modifier.size(7.dp).clip(CircleShape).background(GreenSecondary))
+                repeat(pages.size) { index ->
+                    val isSelected = pagerState.currentPage == index
+                    Box(
+                        modifier = Modifier
+                            .height(8.dp)
+                            .width(if (isSelected) 24.dp else 8.dp)
+                            .clip(CircleShape)
+                            .background(
+                                if (isSelected) GreenPrimary else GreenSecondary.copy(alpha = 0.45f)
+                            )
+                    )
+                }
             }
 
-            Spacer(Modifier.height(32.dp))
+            // ── CTA button ───────────────────────────────────────────────
+            val isLastPage = pagerState.currentPage == pages.lastIndex
 
             Button(
-                onClick  = onGetStarted,
+                onClick = {
+                    if (isLastPage) {
+                        onGetStarted()
+                    } else {
+                        scope.launch {
+                            pagerState.animateScrollToPage(pagerState.currentPage + 1)
+                        }
+                    }
+                },
                 modifier = Modifier
                     .fillMaxWidth()
+                    .padding(horizontal = 32.dp)
                     .height(56.dp),
-                shape    = RoundedCornerShape(28.dp),
-                colors   = ButtonDefaults.buttonColors(containerColor = GreenPrimary),
+                shape  = RoundedCornerShape(28.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = GreenPrimary),
                 elevation = ButtonDefaults.buttonElevation(defaultElevation = 6.dp),
             ) {
                 Text(
-                    text  = "Get Started",
+                    text  = if (isLastPage) "Get Started" else "Next",
                     style = MaterialTheme.typography.labelLarge,
                     color = Color.White,
                 )
-            }
-
-            Spacer(Modifier.height(16.dp))
-
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    text  = "Already have an account? ",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = GreenOnBackground.copy(alpha = 0.6f),
-                )
-                TextButton(onClick = onSignIn, contentPadding = PaddingValues(0.dp)) {
-                    Text(
-                        text  = "Sign In",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = GreenPrimary,
-                        fontWeight = FontWeight.Bold,
-                    )
-                }
             }
 
             Spacer(Modifier.height(32.dp))

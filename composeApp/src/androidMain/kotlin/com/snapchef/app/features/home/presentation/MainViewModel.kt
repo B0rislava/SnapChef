@@ -19,6 +19,7 @@ data class MainUiState(
     val isEditingProfile: Boolean = false,
     val activeRecipeIngredients: List<String>? = null,
     val shouldNavigateToAuth: Boolean = false,
+    val isCameraActive: Boolean = false,
 )
 
 class MainViewModel : ViewModel() {
@@ -51,6 +52,10 @@ class MainViewModel : ViewModel() {
         _uiState.update { it.copy(activeRecipeIngredients = null) }
     }
 
+    fun setCameraActive(active: Boolean) {
+        _uiState.update { it.copy(isCameraActive = active) }
+    }
+    
     fun saveGeneratedRecipe(recipe: SharedRecipe, isShared: Boolean) {
         RecipeStore.addPersonalRecipe(recipe)
         _uiState.update {

@@ -16,10 +16,11 @@ import androidx.camera.view.PreviewView
 import androidx.compose.animation.*
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -35,107 +36,122 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.snapchef.app.core.theme.GreenBackground
 import com.snapchef.app.core.theme.GreenOnBackground
 import com.snapchef.app.core.theme.GreenPrimary
 import com.snapchef.app.core.theme.GreenSecondary
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
-    onGenerateRecipes: (List<String>) -> Unit
+    onGenerateRecipes: (List<String>) -> Unit,
+    isCameraActive: Boolean,
+    onCameraActiveChanged: (Boolean) -> Unit,
+    homeViewModel: HomeViewModel = viewModel(),
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
     val coroutineScope = rememberCoroutineScope()
 
-    var showModal by remember { mutableStateOf(false) }
-    var isAnalyzing by remember { mutableStateOf(false) }
-    var ingredients by remember { mutableStateOf(listOf<String>()) }
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val uiState by homeViewModel.uiState.collectAsStateWithLifecycle()
 
-    // Permission and Camera States
+    val ingredientSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val reviewSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+
+    // Reset camera captures whenever the camera overlay closes
+    LaunchedEffect(isCameraActive) {
+        if (!isCameraActive) homeViewModel.resetCameraCaptures()
+    }
+
+    // ── Permission state (requires Context, stays in composable) ─────────
     var showRationale by remember { mutableStateOf(false) }
+    var isPermanentlyDenied by remember { mutableStateOf(false) }
     var hasCameraPermission by remember {
         mutableStateOf(
-            ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED
+            ContextCompat.checkSelfPermission(
+                context, Manifest.permission.CAMERA
+            ) == PackageManager.PERMISSION_GRANTED
         )
     }
-    var isCameraActive by remember { mutableStateOf(false) }
 
-    // Logic to detect "Don't ask anymore" or repeated denial
-    var isPermanentlyDenied by remember { mutableStateOf(false) }
-
-    // Check permissions when coming back from settings
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
-                val isGranted = ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED
-                hasCameraPermission = isGranted
-                if (isGranted) {
-                    isPermanentlyDenied = false
-                }
+                val granted = ContextCompat.checkSelfPermission(
+                    context, Manifest.permission.CAMERA
+                ) == PackageManager.PERMISSION_GRANTED
+                hasCameraPermission = granted
+                if (granted) isPermanentlyDenied = false
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
-        onDispose {
-            lifecycleOwner.lifecycle.removeObserver(observer)
-        }
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
     val permissionLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestPermission()
+        ActivityResultContracts.RequestPermission()
     ) { isGranted ->
         hasCameraPermission = isGranted
         if (isGranted) {
-            isCameraActive = true
+            onCameraActiveChanged(true)
             isPermanentlyDenied = false
         } else {
-            // Check if we should show rationale now
             val activity = context as? Activity
             if (activity != null) {
-                isPermanentlyDenied = !ActivityCompat.shouldShowRequestPermissionRationale(activity, Manifest.permission.CAMERA)
+                isPermanentlyDenied = !ActivityCompat.shouldShowRequestPermissionRationale(
+                    activity, Manifest.permission.CAMERA
+                )
             }
         }
     }
 
-    // Permission Rationale Dialog
+    // Multi-photo gallery picker
+    val galleryLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.GetMultipleContents()
+    ) { uris: List<Uri> ->
+        if (uris.isNotEmpty()) {
+            homeViewModel.startAnalysis(uris.size)
+        }
+    }
+
+    // ── Camera permission rationale dialog ───────────────────────────────
     if (showRationale) {
         AlertDialog(
             onDismissRequest = { showRationale = false },
-            title = { 
+            title = {
                 Text(
                     text = if (isPermanentlyDenied) "Camera Access Required" else "Camera Access",
-                    fontWeight = FontWeight.Bold 
-                ) 
+                    fontWeight = FontWeight.Bold
+                )
             },
-            text = { 
+            text = {
                 Text(
-                    text = if (isPermanentlyDenied) {
+                    text = if (isPermanentlyDenied)
                         "You've disabled camera access. To recognize ingredients, please enable it in your app settings."
-                    } else {
+                    else
                         "SnapChef needs camera access to instantly recognize your ingredients and suggest the best recipes."
-                    }
-                ) 
+                )
             },
             confirmButton = {
                 Button(
                     onClick = {
                         showRationale = false
                         if (isPermanentlyDenied) {
-                            // Open App Settings
-                            val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
-                                data = Uri.fromParts("package", context.packageName, null)
-                            }
-                            context.startActivity(intent)
+                            context.startActivity(
+                                Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                                    data = Uri.fromParts("package", context.packageName, null)
+                                }
+                            )
                         } else {
                             permissionLauncher.launch(Manifest.permission.CAMERA)
                         }
@@ -144,7 +160,7 @@ fun HomeScreen(
                 ) {
                     Text(
                         text = if (isPermanentlyDenied) "Open Settings" else "Allow",
-                        color = Color.White 
+                        color = Color.White
                     )
                 }
             },
@@ -158,6 +174,7 @@ fun HomeScreen(
         )
     }
 
+    // ── Root layout ──────────────────────────────────────────────────────
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -168,22 +185,26 @@ fun HomeScreen(
             ),
         contentAlignment = Alignment.Center
     ) {
+
         if (isCameraActive && hasCameraPermission) {
-            // Camera Preview Overlay
+            // ── Camera multi-capture overlay ─────────────────────────────
             Box(Modifier.fillMaxSize()) {
                 AndroidView(
                     factory = { ctx ->
                         val previewView = PreviewView(ctx)
-                        val cameraProviderFuture = ProcessCameraProvider.getInstance(ctx)
-                        cameraProviderFuture.addListener({
-                            val cameraProvider = cameraProviderFuture.get()
+                        val future = ProcessCameraProvider.getInstance(ctx)
+                        future.addListener({
+                            val provider = future.get()
                             val preview = Preview.Builder().build().also {
                                 it.surfaceProvider = previewView.surfaceProvider
                             }
-                            val cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
                             try {
-                                cameraProvider.unbindAll()
-                                cameraProvider.bindToLifecycle(lifecycleOwner, cameraSelector, preview)
+                                provider.unbindAll()
+                                provider.bindToLifecycle(
+                                    lifecycleOwner,
+                                    CameraSelector.DEFAULT_BACK_CAMERA,
+                                    preview
+                                )
                             } catch (e: Exception) {
                                 Log.e("CameraX", "Binding failed", e)
                             }
@@ -193,26 +214,47 @@ fun HomeScreen(
                     modifier = Modifier.fillMaxSize()
                 )
 
-                // Capture Button Overlay
+                // Bottom controls: Review button + shutter + hint
                 Column(
                     modifier = Modifier
-                        .fillMaxSize()
-                        .padding(bottom = 120.dp),
-                    verticalArrangement = Arrangement.Bottom,
-                    horizontalAlignment = Alignment.CenterHorizontally
+                        .fillMaxWidth()
+                        .align(Alignment.BottomCenter)
+                        .padding(bottom = 48.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
+                    // Review button – shown only after ≥1 capture
+                    AnimatedVisibility(
+                        visible = uiState.capturedCount > 0,
+                        enter = fadeIn() + expandVertically(),
+                        exit = fadeOut() + shrinkVertically()
+                    ) {
+                        Button(
+                            onClick = homeViewModel::openPhotoReview,
+                            shape = RoundedCornerShape(28.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = GreenPrimary),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 32.dp)
+                                .height(50.dp)
+                        ) {
+                            Icon(
+                                Icons.Rounded.PhotoLibrary,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(Modifier.width(8.dp))
+                            Text(
+                                "Review ${uiState.capturedCount} photo${if (uiState.capturedCount > 1) "s" else ""}",
+                                color = Color.White,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+
+                    // Shutter button
                     IconButton(
-                        onClick = {
-                            isCameraActive = false
-                            coroutineScope.launch {
-                                ingredients = emptyList()
-                                isAnalyzing = true
-                                showModal = true
-                                delay(1500)
-                                ingredients = listOf("Tomatoes", "Eggs", "Cheese", "Onion")
-                                isAnalyzing = false
-                            }
-                        },
+                        onClick = homeViewModel::capturePhoto,
                         modifier = Modifier
                             .size(80.dp)
                             .clip(CircleShape)
@@ -226,65 +268,71 @@ fun HomeScreen(
                                 .background(GreenPrimary)
                         )
                     }
-                    Spacer(modifier = Modifier.height(16.dp))
+
                     Text(
-                        text = "Tap to recognize ingredients",
+                        text = if (uiState.capturedCount == 0)
+                            "Tap to capture ingredients"
+                        else
+                            "Tap again to add more photos",
                         color = Color.White,
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.Bold
                     )
                 }
 
-                // Close Camera Button
+                // Close button (top-left)
                 IconButton(
-                    onClick = { isCameraActive = false },
+                    onClick = { onCameraActiveChanged(false) },
                     modifier = Modifier
                         .align(Alignment.TopStart)
                         .padding(24.dp)
                         .statusBarsPadding()
-                        .background(Color.Black.copy(alpha = 0.3f), CircleShape)
+                        .background(Color.Black.copy(alpha = 0.35f), CircleShape)
                 ) {
-                    Icon(Icons.Rounded.Close, "Close", tint = Color.White)
+                    Icon(Icons.Rounded.Close, "Close camera", tint = Color.White)
                 }
-            }
-        } else {
-            // Standard Dashboard
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                modifier = Modifier.padding(horizontal = 32.dp)
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(240.dp)
-                        .clip(CircleShape)
-                        .background(GreenPrimary.copy(alpha = 0.15f))
-                        .clickable {
-                            if (hasCameraPermission) {
-                                isCameraActive = true
-                            } else {
-                                showRationale = true
-                            }
-                        },
-                    contentAlignment = Alignment.Center
-                ) {
+
+                // Capture count badge (top-right)
+                if (uiState.capturedCount > 0) {
                     Box(
                         modifier = Modifier
-                            .size(180.dp)
-                            .clip(CircleShape)
-                            .background(GreenPrimary),
-                        contentAlignment = Alignment.Center
+                            .align(Alignment.TopEnd)
+                            .padding(24.dp)
+                            .statusBarsPadding()
+                            .clip(RoundedCornerShape(20.dp))
+                            .background(GreenPrimary)
+                            .padding(horizontal = 12.dp, vertical = 6.dp)
                     ) {
-                        Icon(
-                            imageVector = Icons.Rounded.CameraAlt,
-                            contentDescription = "Snap Ingredients",
-                            modifier = Modifier.size(80.dp),
-                            tint = Color.White
-                        )
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Icon(
+                                Icons.Rounded.CameraAlt,
+                                contentDescription = null,
+                                tint = Color.White,
+                                modifier = Modifier.size(14.dp)
+                            )
+                            Text(
+                                "${uiState.capturedCount}",
+                                color = Color.White,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 13.sp
+                            )
+                        }
                     }
                 }
+            }
 
-                Spacer(modifier = Modifier.height(40.dp))
-
+        } else {
+            // ── Idle dashboard: two option cards ─────────────────────────
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(20.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 28.dp)
+            ) {
                 Text(
                     text = "Snap your ingredients",
                     style = MaterialTheme.typography.headlineMedium,
@@ -293,22 +341,107 @@ fun HomeScreen(
                     textAlign = TextAlign.Center
                 )
 
-                Spacer(modifier = Modifier.height(16.dp))
-
                 Text(
-                    text = "Take a photo of the food in your kitchen.\nWe'll recognize what you have and generate delicious recipes instantly.",
+                    text = "Take photos or pick from gallery.\nWe'll recognize what you have and generate delicious recipes.",
                     style = MaterialTheme.typography.bodyLarge,
                     color = GreenOnBackground.copy(alpha = 0.7f),
                     textAlign = TextAlign.Center
                 )
+
+                Spacer(Modifier.height(4.dp))
+
+                // Camera card
+                ElevatedCard(
+                    onClick = {
+                        if (hasCameraPermission) onCameraActiveChanged(true)
+                        else showRationale = true
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(24.dp),
+                    colors = CardDefaults.elevatedCardColors(containerColor = Color.White),
+                    elevation = CardDefaults.elevatedCardElevation(defaultElevation = 4.dp)
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(20.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(56.dp)
+                                .clip(CircleShape)
+                                .background(GreenPrimary),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(Icons.Rounded.CameraAlt, null, tint = Color.White, modifier = Modifier.size(28.dp))
+                        }
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                "Take Photo(s)",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = GreenOnBackground
+                            )
+                            Text(
+                                "Capture one or multiple shots",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = GreenOnBackground.copy(alpha = 0.55f)
+                            )
+                        }
+                        Icon(Icons.Rounded.ChevronRight, null, tint = GreenSecondary)
+                    }
+                }
+
+                // Gallery card
+                ElevatedCard(
+                    onClick = { galleryLauncher.launch("image/*") },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(24.dp),
+                    colors = CardDefaults.elevatedCardColors(containerColor = Color.White),
+                    elevation = CardDefaults.elevatedCardElevation(defaultElevation = 4.dp)
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(20.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(56.dp)
+                                .clip(CircleShape)
+                                .background(GreenSecondary),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(Icons.Rounded.PhotoLibrary, null, tint = Color.White, modifier = Modifier.size(28.dp))
+                        }
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                "Choose from Gallery",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = GreenOnBackground
+                            )
+                            Text(
+                                "Pick one or multiple photos",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = GreenOnBackground.copy(alpha = 0.55f)
+                            )
+                        }
+                        Icon(Icons.Rounded.ChevronRight, null, tint = GreenSecondary)
+                    }
+                }
             }
         }
 
-        // Recognition Modal Bottom Sheet
-        if (showModal) {
+        // ── Photo Review Sheet ────────────────────────────────────────────
+        if (uiState.showPhotoReview) {
             ModalBottomSheet(
-                onDismissRequest = { showModal = false },
-                sheetState = sheetState,
+                onDismissRequest = homeViewModel::dismissPhotoReview,
+                sheetState = reviewSheetState,
                 containerColor = Color.White,
                 dragHandle = { BottomSheetDefaults.DragHandle(color = GreenSecondary) }
             ) {
@@ -320,7 +453,130 @@ fun HomeScreen(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(
-                        text = if (isAnalyzing) "Analyzing Photo..." else "Ingredients Found",
+                        text = "Review Photos",
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = GreenPrimary
+                    )
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        text = "Remove any photos you don't want to include, then tap Analyze.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = GreenOnBackground.copy(alpha = 0.6f),
+                        textAlign = TextAlign.Center
+                    )
+                    Spacer(Modifier.height(20.dp))
+
+                    if (uiState.capturedPhotoIds.isEmpty()) {
+                        Text(
+                            "No photos left. Go back and capture some!",
+                            color = GreenOnBackground.copy(alpha = 0.5f),
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.padding(vertical = 32.dp)
+                        )
+                    } else {
+                        LazyRow(
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            contentPadding = PaddingValues(horizontal = 4.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            itemsIndexed(uiState.capturedPhotoIds) { index, id ->
+                                Box(
+                                    modifier = Modifier
+                                        .size(110.dp)
+                                        .clip(RoundedCornerShape(16.dp))
+                                        .background(
+                                            Brush.verticalGradient(
+                                                listOf(
+                                                    GreenPrimary.copy(alpha = 0.7f),
+                                                    GreenSecondary.copy(alpha = 0.9f),
+                                                )
+                                            )
+                                        )
+                                ) {
+                                    Column(
+                                        modifier = Modifier.align(Alignment.Center),
+                                        horizontalAlignment = Alignment.CenterHorizontally
+                                    ) {
+                                        Icon(
+                                            Icons.Rounded.CameraAlt,
+                                            contentDescription = null,
+                                            tint = Color.White.copy(alpha = 0.8f),
+                                            modifier = Modifier.size(32.dp)
+                                        )
+                                        Spacer(Modifier.height(4.dp))
+                                        Text(
+                                            "Photo ${index + 1}",
+                                            color = Color.White,
+                                            fontSize = 11.sp,
+                                            fontWeight = FontWeight.Medium
+                                        )
+                                    }
+                                    IconButton(
+                                        onClick = { homeViewModel.removePhoto(id) },
+                                        modifier = Modifier
+                                            .align(Alignment.TopEnd)
+                                            .padding(4.dp)
+                                            .size(28.dp)
+                                            .clip(CircleShape)
+                                            .background(Color.Black.copy(alpha = 0.4f))
+                                    ) {
+                                        Icon(
+                                            Icons.Rounded.Close,
+                                            contentDescription = "Remove photo ${index + 1}",
+                                            tint = Color.White,
+                                            modifier = Modifier.size(14.dp)
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    Spacer(Modifier.height(24.dp))
+
+                    Button(
+                        onClick = {
+                            val count = uiState.capturedCount
+                            onCameraActiveChanged(false)
+                            homeViewModel.startAnalysis(count)
+                        },
+                        enabled = uiState.capturedPhotoIds.isNotEmpty(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(54.dp),
+                        shape = RoundedCornerShape(28.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = GreenPrimary)
+                    ) {
+                        Icon(Icons.Rounded.AutoAwesome, null, modifier = Modifier.size(18.dp))
+                        Spacer(Modifier.width(8.dp))
+                        Text(
+                            "Analyze ${uiState.capturedCount} photo${if (uiState.capturedCount > 1) "s" else ""}",
+                            color = Color.White,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+            }
+        }
+
+        // ── Ingredient Modal Sheet ────────────────────────────────────────
+        if (uiState.showIngredientModal) {
+            ModalBottomSheet(
+                onDismissRequest = homeViewModel::dismissIngredientModal,
+                sheetState = ingredientSheetState,
+                containerColor = Color.White,
+                dragHandle = { BottomSheetDefaults.DragHandle(color = GreenSecondary) }
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 24.dp)
+                        .padding(bottom = 32.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = if (uiState.isAnalyzing) "Analyzing Photos..." else "Ingredients Found",
                         style = MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.Bold,
                         color = GreenPrimary
@@ -328,11 +584,9 @@ fun HomeScreen(
                     Spacer(modifier = Modifier.height(8.dp))
 
                     AnimatedContent(
-                        targetState = isAnalyzing,
+                        targetState = uiState.isAnalyzing,
                         label = "analysis state",
-                        transitionSpec = {
-                            fadeIn(tween(300)) togetherWith fadeOut(tween(300))
-                        }
+                        transitionSpec = { fadeIn(tween(300)) togetherWith fadeOut(tween(300)) }
                     ) { analyzing ->
                         if (analyzing) {
                             Column(
@@ -343,7 +597,10 @@ fun HomeScreen(
                             ) {
                                 CircularProgressIndicator(color = GreenPrimary)
                                 Spacer(modifier = Modifier.height(16.dp))
-                                Text("Identifying food items with AI...", color = GreenOnBackground.copy(alpha = 0.6f))
+                                Text(
+                                    "Identifying food items with AI...",
+                                    color = GreenOnBackground.copy(alpha = 0.6f)
+                                )
                             }
                         } else {
                             Column(modifier = Modifier.fillMaxWidth()) {
@@ -354,14 +611,14 @@ fun HomeScreen(
                                     textAlign = TextAlign.Center,
                                     modifier = Modifier.fillMaxWidth()
                                 )
-                                
+
                                 Spacer(modifier = Modifier.height(24.dp))
-                                
+
                                 LazyColumn(
                                     modifier = Modifier.heightIn(max = 280.dp),
                                     verticalArrangement = Arrangement.spacedBy(12.dp)
                                 ) {
-                                    items(ingredients) { item ->
+                                    items(uiState.ingredients) { item ->
                                         Row(
                                             modifier = Modifier
                                                 .fillMaxWidth()
@@ -373,7 +630,7 @@ fun HomeScreen(
                                         ) {
                                             Row(verticalAlignment = Alignment.CenterVertically) {
                                                 Icon(
-                                                    imageVector = Icons.Rounded.CheckCircle,
+                                                    Icons.Rounded.CheckCircle,
                                                     contentDescription = null,
                                                     tint = GreenPrimary,
                                                     modifier = Modifier.size(24.dp)
@@ -386,15 +643,12 @@ fun HomeScreen(
                                                     color = GreenOnBackground
                                                 )
                                             }
-                                            
                                             IconButton(
-                                                onClick = {
-                                                    ingredients = ingredients.filter { it != item }
-                                                },
+                                                onClick = { homeViewModel.removeIngredient(item) },
                                                 modifier = Modifier.size(32.dp)
                                             ) {
                                                 Icon(
-                                                    imageVector = Icons.Rounded.Delete,
+                                                    Icons.Rounded.Delete,
                                                     contentDescription = "Remove $item",
                                                     tint = GreenSecondary
                                                 )
@@ -402,9 +656,10 @@ fun HomeScreen(
                                         }
                                     }
                                 }
-                                
+
                                 Spacer(modifier = Modifier.height(16.dp))
-                                
+
+                                // Add ingredient row
                                 var newIngredient by remember { mutableStateOf("") }
                                 Row(
                                     modifier = Modifier
@@ -429,30 +684,24 @@ fun HomeScreen(
                                     Spacer(modifier = Modifier.width(12.dp))
                                     IconButton(
                                         onClick = {
-                                            if (newIngredient.isNotBlank()) {
-                                                ingredients = ingredients + newIngredient.trim()
-                                                newIngredient = ""
-                                            }
+                                            homeViewModel.addIngredient(newIngredient)
+                                            newIngredient = ""
                                         },
                                         modifier = Modifier
                                             .size(56.dp)
                                             .clip(RoundedCornerShape(16.dp))
                                             .background(GreenPrimary)
                                     ) {
-                                        Icon(
-                                            imageVector = Icons.Rounded.Add,
-                                            contentDescription = "Add",
-                                            tint = Color.White
-                                        )
+                                        Icon(Icons.Rounded.Add, "Add", tint = Color.White)
                                     }
                                 }
 
                                 Button(
                                     onClick = {
                                         coroutineScope.launch {
-                                            sheetState.hide()
-                                            showModal = false
-                                            onGenerateRecipes(ingredients)
+                                            ingredientSheetState.hide()
+                                            homeViewModel.dismissIngredientModal()
+                                            onGenerateRecipes(uiState.ingredients)
                                         }
                                     },
                                     modifier = Modifier
@@ -460,7 +709,7 @@ fun HomeScreen(
                                         .height(56.dp),
                                     shape = RoundedCornerShape(28.dp),
                                     colors = ButtonDefaults.buttonColors(containerColor = GreenPrimary),
-                                    enabled = ingredients.isNotEmpty()
+                                    enabled = uiState.ingredients.isNotEmpty()
                                 ) {
                                     Text(
                                         text = "Generate Recipes",
