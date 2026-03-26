@@ -4,6 +4,7 @@ import android.net.Uri
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
@@ -20,9 +21,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.pager.HorizontalPager
-import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -34,6 +32,10 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Email
+import androidx.compose.material.icons.outlined.Person
+import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -57,27 +59,6 @@ import com.snapchef.app.core.theme.GreenPrimary
 import com.snapchef.app.core.theme.GreenSecondary
 import com.snapchef.app.core.theme.SnapChefTheme
 
-@Composable
-private fun Pill(
-    text: String,
-    isQuick: Boolean,
-) {
-    val bg = if (isQuick) GreenPrimary else GreenSecondary
-    val fg = if (isQuick) Color.White else GreenOnBackground
-    Surface(
-        shape = RoundedCornerShape(999.dp),
-        color = bg,
-        tonalElevation = 2.dp,
-    ) {
-        Text(
-            text = text,
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-            color = fg,
-            style = MaterialTheme.typography.bodyMedium,
-            fontWeight = FontWeight.SemiBold,
-        )
-    }
-}
 
 @Composable
 fun ProfileScreen(
@@ -94,7 +75,6 @@ fun ProfileScreen(
     var showDeleteDialog by remember { mutableStateOf(false) }
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val initials = remember(userName) { userName.toInitials() }
-    val recipes = uiState.recipes
 
     Box(
         modifier = modifier
@@ -188,7 +168,7 @@ fun ProfileScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Recipes strip
+            // Inventory strip
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(24.dp),
@@ -197,44 +177,39 @@ fun ProfileScreen(
             ) {
                 Column(modifier = Modifier.padding(24.dp)) {
                     Text(
-                        text = "Saved recipes",
+                        text = "My Inventory",
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold,
                         color = GreenPrimary,
                     )
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    val pagerState = rememberPagerState(pageCount = { recipes.size })
-
-                    HorizontalPager(
-                        state = pagerState,
-                        modifier = Modifier.fillMaxWidth(),
-                        pageSpacing = 0.dp,
-                    ) { page ->
-                        RecipeCard(
-                            recipe = recipes[page],
-                            onPress = { /* MVP: visual only */ },
-                            modifier = Modifier.fillMaxWidth(),
-                        )
+                    val inventory = remember {
+                        listOf("Eggs", "Milk", "Cheese", "Tomatoes", "Chicken Breast", "Olive Oil", "Bread")
                     }
 
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.Center,
+                    @OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
+                    androidx.compose.foundation.layout.FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp),
+                        modifier = Modifier.fillMaxWidth()
                     ) {
-                        repeat(recipes.size) { index ->
-                            val isSelected = pagerState.currentPage == index
+                        inventory.forEach { item ->
+                            val isPerishable = item in listOf("Eggs", "Milk", "Cheese", "Chicken Breast")
                             Box(
                                 modifier = Modifier
-                                    .padding(horizontal = 4.dp)
-                                    .size(if (isSelected) 9.dp else 7.dp)
-                                    .clip(CircleShape)
-                                    .background(
-                                        if (isSelected) GreenPrimary else GreenSecondary.copy(alpha = 0.6f)
-                                    ),
-                            )
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(if (isPerishable) GreenPrimary.copy(alpha = 0.1f) else GreenSecondary.copy(alpha = 0.3f))
+                                    .border(1.dp, if (isPerishable) GreenPrimary else GreenSecondary, RoundedCornerShape(12.dp))
+                                    .padding(horizontal = 14.dp, vertical = 8.dp)
+                            ) {
+                                Text(
+                                    text = item,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = if (isPerishable) GreenPrimary else GreenOnBackground,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                            }
                         }
                     }
                 }
@@ -338,9 +313,10 @@ private fun ReadOnlyProfileField(
             contentColor = GreenPrimary
         ) {
             Box(contentAlignment = Alignment.Center) {
-                Text(
-                    text = if (label == "Name") "👤" else "✉️",
-                    style = MaterialTheme.typography.titleLarge,
+                Icon(
+                    imageVector = if (label == "Name") Icons.Outlined.Person else Icons.Outlined.Email,
+                    contentDescription = label,
+                    modifier = Modifier.size(24.dp)
                 )
             }
         }
@@ -364,52 +340,6 @@ private fun ReadOnlyProfileField(
     }
 }
 
-@Composable
-private fun RecipeCard(
-    recipe: ProfileSavedRecipe,
-    onPress: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val interactionSource = remember { MutableInteractionSource() }
-    val pressed by interactionSource.collectIsPressedAsState()
-
-    val scale by animateFloatAsState(
-        targetValue = if (pressed) 0.98f else 1f,
-        animationSpec = spring(stiffness = 450f, dampingRatio = 0.65f),
-        label = "recipeCardScale",
-    )
-
-    Surface(
-        modifier = modifier
-            .widthIn(min = 200.dp, max = 420.dp)
-            .graphicsLayer {
-                scaleX = scale
-                scaleY = scale
-            }
-            .clip(RoundedCornerShape(16.dp))
-            .clickable(
-                interactionSource = interactionSource,
-                onClick = onPress,
-            ),
-        shape = RoundedCornerShape(16.dp),
-        color = GreenBackground,
-        border = androidx.compose.foundation.BorderStroke(1.5.dp, GreenSecondary),
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Pill(
-                text = if (recipe.isQuick) "Quick" else "Standard",
-                isQuick = recipe.isQuick,
-            )
-            Spacer(modifier = Modifier.height(12.dp))
-            Text(
-                text = recipe.title,
-                style = MaterialTheme.typography.bodyLarge,
-                fontWeight = FontWeight.SemiBold,
-                color = GreenOnBackground,
-            )
-        }
-    }
-}
 
 @Composable
 private fun BouncyAction(

@@ -57,7 +57,6 @@ class GroupsViewModel : ViewModel() {
         }
     }
 
-    fun setExpanded(value: Boolean) = _uiState.update { it.copy(expanded = value) }
     fun selectGroup(id: String) = _uiState.update { it.copy(selectedGroupId = id, expanded = false) }
     fun openDialog(mode: GroupDialogMode) = _uiState.update { it.copy(dialogMode = mode) }
     fun closeDialog() = _uiState.update { it.copy(dialogMode = null) }
@@ -65,27 +64,6 @@ class GroupsViewModel : ViewModel() {
     fun setCreateNameInput(value: String) = _uiState.update { it.copy(createNameInput = value) }
     fun openRecipe(recipe: SharedRecipe) = _uiState.update { it.copy(selectedRecipe = recipe) }
     fun closeRecipeDetails() = _uiState.update { it.copy(selectedRecipe = null) }
-    fun updatePerishableFreshness(productName: String, freshness: Float) {
-        val state = _uiState.value
-        val selected = state.selectedRecipe ?: return
-        val updatedSelected = selected.copy(
-            perishableProducts = selected.perishableProducts.map { item ->
-                if (item.name == productName) item.copy(freshness = freshness.coerceIn(0f, 1f)) else item
-            },
-        )
-        val updatedGroups = state.groups.map { group ->
-            group.copy(
-                recipes = group.recipes.map { recipe ->
-                    if (recipe.title == selected.title && recipe.ownerName == selected.ownerName) {
-                        updatedSelected
-                    } else {
-                        recipe
-                    }
-                },
-            )
-        }
-        _uiState.update { it.copy(groups = updatedGroups, selectedRecipe = updatedSelected) }
-    }
 
     fun joinGroup() {
         val state = _uiState.value
@@ -254,7 +232,8 @@ class GroupsViewModel : ViewModel() {
                 "Tomato Omelette",
                 "Soft omelette with tomatoes and herbs.",
                 "You",
-                emptyList(),
+                missingItems = emptyList(),
+                availableItems = listOf("Eggs", "Tomatoes", "Salt", "Pepper", "Oil", "Fresh Herbs"),
                 instructions = listOf(
                     "Whisk eggs with salt and pepper.",
                     "Cook tomatoes for 2 minutes.",
@@ -265,7 +244,8 @@ class GroupsViewModel : ViewModel() {
                 "Chicken Rice Bowl",
                 "Rice bowl with chicken and green vegetables.",
                 "You",
-                emptyList(),
+                missingItems = emptyList(),
+                availableItems = listOf("Chicken breast", "Rice", "Green onion", "Soy sauce", "Sesame seeds"),
                 instructions = listOf(
                     "Cook rice and keep warm.",
                     "Saute chicken until fully cooked.",
