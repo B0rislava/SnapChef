@@ -1,0 +1,18 @@
+//
+//  Localizable.strings
+//  iosApp
+//
+//  Created by gergana on 3/26/26.
+//
+
+"welcome_back" = "Welcome back!";
+"sign_in_to_continue" = "Sign in to continue your culinary journey.";
+"enter_your_email" = "Enter your email";
+"enter_your_password" = "Enter your password";
+"remember_me" = "Remember me";
+"forgot_password" = "Forgot Password?";
+"login" = "Login";
+"continue_google" = "Continue with Google";
+"continue_facebook" = "Continue with Facebook";
+"dont_have_account" = "Don't have an account?";
+"create_account" = "Create an account";
