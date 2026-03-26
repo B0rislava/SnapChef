@@ -16,6 +16,7 @@ import com.snapchef.app.core.presentation.components.MainTab
 import com.snapchef.app.core.presentation.components.SnapChefBottomBar
 import com.snapchef.app.core.theme.GreenPrimary
 import com.snapchef.app.core.theme.GreenSecondary
+import com.snapchef.app.features.groups.presentation.GroupsScreen
 import com.snapchef.app.features.profile.presentation.EditProfileScreen
 import com.snapchef.app.features.profile.presentation.ProfileScreen
 
@@ -46,9 +47,7 @@ fun MainScreen() {
                     }
                 }
                 MainTab.RECIPES -> {
-                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Text("Recipes Screen", style = MaterialTheme.typography.displayLarge, color = GreenPrimary)
-                    }
+                    GroupsScreen()
                 }
                 MainTab.PROFILE -> {
                     Crossfade(targetState = isEditingProfile, label = "profile_edit_crossfade") { editing ->
