@@ -21,13 +21,9 @@ struct ScreenWrapper: View {
                     .opacity(currentTab == .home ? 1 : 0)
 
                 ProfileView(
-                    userName: "John Doe",
-                    userEmail: "john.doe@snapchef.app",
-                    profileImageUri: nil,
                     onBack: { currentTab = .home },
-                    onLogout: { },
-                    onDeleteAccount: { },
-                    onEditProfile: { }
+                    onLogout: { print("Logging out...") },
+                    onDeleteAccount: { print("Deleting account...") }
                 )
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .opacity(currentTab == .profile ? 1 : 0)

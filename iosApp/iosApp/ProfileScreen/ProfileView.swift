@@ -14,13 +14,15 @@ private struct SavedRecipe: Identifiable {
 }
 
 struct ProfileView: View {
-    let userName: String
-    let userEmail: String
-    let profileImageUri: URL?
+    @State private var userName: String = "John Doe"
+    @State private var userEmail: String = "john.doe@example.com"
+    @State private var profileImageUri: URL? = nil
+    
+    @State private var isEditingProfile: Bool = false
+
     var onBack: () -> Void = {}
     var onLogout: () -> Void = {}
     var onDeleteAccount: () -> Void = {}
-    var onEditProfile: () -> Void = {}
 
     private var initials: String { userName.toInitials() }
 
@@ -32,6 +34,35 @@ struct ProfileView: View {
     ]
 
     var body: some View {
+        Group {
+            if isEditingProfile {
+                EditProfileView(
+                    userName: userName,
+                    userEmail: userEmail,
+                    profileImageUri: profileImageUri,
+                    onPickImage: { newImageURL in
+                        self.profileImageUri = newImageURL
+                    },
+                    onSave: { updatedName, updatedEmail in
+                        self.userName = updatedName
+                        self.userEmail = updatedEmail
+                        withAnimation {
+                            self.isEditingProfile = false
+                        }
+                    },
+                    onCancel: {
+                        withAnimation {
+                            self.isEditingProfile = false
+                        }
+                    }
+                )
+            } else {
+                displayProfileContent
+            }
+        }
+    }
+    
+    private var displayProfileContent: some View {
         ZStack(alignment: .topLeading) {
             LinearGradient(
                 colors: [Color.greenSecondary.opacity(0.55), Color.greenBackground],
@@ -110,7 +141,12 @@ struct ProfileView: View {
                             text: "Edit",
                             container: Color.greenSecondary,
                             content: Color.greenOnBackground,
-                            action: onEditProfile
+                            action: {
+                                // Transition into Edit Mode
+                                withAnimation {
+                                    isEditingProfile = true
+                                }
+                            }
                         )
                     }
 
