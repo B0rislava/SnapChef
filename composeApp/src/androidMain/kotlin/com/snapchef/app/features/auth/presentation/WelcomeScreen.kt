@@ -18,7 +18,11 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.snapchef.app.core.theme.*
+import com.snapchef.app.core.theme.GreenBackground
+import com.snapchef.app.core.theme.GreenOnBackground
+import com.snapchef.app.core.theme.GreenPrimary
+import com.snapchef.app.core.theme.GreenSecondary
+import com.snapchef.app.core.theme.SnapChefTheme
 
 @Composable
 fun WelcomeScreen(

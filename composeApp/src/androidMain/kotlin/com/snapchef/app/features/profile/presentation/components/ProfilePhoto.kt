@@ -1,4 +1,4 @@
-package com.snapchef.app
+package com.snapchef.app.features.profile.presentation.components
 
 import android.graphics.BitmapFactory
 import android.net.Uri
@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -17,7 +18,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import com.snapchef.app.ui.theme.GreenSecondary
+import com.snapchef.app.core.theme.GreenSecondary
 
 @Composable
 fun ProfilePhoto(
@@ -41,7 +42,7 @@ fun ProfilePhoto(
                 .background(GreenSecondary),
             contentAlignment = Alignment.Center,
         ) {
-            androidx.compose.material3.Text(
+            Text(
                 text = initials,
                 style = MaterialTheme.typography.headlineLarge,
             )
@@ -71,7 +72,7 @@ fun ProfilePhoto(
                 .background(GreenSecondary),
             contentAlignment = Alignment.Center,
         ) {
-            androidx.compose.material3.Text(
+            Text(
                 text = initials,
                 style = MaterialTheme.typography.headlineLarge,
             )
