@@ -7,18 +7,26 @@
 import SwiftUI
 
 enum AuthDestination: Int {
-    case signIn, signUp
+    case signIn, signUp, welcome
 }
 
 struct AuthView: View {
-    @State private var current: AuthDestination = .signIn
-    @State private var previous: AuthDestination = .signIn
+    @State private var current: AuthDestination = .welcome
+    @State private var previous: AuthDestination = .welcome
 
     var body: some View {
         ZStack {
             switch current {
+            case .welcome:
+                WelcomeView(
+                    onGetStarted: { navigate(to: .signUp) },
+                    onSignIn:     { navigate(to: .signIn) }
+                )
+                .transition(transition(to: .welcome, from: previous))
+                
             case .signIn:
                 SignInView(
+                    onBack:   { navigate(to: .welcome) },
                     onSignIn: { /* TODO: navigate to main app */ },
                     onSignUp: { navigate(to: .signUp) }
                 )
@@ -26,7 +34,7 @@ struct AuthView: View {
 
             case .signUp:
                 SignUpView(
-                    onBack:   { navigate(to: .signIn) },
+                    onBack:   { navigate(to: .welcome) },
                     onSignUp: { /* TODO: navigate to main app */ },
                     onSignIn: { navigate(to: .signIn) }
                 )
@@ -40,6 +48,7 @@ struct AuthView: View {
         previous = current
         current  = destination
     }
+    
     private func transition(to: AuthDestination, from: AuthDestination) -> AnyTransition {
         let forward = to.rawValue > from.rawValue
         return .asymmetric(
