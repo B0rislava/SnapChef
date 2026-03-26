@@ -17,6 +17,7 @@ import androidx.compose.ui.Modifier
 import com.snapchef.app.core.presentation.components.MainTab
 import com.snapchef.app.core.presentation.components.SnapChefBottomBar
 import com.snapchef.app.core.theme.GreenSecondary
+import com.snapchef.app.features.groups.presentation.RecipesScreen
 import com.snapchef.app.features.groups.presentation.GroupsScreen
 import com.snapchef.app.features.profile.presentation.EditProfileScreen
 import com.snapchef.app.features.profile.presentation.ProfileScreen
@@ -68,9 +69,12 @@ fun MainScreen(
                             )
                         }
                         MainTab.RECIPES -> {
-                            GroupsScreen(
+                            RecipesScreen(
                                 onDetailsVisibilityChanged = { isViewingGroupRecipeDetails = it }
                             )
+                        }
+                        MainTab.GROUPS -> {
+                            GroupsScreen()
                         }
                         MainTab.RECOMMENDED -> {
                             RecommendedRecipesScreen(
@@ -93,7 +97,6 @@ fun MainScreen(
                                         userName = uiState.userName,
                                         userEmail = uiState.userEmail,
                                         profileImageUri = uiState.profileImageUri,
-                                        onBack = { viewModel.selectTab(MainTab.HOME) },
                                         onLogout = viewModel::logout,
                                         onDeleteAccount = viewModel::deleteAccount,
                                         onEditProfile = viewModel::startEditProfile
@@ -104,7 +107,7 @@ fun MainScreen(
                     }
                 } 
 
-                if (!uiState.isEditingProfile && uiState.currentTab != MainTab.PROFILE && !uiState.isCameraActive) {
+                if (!uiState.isEditingProfile && !uiState.isCameraActive) {
 
                     SnapChefBottomBar(
                         currentTab = uiState.currentTab,
