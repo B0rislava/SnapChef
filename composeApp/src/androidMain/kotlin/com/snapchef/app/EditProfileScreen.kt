@@ -1,0 +1,286 @@
+package com.snapchef.app
+
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.systemBarsPadding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.outlined.Email
+import androidx.compose.material.icons.outlined.Person
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.snapchef.app.ui.auth.AuthTextField
+import com.snapchef.app.ui.theme.GreenBackground
+import com.snapchef.app.ui.theme.GreenOnBackground
+import com.snapchef.app.ui.theme.GreenPrimary
+import com.snapchef.app.ui.theme.GreenSecondary
+
+@Composable
+fun EditProfileScreen(
+    userName: String,
+    userEmail: String,
+    profileImageUri: Uri?,
+    onPickImage: (Uri) -> Unit,
+    onSave: (String, String) -> Unit,
+    onCancel: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    var editedName by remember(userName) { mutableStateOf(userName) }
+    var editedEmail by remember(userEmail) { mutableStateOf(userEmail) }
+    val initials = remember(editedName) { editedName.toInitials() }
+
+    val imagePicker = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent(),
+    ) { uri ->
+        if (uri != null) onPickImage(uri)
+    }
+
+    fun pickImage() = imagePicker.launch("image/*")
+
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .background(
+                Brush.verticalGradient(listOf(GreenSecondary.copy(alpha = 0.55f), GreenBackground))
+            )
+    ) {
+        // top circle accent
+        Box(
+            modifier = Modifier
+                .size(240.dp)
+                .offset(x = 240.dp, y = (-40).dp)
+                .clip(CircleShape)
+                .background(GreenPrimary.copy(alpha = 0.10f))
+        )
+
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .systemBarsPadding()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // ── back button ───────────────────────────────────────────────
+            Row(Modifier.fillMaxWidth()) {
+                IconButton(
+                    onClick = onCancel,
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clip(CircleShape)
+                        .background(GreenPrimary.copy(alpha = 0.10f))
+                ) {
+                    Icon(
+                        Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = "Back",
+                        tint = GreenPrimary,
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            Text(
+                text = "Edit Profile",
+                style = MaterialTheme.typography.headlineMedium,
+                color = GreenPrimary,
+                fontWeight = FontWeight.ExtraBold,
+            )
+            Spacer(modifier = Modifier.height(6.dp))
+            Text(
+                text = "Update your details and photo.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = GreenOnBackground.copy(alpha = 0.55f),
+            )
+
+            Spacer(modifier = Modifier.height(40.dp))
+
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth(),
+                contentAlignment = Alignment.Center,
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Box(
+                        contentAlignment = Alignment.BottomCenter,
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(140.dp)
+                                .clip(CircleShape)
+                                .background(Color.White)
+                                .padding(6.dp),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            ProfilePhoto(
+                                imageUri = profileImageUri,
+                                initials = initials,
+                                modifier = Modifier
+                                    .size(128.dp)
+                                    .clip(CircleShape),
+                                onClick = { pickImage() }
+                            )
+                        }
+
+                        Box(
+                            modifier = Modifier
+                                .size(40.dp)
+                                .offset(y = 20.dp)
+                                .clip(CircleShape)
+                                .background(Color.White)
+                                .padding(4.dp),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Button(
+                                onClick = { pickImage() },
+                                shape = CircleShape,
+                                modifier = Modifier.fillMaxSize(),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = GreenPrimary,
+                                    contentColor = Color.White,
+                                ),
+                                contentPadding = PaddingValues(0.dp),
+                                elevation = ButtonDefaults.buttonElevation(defaultElevation = 3.dp),
+                            ) {
+                                Text("✎", style = MaterialTheme.typography.titleMedium)
+                            }
+                        }
+                    }
+                }
+            }
+            
+            Spacer(modifier = Modifier.height(40.dp))
+
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(24.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.White),
+                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+            ) {
+                Column(
+                    modifier = Modifier.padding(24.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                ) {
+                    AuthTextField(
+                        value = editedName,
+                        onValueChange = { editedName = it },
+                        placeholder = "Full Name",
+                        leadingIcon = { 
+                            Icon(Icons.Outlined.Person, null, tint = GreenPrimary)
+                        },
+                    )
+
+                    AuthTextField(
+                        value = editedEmail,
+                        onValueChange = { editedEmail = it },
+                        placeholder = "Email Address",
+                        leadingIcon = { 
+                            Icon(Icons.Outlined.Email, null, tint = GreenPrimary)
+                        },
+                        keyboardType = KeyboardType.Email,
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(32.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+            ) {
+                OutlinedButton(
+                    onClick = onCancel,
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(56.dp),
+                    shape = RoundedCornerShape(28.dp),
+                    border = androidx.compose.foundation.BorderStroke(1.5.dp, GreenSecondary),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = GreenOnBackground),
+                ) {
+                    Text("Cancel", style = MaterialTheme.typography.labelLarge)
+                }
+
+                Button(
+                    onClick = { onSave(editedName, editedEmail) },
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(56.dp),
+                    shape = RoundedCornerShape(28.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = GreenPrimary,
+                        contentColor = Color.White,
+                    ),
+                    elevation = ButtonDefaults.buttonElevation(defaultElevation = 6.dp),
+                ) {
+                    Text("Save", style = MaterialTheme.typography.labelLarge)
+                }
+            }
+
+            Spacer(modifier = Modifier.height(32.dp))
+        }
+    }
+}
+
+private fun String.toInitials(): String {
+    val parts = trim().split("\\s+".toRegex()).filter { it.isNotEmpty() }
+    if (parts.isEmpty()) return "JD"
+    if (parts.size == 1) return parts.first().take(2).uppercase()
+    return (parts.first().first().toString() + parts.last().first().toString()).uppercase()
+}
+
+@Preview(showBackground = true)
+@Composable
+private fun EditProfileScreenPreview() {
+    com.snapchef.app.ui.theme.SnapChefTheme {
+        EditProfileScreen(
+            userName = "John Doe",
+            userEmail = "john.doe@snapchef.app",
+            profileImageUri = null,
+            onPickImage = {},
+            onSave = { _, _ -> },
+            onCancel = {},
+        )
+    }
+}
