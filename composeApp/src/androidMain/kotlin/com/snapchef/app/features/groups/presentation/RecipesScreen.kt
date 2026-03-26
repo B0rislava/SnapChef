@@ -5,6 +5,9 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -23,6 +26,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.border
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Person
@@ -33,7 +37,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -49,6 +52,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.snapchef.app.core.theme.GreenBackground
 import com.snapchef.app.core.theme.GreenOnBackground
 import com.snapchef.app.core.theme.GreenPrimary
@@ -308,11 +312,13 @@ private fun GroupRecipeDetailsScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .systemBarsPadding()
+                .verticalScroll(rememberScrollState())
                 .padding(horizontal = 20.dp, vertical = 20.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
             ) {
                 IconButton(
                     onClick = onBack,
@@ -331,22 +337,21 @@ private fun GroupRecipeDetailsScreen(
                 Spacer(modifier = Modifier.size(10.dp))
 
                 Text(
-                    text = "Recipe details",
+                    text = "Recipe Details",
                     style = MaterialTheme.typography.headlineSmall,
                     color = GreenPrimary,
                     fontWeight = FontWeight.Bold,
                 )
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
-
+            // Header & Actions Card
             Card(
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(22.dp),
+                shape = RoundedCornerShape(24.dp),
                 colors = CardDefaults.cardColors(containerColor = Color.White),
-                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
             ) {
-                Column(modifier = Modifier.padding(18.dp)) {
+                Column(modifier = Modifier.padding(24.dp)) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -354,176 +359,167 @@ private fun GroupRecipeDetailsScreen(
                     ) {
                         Text(
                             text = recipe.title,
-                            style = MaterialTheme.typography.titleLarge,
-                            color = GreenOnBackground,
-                            fontWeight = FontWeight.Bold,
+                            style = MaterialTheme.typography.headlineSmall,
+                            color = GreenPrimary,
+                            fontWeight = FontWeight.ExtraBold,
+                            modifier = Modifier.weight(1f)
                         )
-                        Card(
-                            shape = RoundedCornerShape(999.dp),
-                            colors = CardDefaults.cardColors(containerColor = GreenSecondary),
+                        Spacer(Modifier.width(16.dp))
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(GreenSecondary.copy(alpha=0.3f))
+                                .padding(horizontal = 12.dp, vertical = 6.dp)
                         ) {
                             Text(
                                 text = if (recipe.ownerName == "You") "Saved" else "Shared",
-                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
                                 style = MaterialTheme.typography.labelMedium,
-                                color = GreenOnBackground,
+                                color = GreenPrimary,
+                                fontWeight = FontWeight.Bold
                             )
                         }
                     }
-
-                    Spacer(modifier = Modifier.height(14.dp))
+                    
+                    if (recipe.description.isNotBlank()) {
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Text(
+                            text = recipe.description,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = GreenOnBackground.copy(alpha=0.8f),
+                            lineHeight = 22.sp
+                        )
+                    }
 
                     if (recipe.ownerName != "You") {
+                        Spacer(modifier = Modifier.height(24.dp))
                         Button(
                             onClick = { inviteMessage = "Invitation sent to ${recipe.ownerName}." },
                             colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = GreenPrimary),
-                            shape = RoundedCornerShape(14.dp),
+                            shape = RoundedCornerShape(16.dp),
+                            modifier = Modifier.fillMaxWidth()
                         ) {
-                            Text("Invite to cook together", color = Color.White)
+                            Text("Invite to cook together", color = Color.White, fontWeight = FontWeight.Bold)
                         }
                         inviteMessage?.let {
-                            Spacer(modifier = Modifier.height(6.dp))
-                            Text(it, style = MaterialTheme.typography.bodySmall, color = GreenPrimary)
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = it, 
+                                style = MaterialTheme.typography.labelMedium, 
+                                color = GreenPrimary, 
+                                modifier = Modifier.fillMaxWidth(), 
+                                textAlign = TextAlign.Center
+                            )
                         }
-                        Spacer(modifier = Modifier.height(12.dp))
                     }
+                }
+            }
 
+            // Ingredients Card
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(24.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.White),
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+            ) {
+                Column(modifier = Modifier.padding(24.dp)) {
                     Text(
-                        text = recipe.description,
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = GreenOnBackground,
+                        text = "Ingredients",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = GreenPrimary,
+                        fontWeight = FontWeight.Bold
                     )
-
-                    Spacer(modifier = Modifier.height(18.dp))
-
-                    Card(
-                        shape = RoundedCornerShape(16.dp),
-                        colors = CardDefaults.cardColors(containerColor = GreenBackground),
+                    Spacer(modifier = Modifier.height(16.dp))
+                    
+                    @OptIn(ExperimentalLayoutApi::class)
+                    FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.fillMaxWidth()
                     ) {
-                        Column(modifier = Modifier.padding(14.dp)) {
-                            Text(
-                                text = "Instructions",
-                                style = MaterialTheme.typography.titleSmall,
-                                color = GreenPrimary,
-                                fontWeight = FontWeight.SemiBold,
-                            )
-                            Spacer(modifier = Modifier.height(8.dp))
-                            if (recipe.instructions.isEmpty()) {
+                        recipe.availableItems.forEach { item ->
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(16.dp))
+                                    .background(GreenPrimary.copy(alpha = 0.1f))
+                                    .border(1.dp, GreenPrimary.copy(alpha = 0.8f), RoundedCornerShape(16.dp))
+                                    .padding(horizontal = 12.dp, vertical = 6.dp)
+                            ) {
                                 Text(
-                                    text = "No instructions available.",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = GreenOnBackground,
+                                    text = item,
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = GreenPrimary,
+                                    fontWeight = FontWeight.Bold
                                 )
-                            } else {
-                                recipe.instructions.forEachIndexed { i, step ->
-                                    Text(
-                                        text = "${i + 1}. $step",
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        color = GreenOnBackground,
-                                    )
-                                    Spacer(modifier = Modifier.height(4.dp))
-                                }
                             }
                         }
-                    }
 
-                    Spacer(modifier = Modifier.height(14.dp))
-
-                    if (recipe.perishableProducts.isNotEmpty()) {
-                        Card(
-                            shape = RoundedCornerShape(16.dp),
-                            colors = CardDefaults.cardColors(containerColor = GreenBackground),
-                        ) {
-                            Column(modifier = Modifier.padding(14.dp)) {
+                        val spoiled = recipe.spoiledProducts()
+                        recipe.missingItems.forEach { item ->
+                            val isSpoiled = spoiled.any { s -> item.contains(s, ignoreCase = true) }
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(16.dp))
+                                    .background(if (isSpoiled) Color(0xFFFFEBEE) else Color(0xFFF5F5F5))
+                                    .border(1.dp, if (isSpoiled) Color(0xFFE57373) else Color(0xFFE0E0E0), RoundedCornerShape(16.dp))
+                                    .padding(horizontal = 12.dp, vertical = 6.dp)
+                            ) {
                                 Text(
-                                    text = "Perishable freshness",
-                                    style = MaterialTheme.typography.titleSmall,
-                                    color = GreenPrimary,
-                                    fontWeight = FontWeight.SemiBold,
+                                    text = item,
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = if (isSpoiled) Color(0xFFC62828) else Color(0xFF9E9E9E),
+                                    fontWeight = FontWeight.Medium,
+                                    textDecoration = if (isSpoiled) TextDecoration.LineThrough else null
                                 )
-                                Spacer(modifier = Modifier.height(8.dp))
-                                recipe.perishableProducts.forEach { product ->
-                                    val daysLeft = product.daysLeft()
-                                    Text(
-                                        text = product.name,
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        color = if (daysLeft < 0) Color.Gray else GreenOnBackground,
-                                        textDecoration = if (daysLeft < 0) TextDecoration.LineThrough else TextDecoration.None,
-                                        fontWeight = FontWeight.Medium,
-                                    )
-                                    Slider(
-                                        value = product.freshness,
-                                        onValueChange = {},
-                                        valueRange = 0f..1f,
-                                        enabled = false,
-                                    )
-                                    Text(
-                                        text = when {
-                                            daysLeft < 0 -> "Expired"
-                                            daysLeft == 0 -> "Expires today"
-                                            else -> "$daysLeft days left"
-                                        },
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = when {
-                                            daysLeft < 0 -> Color.Gray
-                                            daysLeft == 0 -> Color(0xFFC62828)
-                                            else -> GreenPrimary
-                                        },
-                                    )
-                                    Spacer(modifier = Modifier.height(8.dp))
-                                }
-                            }
-                        }
-                        Spacer(modifier = Modifier.height(14.dp))
-                    }
-
-                    Card(
-                        shape = RoundedCornerShape(16.dp),
-                        colors = CardDefaults.cardColors(containerColor = GreenBackground),
-                    ) {
-                        Column(modifier = Modifier.padding(14.dp)) {
-                            if (recipe.availableItems.isNotEmpty()) {
-                                Text(
-                                    text = "${recipe.ownerName} has:",
-                                    style = MaterialTheme.typography.titleSmall,
-                                    color = GreenPrimary,
-                                    fontWeight = FontWeight.SemiBold,
-                                )
-                                Spacer(modifier = Modifier.height(6.dp))
-                                recipe.availableItems.forEach { item ->
-                                    Text("- $item", style = MaterialTheme.typography.bodyMedium, color = GreenOnBackground)
-                                }
-                                Spacer(modifier = Modifier.height(10.dp))
-                            }
-                            Text(
-                                text = "${recipe.ownerName} needs:",
-                                style = MaterialTheme.typography.titleSmall,
-                                color = GreenPrimary,
-                                fontWeight = FontWeight.SemiBold,
-                            )
-                            Spacer(modifier = Modifier.height(8.dp))
-
-                            if (recipe.missingItems.isEmpty()) {
-                                Text(
-                                    text = "No missing ingredients.",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = GreenOnBackground,
-                                )
-                            } else {
-                                val spoiled = recipe.spoiledProducts()
-                                recipe.missingItems.forEach { item ->
-                                    Text(
-                                        text = "- $item",
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        color = if (spoiled.any { s -> item.contains(s, ignoreCase = true) }) Color.Gray else GreenOnBackground,
-                                    )
-                                }
                             }
                         }
                     }
                 }
             }
 
+            // Instructions Card
+            if (recipe.instructions.isNotEmpty()) {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(24.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                ) {
+                    Column(modifier = Modifier.padding(24.dp)) {
+                        Text(
+                            text = "Instructions",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = GreenPrimary,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Spacer(modifier = Modifier.height(20.dp))
+                        recipe.instructions.forEachIndexed { index, step ->
+                            Row(modifier = Modifier.padding(bottom = 16.dp)) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(26.dp)
+                                        .clip(CircleShape)
+                                        .background(GreenPrimary.copy(alpha = 0.15f)),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = "${index + 1}",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = GreenPrimary,
+                                        fontWeight = FontWeight.ExtraBold
+                                    )
+                                }
+                                Spacer(modifier = Modifier.width(16.dp))
+                                Text(
+                                    text = step,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = GreenOnBackground.copy(alpha = 0.85f),
+                                    lineHeight = 22.sp
+                                )
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 }
