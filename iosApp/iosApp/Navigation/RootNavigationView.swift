@@ -27,7 +27,7 @@ struct RootNavigationView: View {
                 .transition(.opacity)
 
             case .home:
-                HomeView()
+                ScreenWrapper()
                     .transition(.opacity)
             }
         }
