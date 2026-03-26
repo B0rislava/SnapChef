@@ -36,7 +36,8 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -53,18 +54,17 @@ import com.snapchef.app.core.presentation.components.AuthTextField
 import com.snapchef.app.core.presentation.components.OrDivider
 import com.snapchef.app.core.presentation.components.SocialButton
 import com.snapchef.app.core.theme.*
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 
 @Composable
 fun SignUpScreen(
     onBack:       () -> Unit = {},
     onSignUp:     () -> Unit = {},
     onSignIn:     () -> Unit = {},
+    viewModel: SignUpViewModel = viewModel(),
 ) {
-    var name        by remember { mutableStateOf("") }
-    var email       by remember { mutableStateOf("") }
-    var password    by remember { mutableStateOf("") }
-    var showPass    by remember { mutableStateOf(false) }
-    var agreeTerms  by remember { mutableStateOf(false) }
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
     Box(
         modifier = Modifier
@@ -132,8 +132,8 @@ fun SignUpScreen(
                     verticalArrangement = Arrangement.spacedBy(16.dp),
                 ) {
                     AuthTextField(
-                        value         = name,
-                        onValueChange = { name = it },
+                        value         = uiState.name,
+                        onValueChange = viewModel::updateName,
                         placeholder   = "Full Name",
                         leadingIcon   = {
                             Icon(Icons.Outlined.Person, null, tint = GreenPrimary)
@@ -141,8 +141,8 @@ fun SignUpScreen(
                     )
 
                     AuthTextField(
-                        value         = email,
-                        onValueChange = { email = it },
+                        value         = uiState.email,
+                        onValueChange = viewModel::updateEmail,
                         placeholder   = "Email Address",
                         leadingIcon   = {
                             Icon(Icons.Outlined.Email, null, tint = GreenPrimary)
@@ -151,29 +151,29 @@ fun SignUpScreen(
                     )
 
                     AuthTextField(
-                        value         = password,
-                        onValueChange = { password = it },
+                        value         = uiState.password,
+                        onValueChange = viewModel::updatePassword,
                         placeholder   = "Password",
                         leadingIcon   = {
                             Icon(Icons.Outlined.Lock, null, tint = GreenPrimary)
                         },
                         trailingIcon  = {
-                            IconButton(onClick = { showPass = !showPass }) {
+                            IconButton(onClick = viewModel::toggleShowPassword) {
                                 Icon(
-                                    if (showPass) Icons.Outlined.VisibilityOff else Icons.Outlined.Visibility,
+                                    if (uiState.showPassword) Icons.Outlined.VisibilityOff else Icons.Outlined.Visibility,
                                     null, tint = GreenSecondary,
                                 )
                             }
                         },
-                        visualTransformation = if (showPass) VisualTransformation.None
+                        visualTransformation = if (uiState.showPassword) VisualTransformation.None
                                                else PasswordVisualTransformation(),
                         keyboardType = KeyboardType.Password,
                     )
 
                     Row(verticalAlignment = Alignment.Top) {
                         Checkbox(
-                            checked         = agreeTerms,
-                            onCheckedChange = { agreeTerms = it },
+                            checked         = uiState.agreeTerms,
+                            onCheckedChange = viewModel::setAgreeTerms,
                             colors          = CheckboxDefaults.colors(checkedColor = GreenPrimary),
                         )
                         Text(
@@ -190,7 +190,7 @@ fun SignUpScreen(
 
             Button(
                 onClick  = onSignUp,
-                enabled  = agreeTerms,
+                enabled  = uiState.agreeTerms,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(56.dp),

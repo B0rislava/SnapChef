@@ -36,10 +36,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -56,6 +54,8 @@ import com.snapchef.app.core.theme.GreenOnBackground
 import com.snapchef.app.core.theme.GreenPrimary
 import com.snapchef.app.core.theme.GreenSecondary
 import com.snapchef.app.core.theme.SnapChefTheme
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 
 
 @Composable
@@ -67,10 +67,12 @@ fun EditProfileScreen(
     onSave: (String, String) -> Unit,
     onCancel: () -> Unit,
     modifier: Modifier = Modifier,
+    viewModel: EditProfileViewModel = viewModel(),
 ) {
-    var editedName by remember(userName) { mutableStateOf(userName) }
-    var editedEmail by remember(userEmail) { mutableStateOf(userEmail) }
-    val initials = remember(editedName) { editedName.toInitials() }
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    LaunchedEffect(userName, userEmail) {
+        viewModel.setInitialValues(userName, userEmail)
+    }
 
     val imagePicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent(),
@@ -159,7 +161,7 @@ fun EditProfileScreen(
                         ) {
                             ProfilePhoto(
                                 imageUri = profileImageUri,
-                                initials = initials,
+                                initials = uiState.initials,
                                 modifier = Modifier
                                     .size(128.dp)
                                     .clip(CircleShape),
@@ -207,8 +209,8 @@ fun EditProfileScreen(
                     verticalArrangement = Arrangement.spacedBy(16.dp),
                 ) {
                     AuthTextField(
-                        value = editedName,
-                        onValueChange = { editedName = it },
+                        value = uiState.editedName,
+                        onValueChange = viewModel::updateName,
                         placeholder = "Full Name",
                         leadingIcon = { 
                             Icon(Icons.Outlined.Person, null, tint = GreenPrimary)
@@ -216,8 +218,8 @@ fun EditProfileScreen(
                     )
 
                     AuthTextField(
-                        value = editedEmail,
-                        onValueChange = { editedEmail = it },
+                        value = uiState.editedEmail,
+                        onValueChange = viewModel::updateEmail,
                         placeholder = "Email Address",
                         leadingIcon = { 
                             Icon(Icons.Outlined.Email, null, tint = GreenPrimary)
@@ -246,7 +248,7 @@ fun EditProfileScreen(
                 }
 
                 Button(
-                    onClick = { onSave(editedName, editedEmail) },
+                    onClick = { onSave(uiState.editedName, uiState.editedEmail) },
                     modifier = Modifier
                         .weight(1f)
                         .height(56.dp),
@@ -264,13 +266,6 @@ fun EditProfileScreen(
             Spacer(modifier = Modifier.height(32.dp))
         }
     }
-}
-
-private fun String.toInitials(): String {
-    val parts = trim().split("\\s+".toRegex()).filter { it.isNotEmpty() }
-    if (parts.isEmpty()) return "JD"
-    if (parts.size == 1) return parts.first().take(2).uppercase()
-    return (parts.first().first().toString() + parts.last().first().toString()).uppercase()
 }
 
 @Preview(showBackground = true)
