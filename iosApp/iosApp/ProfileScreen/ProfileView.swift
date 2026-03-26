@@ -16,7 +16,7 @@ private struct SavedRecipe: Identifiable {
 struct ProfileView: View {
     let userName: String
     let userEmail: String
-    let profileImageUri: Image?
+    let profileImageUri: URL?
     var onBack: () -> Void = {}
     var onLogout: () -> Void = {}
     var onDeleteAccount: () -> Void = {}
@@ -33,7 +33,6 @@ struct ProfileView: View {
 
     var body: some View {
         ZStack(alignment: .topLeading) {
-            // Background gradient
             LinearGradient(
                 colors: [Color.greenSecondary.opacity(0.55), Color.greenBackground],
                 startPoint: .top,
@@ -71,7 +70,7 @@ struct ProfileView: View {
                     Spacer().frame(height: 32)
 
                     // Avatar
-                    AvatarView(image: profileImageUri, initials: initials)
+                    AvatarView(imageUri: profileImageUri, initials: initials)
 
                     Spacer().frame(height: 32)
 
@@ -125,31 +124,17 @@ struct ProfileView: View {
 }
 
 private struct AvatarView: View {
-    let image: Image?
+    let imageUri: URL?
     let initials: String
 
     var body: some View {
-        ZStack {
-            Circle()
-                .fill(Color.white)
-                .frame(width: 140, height: 140)
-
-            if let image = image {
-                image
-                    .resizable()
-                    .scaledToFill()
+        Circle()
+            .fill(Color.white)
+            .frame(width: 140, height: 140)
+            .overlay(
+                ProfilePhoto(imageUri: imageUri, initials: initials)
                     .frame(width: 128, height: 128)
-                    .clipShape(Circle())
-            } else {
-                Circle()
-                    .fill(Color.greenPrimary.opacity(0.15))
-                    .frame(width: 128, height: 128)
-
-                Text(initials)
-                    .font(.system(size: 44, weight: .bold))
-                    .foregroundColor(Color.greenPrimary)
-            }
-        }
+            )
     }
 }
 
@@ -311,7 +296,6 @@ private struct BouncyButtonStyle: ButtonStyle {
             .animation(.spring(response: 0.25, dampingFraction: 0.65), value: configuration.isPressed)
     }
 }
-
 
 private extension String {
     func toInitials() -> String {
