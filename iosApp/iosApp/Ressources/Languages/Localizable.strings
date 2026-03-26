@@ -1,0 +1,29 @@
+//
+//  Localizable.strings
+//  iosApp
+//
+//  Created by gergana on 3/26/26.
+//
+
+"welcome_back" = "Welcome back!";
+"sign_in_to_continue" = "Sign in to continue your culinary journey.";
+"enter_your_email" = "Enter your email";
+"enter_your_password" = "Enter your password";
+"remember_me" = "Remember me";
+"forgot_password" = "Forgot Password?";
+"login" = "Login";
+"continue_google" = "Continue with Google";
+"continue_facebook" = "Continue with Facebook";
+"dont_have_account" = "Don't have an account? ";
+"create_an_account" = "Create an account";
+"create_account" = "Create Account";
+"join" = "Join for better food insights.";
+"enter_name" = "Enter your name";
+"create_password" = "Create Password";
+"i_agree" = "I agree to the ";
+"terms_privacy" = "Terms & Privacy";
+"sign_up" = "Sign Up";
+"already_have_account" = "Already have an account? ";
+"snapchef" = "SnapChef";
+"snapchef" = "SnapChef";
+"welcome_text" = "Snap a photo, discover a recipe.\nCook smarter every day.";

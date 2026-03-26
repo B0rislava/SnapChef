@@ -1,21 +1,19 @@
 package com.snapchef.app.features.home.presentation
 
+import android.net.Uri
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.navigationBarsPadding
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import android.net.Uri
 import com.snapchef.app.core.presentation.components.MainTab
 import com.snapchef.app.core.presentation.components.SnapChefBottomBar
-import com.snapchef.app.core.theme.GreenPrimary
 import com.snapchef.app.core.theme.GreenSecondary
+import com.snapchef.app.features.groups.presentation.GroupsScreen
 import com.snapchef.app.features.profile.presentation.EditProfileScreen
 import com.snapchef.app.features.profile.presentation.ProfileScreen
 
@@ -44,10 +42,11 @@ fun MainScreen() {
                     .fillMaxSize()
                     .background(GreenSecondary)
             ) {
-                // Content Area
+                
                 AnimatedContent(
                     targetState = currentTab,
                     label = "main_content",
+                    modifier = Modifier.fillMaxSize()
                 ) { tab ->
                     when (tab) {
                         MainTab.HOME -> {
@@ -56,9 +55,7 @@ fun MainScreen() {
                             )
                         }
                         MainTab.RECIPES -> {
-                            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                                Text("Recipes Screen", style = MaterialTheme.typography.displayLarge, color = GreenPrimary)
-                            }
+                            GroupsScreen()
                         }
                         MainTab.PROFILE -> {
                             Crossfade(targetState = isEditingProfile, label = "profile_edit_crossfade") { editing ->
@@ -89,9 +86,8 @@ fun MainScreen() {
                             }
                         }
                     }
-                } // End AnimatedContent
+                } 
 
-                // Hide bottom bar when editing profile for cleaner UI
                 if (!isEditingProfile || currentTab != MainTab.PROFILE) {
                     SnapChefBottomBar(
                         currentTab = currentTab,
@@ -104,7 +100,7 @@ fun MainScreen() {
                             .navigationBarsPadding()
                     )
                 }
-            }
+            } 
         }
-    }
+    } 
 }
