@@ -1,5 +1,18 @@
 package com.snapchef.app.features.home.presentation
 
+import android.Manifest
+import android.app.Activity
+import android.content.Intent
+import android.content.pm.PackageManager
+import android.net.Uri
+import android.provider.Settings
+import android.util.Log
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.camera.core.CameraSelector
+import androidx.camera.core.Preview
+import androidx.camera.lifecycle.ProcessCameraProvider
+import androidx.camera.view.PreviewView
 import androidx.compose.animation.*
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
@@ -10,10 +23,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Add
-import androidx.compose.material.icons.rounded.CameraAlt
-import androidx.compose.material.icons.rounded.CheckCircle
-import androidx.compose.material.icons.rounded.Delete
+import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -21,9 +31,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.viewinterop.AndroidView
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.snapchef.app.core.theme.GreenBackground
 import com.snapchef.app.core.theme.GreenOnBackground
 import com.snapchef.app.core.theme.GreenPrimary
@@ -36,11 +53,110 @@ import kotlinx.coroutines.launch
 fun HomeScreen(
     onGenerateRecipes: (List<String>) -> Unit
 ) {
+    val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
+    val coroutineScope = rememberCoroutineScope()
+
     var showModal by remember { mutableStateOf(false) }
     var isAnalyzing by remember { mutableStateOf(false) }
     var ingredients by remember { mutableStateOf(listOf<String>()) }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    val coroutineScope = rememberCoroutineScope()
+
+    // Permission and Camera States
+    var showRationale by remember { mutableStateOf(false) }
+    var hasCameraPermission by remember {
+        mutableStateOf(
+            ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED
+        )
+    }
+    var isCameraActive by remember { mutableStateOf(false) }
+
+    // Logic to detect "Don't ask anymore" or repeated denial
+    var isPermanentlyDenied by remember { mutableStateOf(false) }
+
+    // Check permissions when coming back from settings
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                val isGranted = ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED
+                hasCameraPermission = isGranted
+                if (isGranted) {
+                    isPermanentlyDenied = false
+                }
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
+
+    val permissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        hasCameraPermission = isGranted
+        if (isGranted) {
+            isCameraActive = true
+            isPermanentlyDenied = false
+        } else {
+            // Check if we should show rationale now
+            val activity = context as? Activity
+            if (activity != null) {
+                isPermanentlyDenied = !ActivityCompat.shouldShowRequestPermissionRationale(activity, Manifest.permission.CAMERA)
+            }
+        }
+    }
+
+    // Permission Rationale Dialog
+    if (showRationale) {
+        AlertDialog(
+            onDismissRequest = { showRationale = false },
+            title = { 
+                Text(
+                    text = if (isPermanentlyDenied) "Camera Access Required" else "Camera Access",
+                    fontWeight = FontWeight.Bold 
+                ) 
+            },
+            text = { 
+                Text(
+                    text = if (isPermanentlyDenied) {
+                        "You've disabled camera access. To recognize ingredients, please enable it in your app settings."
+                    } else {
+                        "SnapChef needs camera access to instantly recognize your ingredients and suggest the best recipes."
+                    }
+                ) 
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showRationale = false
+                        if (isPermanentlyDenied) {
+                            // Open App Settings
+                            val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                                data = Uri.fromParts("package", context.packageName, null)
+                            }
+                            context.startActivity(intent)
+                        } else {
+                            permissionLauncher.launch(Manifest.permission.CAMERA)
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = GreenPrimary)
+                ) {
+                    Text(
+                        text = if (isPermanentlyDenied) "Open Settings" else "Allow",
+                        color = Color.White 
+                    )
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showRationale = false }) {
+                    Text("Later", color = GreenPrimary)
+                }
+            },
+            containerColor = Color.White,
+            shape = RoundedCornerShape(24.dp)
+        )
+    }
 
     Box(
         modifier = Modifier
@@ -52,64 +168,140 @@ fun HomeScreen(
             ),
         contentAlignment = Alignment.Center
     ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier.padding(horizontal = 32.dp)
-        ) {
-            // Big Animated Camera Button
-            Box(
-                modifier = Modifier
-                    .size(240.dp)
-                    .clip(CircleShape)
-                    .background(GreenPrimary.copy(alpha = 0.15f))
-                    .clickable {
-                        coroutineScope.launch {
-                            ingredients = emptyList()
-                            isAnalyzing = true
-                            showModal = true
-                            
-                            // Simulate AI recognition delay
-                            delay(1500)
-                            ingredients = listOf("Tomatoes", "Eggs", "Cheese", "Onion")
-                            isAnalyzing = false
-                        }
+        if (isCameraActive && hasCameraPermission) {
+            // Camera Preview Overlay
+            Box(Modifier.fillMaxSize()) {
+                AndroidView(
+                    factory = { ctx ->
+                        val previewView = PreviewView(ctx)
+                        val cameraProviderFuture = ProcessCameraProvider.getInstance(ctx)
+                        cameraProviderFuture.addListener({
+                            val cameraProvider = cameraProviderFuture.get()
+                            val preview = Preview.Builder().build().also {
+                                it.surfaceProvider = previewView.surfaceProvider
+                            }
+                            val cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
+                            try {
+                                cameraProvider.unbindAll()
+                                cameraProvider.bindToLifecycle(lifecycleOwner, cameraSelector, preview)
+                            } catch (e: Exception) {
+                                Log.e("CameraX", "Binding failed", e)
+                            }
+                        }, ContextCompat.getMainExecutor(ctx))
+                        previewView
                     },
-                contentAlignment = Alignment.Center
+                    modifier = Modifier.fillMaxSize()
+                )
+
+                // Capture Button Overlay
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(bottom = 120.dp),
+                    verticalArrangement = Arrangement.Bottom,
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    IconButton(
+                        onClick = {
+                            isCameraActive = false
+                            coroutineScope.launch {
+                                ingredients = emptyList()
+                                isAnalyzing = true
+                                showModal = true
+                                delay(1500)
+                                ingredients = listOf("Tomatoes", "Eggs", "Cheese", "Onion")
+                                isAnalyzing = false
+                            }
+                        },
+                        modifier = Modifier
+                            .size(80.dp)
+                            .clip(CircleShape)
+                            .background(Color.White)
+                            .padding(4.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .clip(CircleShape)
+                                .background(GreenPrimary)
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        text = "Tap to recognize ingredients",
+                        color = Color.White,
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+
+                // Close Camera Button
+                IconButton(
+                    onClick = { isCameraActive = false },
+                    modifier = Modifier
+                        .align(Alignment.TopStart)
+                        .padding(24.dp)
+                        .statusBarsPadding()
+                        .background(Color.Black.copy(alpha = 0.3f), CircleShape)
+                ) {
+                    Icon(Icons.Rounded.Close, "Close", tint = Color.White)
+                }
+            }
+        } else {
+            // Standard Dashboard
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier.padding(horizontal = 32.dp)
             ) {
                 Box(
                     modifier = Modifier
-                        .size(180.dp)
+                        .size(240.dp)
                         .clip(CircleShape)
-                        .background(GreenPrimary),
+                        .background(GreenPrimary.copy(alpha = 0.15f))
+                        .clickable {
+                            if (hasCameraPermission) {
+                                isCameraActive = true
+                            } else {
+                                showRationale = true
+                            }
+                        },
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(
-                        imageVector = Icons.Rounded.CameraAlt,
-                        contentDescription = "Snap Ingredients",
-                        modifier = Modifier.size(80.dp),
-                        tint = Color.White
-                    )
+                    Box(
+                        modifier = Modifier
+                            .size(180.dp)
+                            .clip(CircleShape)
+                            .background(GreenPrimary),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.CameraAlt,
+                            contentDescription = "Snap Ingredients",
+                            modifier = Modifier.size(80.dp),
+                            tint = Color.White
+                        )
+                    }
                 }
+
+                Spacer(modifier = Modifier.height(40.dp))
+
+                Text(
+                    text = "Snap your ingredients",
+                    style = MaterialTheme.typography.headlineMedium,
+                    color = GreenPrimary,
+                    fontWeight = FontWeight.ExtraBold,
+                    textAlign = TextAlign.Center
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Text(
+                    text = "Take a photo of the food in your kitchen.\nWe'll recognize what you have and generate delicious recipes instantly.",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = GreenOnBackground.copy(alpha = 0.7f),
+                    textAlign = TextAlign.Center
+                )
             }
-
-            Spacer(modifier = Modifier.height(40.dp))
-
-            Text(
-                text = "Snap your ingredients",
-                style = MaterialTheme.typography.headlineMedium,
-                color = GreenPrimary,
-                fontWeight = FontWeight.ExtraBold,
-                textAlign = TextAlign.Center
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Text(
-                text = "Take a photo of the food in your kitchen.\nWe'll recognize what you have and generate delicious recipes instantly.",
-                style = MaterialTheme.typography.bodyLarge,
-                color = GreenOnBackground.copy(alpha = 0.7f),
-                textAlign = TextAlign.Center
-            )
         }
 
         // Recognition Modal Bottom Sheet
@@ -254,6 +446,7 @@ fun HomeScreen(
                                         )
                                     }
                                 }
+
                                 Button(
                                     onClick = {
                                         coroutineScope.launch {
