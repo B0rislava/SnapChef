@@ -1,32 +1,49 @@
 package com.snapchef.app.features.home.presentation
 
+import androidx.compose.animation.*
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Group
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateMapOf
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.snapchef.app.core.theme.GreenBackground
 import com.snapchef.app.core.theme.GreenOnBackground
 import com.snapchef.app.core.theme.GreenPrimary
 import com.snapchef.app.core.theme.GreenSecondary
-import com.snapchef.app.features.groups.presentation.PerishableProduct
 import com.snapchef.app.features.groups.presentation.SharedRecipe
+
+private data class GroupRecipeContribution(
+    val name: String,
+    val items: String,
+    val color: Color,
+)
+
+private data class GroupRecipeResult(
+    val title: String,
+    val contributors: List<GroupRecipeContribution>,
+    val missingItems: List<String>,
+    val description: String,
+)
 
 @Composable
 fun RecipeResultsScreen(
@@ -34,6 +51,8 @@ fun RecipeResultsScreen(
     onBack: () -> Unit,
     onSaveRecipe: (SharedRecipe, Boolean) -> Unit,
 ) {
+    var selectedTabIndex by remember { mutableStateOf(0) }
+    
     val perishableKeywords = remember {
         setOf("egg", "eggs", "milk", "cheese", "yogurt", "chicken", "fish", "meat", "mushroom", "mushrooms")
     }
@@ -47,13 +66,9 @@ fun RecipeResultsScreen(
             perishableIngredients.forEach { put(it, 1f) }
         }
     }
-    var actionMessage by remember { mutableStateOf<String?>(null) }
-    val suggestedRecipes = remember(ingredients) {
-        listOf(
-            "Smart Omelette",
-            "Quick Bowl",
-            "Zero-Waste Stir Fry",
-        ).map { title ->
+    
+    val soloRecipes = remember(ingredients) {
+        listOf("Smart Omelette", "Quick Bowl", "Zero-Waste Stir Fry").map { title ->
             SharedRecipe(
                 title = title,
                 description = "Generated from your detected products: ${ingredients.joinToString()}",
@@ -63,21 +78,46 @@ fun RecipeResultsScreen(
             )
         }
     }
-    var selectedRecipeIndex by remember { mutableStateOf<Int?>(null) }
+
+    val groupRecipes = remember(ingredients) {
+        listOf(
+            GroupRecipeResult(
+                title = "Hero's Feast",
+                contributors = listOf(
+                    GroupRecipeContribution("You", ingredients.joinToString(), GreenPrimary)
+                ),
+                missingItems = listOf("Cheese", "Milk"),
+                description = "You started this! If someone adds milk and cheese, we can make it a feast."
+            ),
+            GroupRecipeResult(
+                title = "Big Salad Bowl",
+                contributors = listOf(
+                    GroupRecipeContribution("You", ingredients.take(1).joinToString(), GreenPrimary)
+                ),
+                missingItems = listOf("Cucumbers", "Olive oil", "Olives"),
+                description = "Just a few more items needed. Share with your group to find them."
+            )
+        )
+    }
+
+    var actionMessage by remember { mutableStateOf<String?>(null) }
     var previewRecipeIndex by remember { mutableStateOf<Int?>(null) }
+    var previewGroupRecipeIndex by remember { mutableStateOf<Int?>(null) }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(GreenSecondary.copy(alpha = 0.3f))
-            .systemBarsPadding()
-            .padding(horizontal = 24.dp)
+            .background(
+                Brush.verticalGradient(
+                    listOf(GreenSecondary.copy(alpha = 0.2f), GreenBackground)
+                )
+            )
+            .systemBarsPadding(),
     ) {
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Header
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp, vertical = 16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             IconButton(
@@ -85,7 +125,7 @@ fun RecipeResultsScreen(
                 modifier = Modifier
                     .size(40.dp)
                     .clip(CircleShape)
-                    .background(GreenPrimary.copy(alpha = 0.10f))
+                    .background(Color.White)
             ) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
@@ -93,9 +133,7 @@ fun RecipeResultsScreen(
                     tint = GreenPrimary
                 )
             }
-
             Spacer(modifier = Modifier.width(16.dp))
-
             Text(
                 text = "Recipe Magic",
                 style = MaterialTheme.typography.headlineMedium,
@@ -104,225 +142,386 @@ fun RecipeResultsScreen(
             )
         }
 
-        Spacer(modifier = Modifier.height(24.dp))
-
-        // Info card showing what we used
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(24.dp),
-            colors = CardDefaults.cardColors(containerColor = GreenBackground),
-            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-        ) {
-            Column(modifier = Modifier.padding(20.dp)) {
-                Text(
-                    text = "Generated using:",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = GreenPrimary,
-                    fontWeight = FontWeight.Bold
+        TabRow(
+            selectedTabIndex = selectedTabIndex,
+            containerColor = Color.Transparent,
+            contentColor = GreenPrimary,
+            indicator = { tabPositions ->
+                TabRowDefaults.SecondaryIndicator(
+                    modifier = Modifier.tabIndicatorOffset(tabPositions[selectedTabIndex]),
+                    color = GreenPrimary
                 )
-                Spacer(modifier = Modifier.height(8.dp))
-                val ingredientText = ingredients.joinToString(separator = " • ")
-                Text(
-                    text = ingredientText,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = GreenOnBackground.copy(alpha = 0.7f)
+            },
+            divider = {},
+            modifier = Modifier.padding(horizontal = 16.dp)
+        ) {
+            Tab(
+                selected = selectedTabIndex == 0,
+                onClick = { selectedTabIndex = 0 },
+                text = { Text("Solo", fontWeight = FontWeight.Bold) },
+                icon = { Icon(Icons.Default.Person, null) }
+            )
+            Tab(
+                selected = selectedTabIndex == 1,
+                onClick = { selectedTabIndex = 1 },
+                text = { Text("With Group", fontWeight = FontWeight.Bold) },
+                icon = { Icon(Icons.Default.Group, null) }
+            )
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        AnimatedContent(
+            targetState = selectedTabIndex,
+            transitionSpec = {
+                fadeIn(tween(200)) togetherWith fadeOut(tween(200))
+            },
+            label = "tab_content",
+            modifier = Modifier.weight(1f)
+        ) { tab ->
+            when (tab) {
+                0 -> SoloRecipeList(
+                    ingredients = ingredients,
+                    recipes = soloRecipes,
+                    perishableIngredients = perishableIngredients,
+                    freshness = freshness,
+                    onPreview = { previewRecipeIndex = it },
+                    onActionMessage = { actionMessage = it },
+                    onSave = onSaveRecipe
+                )
+                1 -> GroupRecipeList(
+                    recipes = groupRecipes,
+                    onPreview = { previewGroupRecipeIndex = it }
                 )
             }
         }
 
-        Spacer(modifier = Modifier.height(24.dp))
+        actionMessage?.let {
+            Text(
+                text = it,
+                modifier = Modifier.fillMaxWidth().padding(16.dp),
+                textAlign = TextAlign.Center,
+                color = GreenPrimary,
+                fontWeight = FontWeight.SemiBold
+            )
+        }
+    }
 
+
+    previewRecipeIndex?.let { index ->
+        val recipe = soloRecipes[index]
+        RecipeInstructionsDialog(
+            recipe = recipe,
+            onDismiss = { previewRecipeIndex = null }
+        )
+    }
+
+    previewGroupRecipeIndex?.let { index ->
+        val recipe = groupRecipes[index]
+        AlertDialog(
+            onDismissRequest = { previewGroupRecipeIndex = null },
+            title = { Text(recipe.title) },
+            text = { Text(recipe.description) },
+            confirmButton = {
+                TextButton(onClick = { previewGroupRecipeIndex = null }) {
+                    Text("Super!", color = GreenPrimary, fontWeight = FontWeight.Bold)
+                }
+            }
+        )
+    }
+}
+
+@Composable
+private fun SoloRecipeList(
+    ingredients: List<String>,
+    recipes: List<SharedRecipe>,
+    perishableIngredients: List<String>,
+    freshness: Map<String, Float>,
+    onPreview: (Int) -> Unit,
+    onActionMessage: (String) -> Unit,
+    onSave: (SharedRecipe, Boolean) -> Unit
+) {
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(24.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
         if (perishableIngredients.isNotEmpty()) {
+            item {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(24.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                ) {
+                    Column(modifier = Modifier.padding(20.dp)) {
+                        Text(
+                            text = "Set freshness for your items",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = GreenPrimary
+                        )
+                        Spacer(modifier = Modifier.height(12.dp))
+                        // We filter for a subset for brevity in the UI
+                        perishableIngredients.forEach { item ->
+                            val value = freshness[item] ?: 1f
+                            val days = kotlin.math.ceil(14f * value).toInt() - 1
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(item, Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
+                                Text(
+                                    text = if(days <= 0) "Today" else "$days days",
+                                    color = if(days == 0) Color.Red else GreenPrimary,
+                                    style = MaterialTheme.typography.labelSmall
+                                )
+                            }
+                            Slider(value = value, onValueChange = {}, enabled = false) // Simplified for the list view
+                        }
+                    }
+                }
+            }
+        }
+
+        item {
+            Text(
+                text = "Your Magic Recipes",
+                style = MaterialTheme.typography.titleLarge,
+                color = GreenPrimary,
+                fontWeight = FontWeight.Bold
+            )
+        }
+
+        items(recipes.indices.toList()) { index ->
+            val recipe = recipes[index]
             Card(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { onPreview(index) },
                 shape = RoundedCornerShape(24.dp),
                 colors = CardDefaults.cardColors(containerColor = Color.White),
                 elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
             ) {
-                Column(modifier = Modifier.padding(20.dp)) {
+                Row(
+                    modifier = Modifier.padding(20.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = recipe.title,
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = GreenOnBackground
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "Uses: ${ingredients.take(3).joinToString()}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = GreenOnBackground.copy(alpha = 0.6f)
+                        )
+                    }
+                    Button(
+                        onClick = { onSave(recipe, false); onActionMessage("Recipe saved!") },
+                        shape = CircleShape,
+                        colors = ButtonDefaults.buttonColors(containerColor = GreenPrimary),
+                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
+                    ) {
+                        Text("Save", fontSize = 12.sp)
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun GroupRecipeList(
+    recipes: List<GroupRecipeResult>,
+    onPreview: (Int) -> Unit
+) {
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(24.dp),
+        verticalArrangement = Arrangement.spacedBy(20.dp)
+    ) {
+        item {
+            Card(
+                modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
+                shape = RoundedCornerShape(20.dp),
+                colors = CardDefaults.cardColors(containerColor = GreenPrimary.copy(alpha = 0.1f)),
+                border = androidx.compose.foundation.BorderStroke(1.dp, GreenPrimary.copy(alpha = 0.3f)),
+                elevation = CardDefaults.cardElevation(0.dp)
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
                     Text(
-                        text = "Before saving: set freshness",
+                        text = "You're the first! ✨",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = GreenPrimary
                     )
-                    Spacer(modifier = Modifier.height(4.dp))
+                    Spacer(modifier = Modifier.height(6.dp))
                     Text(
-                        text = "Move the slider for perishable products.",
+                        text = "Share these ideas with your group so they can see what they can add from their fridges.",
                         style = MaterialTheme.typography.bodySmall,
-                        color = GreenOnBackground.copy(alpha = 0.7f)
+                        color = GreenPrimary.copy(alpha = 0.8f),
+                        lineHeight = 16.sp
                     )
-                    Spacer(modifier = Modifier.height(12.dp))
+                }
+            }
+        }
 
-                    perishableIngredients.forEach { ingredient ->
-                        val value = freshness[ingredient] ?: 1f
-                        val daysLeft = kotlin.math.ceil(14f * value).toInt() - 1
-                        Text(
-                            text = ingredient,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = GreenOnBackground,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                        Slider(
-                            value = value,
-                            onValueChange = { freshness[ingredient] = it },
-                            valueRange = 0f..1f
-                        )
-                        Text(
-                            text = when {
-                                daysLeft < 0 -> "Expired"
-                                daysLeft == 0 -> "Expires today"
-                                else -> "$daysLeft days left"
-                            },
-                            style = MaterialTheme.typography.bodySmall,
-                            color = when {
-                                daysLeft < 0 -> Color.Gray
-                                daysLeft == 0 -> Color(0xFFC62828)
-                                else -> GreenPrimary
+        item {
+            Text(
+                text = "Social Cooking Ideas",
+                style = MaterialTheme.typography.titleLarge,
+                color = GreenPrimary,
+                fontWeight = FontWeight.Bold
+            )
+        }
+
+        items(recipes.indices.toList()) { index ->
+            val recipe = recipes[index]
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { onPreview(index) },
+                shape = RoundedCornerShape(28.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.White),
+                elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
+            ) {
+                Column(modifier = Modifier.padding(20.dp)) {
+                    Text(
+                        text = recipe.title,
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = GreenOnBackground
+                    )
+                    
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Contributor avatars
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy((-12).dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            recipe.contributors.forEach { contributor ->
+                                Box(
+                                    modifier = Modifier
+                                        .size(40.dp)
+                                        .clip(CircleShape)
+                                        .background(contributor.color)
+                                        .border(2.dp, Color.White, CircleShape),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = contributor.name.take(1).uppercase(),
+                                        color = Color.White,
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 14.sp
+                                    )
+                                }
                             }
+                        }
+                        
+                        Spacer(modifier = Modifier.width(12.dp))
+                        
+                        Text(
+                            text = "${recipe.contributors.size} contributor${if (recipe.contributors.size == 1) "" else "s"}",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = GreenPrimary
                         )
-                        Spacer(modifier = Modifier.height(8.dp))
                     }
 
-                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        Button(
-                            onClick = {
-                                val index = selectedRecipeIndex ?: return@Button
-                                val selected = suggestedRecipes[index].copy(
-                                    perishableProducts = perishableIngredients.map { item ->
-                                        PerishableProduct(
-                                            name = item,
-                                            maxFreshDays = 14,
-                                            freshness = freshness[item] ?: 1f,
-                                        )
-                                    },
-                                )
-                                onSaveRecipe(selected, false)
-                                actionMessage = "Recipe saved."
-                            },
-                            shape = RoundedCornerShape(20.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = GreenPrimary),
-                            enabled = selectedRecipeIndex != null
-                        ) { Text("Save", color = Color.White) }
+                    Spacer(modifier = Modifier.height(16.dp))
 
-                        OutlinedButton(
-                            onClick = {
-                                val index = selectedRecipeIndex ?: return@OutlinedButton
-                                val selected = suggestedRecipes[index].copy(
-                                    perishableProducts = perishableIngredients.map { item ->
-                                        PerishableProduct(
-                                            name = item,
-                                            maxFreshDays = 14,
-                                            freshness = freshness[item] ?: 1f,
-                                        )
-                                    },
+                    Text(
+                        text = "Ingredients",
+                        style = MaterialTheme.typography.titleSmall,
+                        color = GreenOnBackground,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    @OptIn(ExperimentalLayoutApi::class)
+                    FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        val availableItems = recipe.contributors.flatMap { 
+                            it.items.split(", ") 
+                        }.filter { it.isNotBlank() }
+
+                        availableItems.forEach { item ->
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(16.dp))
+                                    .background(GreenPrimary.copy(alpha = 0.1f))
+                                    .border(1.dp, GreenPrimary.copy(alpha = 0.8f), RoundedCornerShape(16.dp))
+                                    .padding(horizontal = 12.dp, vertical = 6.dp)
+                            ) {
+                                Text(
+                                    text = item,
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = GreenPrimary,
+                                    fontWeight = FontWeight.Bold
                                 )
-                                onSaveRecipe(selected, true)
-                                actionMessage = "Recipe shared."
-                            },
-                            shape = RoundedCornerShape(20.dp),
-                            enabled = selectedRecipeIndex != null
-                        ) { Text("Share") }
+                            }
+                        }
+
+                        recipe.missingItems.forEach { item ->
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(16.dp))
+                                    .background(Color(0xFFF5F5F5))
+                                    .border(1.dp, Color(0xFFE0E0E0), RoundedCornerShape(16.dp))
+                                    .padding(horizontal = 12.dp, vertical = 6.dp)
+                            ) {
+                                Text(
+                                    text = item,
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = Color(0xFF9E9E9E),
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
+                        }
                     }
                 }
             }
-            Spacer(modifier = Modifier.height(16.dp))
         }
-
-        actionMessage?.let { message ->
-            Text(
-                text = message,
-                style = MaterialTheme.typography.bodySmall,
-                color = GreenPrimary,
-                fontWeight = FontWeight.SemiBold
-            )
-            Spacer(modifier = Modifier.height(12.dp))
-        }
-
-        Text(
-            text = "Suggested Recipes",
-            style = MaterialTheme.typography.titleLarge,
-            color = GreenPrimary,
-            fontWeight = FontWeight.Bold
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Placeholder lazy column for future recipe results
-         LazyColumn(
-             modifier = Modifier.fillMaxSize(),
-             verticalArrangement = Arrangement.spacedBy(16.dp)
-         ) {
-             items(suggestedRecipes.size) { index ->
-                 val isSelected = selectedRecipeIndex == index
-                 Card(
-                     modifier = Modifier
-                         .fillMaxWidth()
-                         .height(140.dp)
-                         .clickable { previewRecipeIndex = index },
-                     shape = RoundedCornerShape(24.dp),
-                     colors = CardDefaults.cardColors(
-                         containerColor = if (isSelected) GreenSecondary.copy(alpha = 0.45f) else Color.White
-                     ),
-                     elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
-                 ) {
-                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                         Text(
-                             text = if (isSelected) {
-                                 "${suggestedRecipes[index].title}\nSelected"
-                             } else {
-                                 "${suggestedRecipes[index].title}\nTap to view instructions"
-                             },
-                             color = GreenPrimary,
-                             fontWeight = FontWeight.Bold,
-                             textAlign = androidx.compose.ui.text.style.TextAlign.Center
-                         )
-                     }
-                 }
-             }
-         }
     }
+}
 
-    previewRecipeIndex?.let { index ->
-        val recipe = suggestedRecipes[index]
-        AlertDialog(
-            onDismissRequest = { previewRecipeIndex = null },
-            title = { Text(recipe.title) },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+@Composable
+private fun RecipeInstructionsDialog(
+    recipe: SharedRecipe,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(recipe.title, color = GreenPrimary, fontWeight = FontWeight.Bold) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(
+                    text = "Instructions",
+                    style = MaterialTheme.typography.titleSmall,
+                    color = GreenPrimary,
+                    fontWeight = FontWeight.SemiBold
+                )
+                recipe.instructions.forEach { step ->
                     Text(
-                        text = "Instructions",
-                        style = MaterialTheme.typography.titleSmall,
-                        color = GreenPrimary,
-                        fontWeight = FontWeight.SemiBold
+                        text = "• $step",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = GreenOnBackground
                     )
-                    recipe.instructions.forEach { step ->
-                        Text(
-                            text = "• $step",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = GreenOnBackground
-                        )
-                    }
                 }
-            },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        selectedRecipeIndex = index
-                        previewRecipeIndex = null
-                    },
-                    colors = ButtonDefaults.buttonColors(containerColor = GreenPrimary)
-                ) {
-                    Text("Select this recipe", color = Color.White)
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { previewRecipeIndex = null }) {
-                    Text("Close")
-                }
-            },
-        )
-    }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Got it!", color = GreenPrimary, fontWeight = FontWeight.Bold)
+            }
+        }
+    )
 }
 
 private fun generateRecipeInstructions(ingredients: List<String>): List<String> {
