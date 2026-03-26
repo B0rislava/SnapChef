@@ -8,7 +8,7 @@ import androidx.compose.runtime.*
 enum class AuthDestination { WELCOME, SIGN_IN, SIGN_UP }
 
 @Composable
-fun AuthNavGraph() {
+fun AuthNavGraph(onAuthSuccess: () -> Unit) {
     var current by remember { mutableStateOf(AuthDestination.WELCOME) }
 
     AnimatedContent(
@@ -33,12 +33,12 @@ fun AuthNavGraph() {
             )
             AuthDestination.SIGN_IN -> SignInScreen(
                 onBack   = { current = AuthDestination.WELCOME },
-                onSignIn = { /* TODO: navigate to main app */ },
+                onSignIn = onAuthSuccess,
                 onSignUp = { current = AuthDestination.SIGN_UP },
             )
             AuthDestination.SIGN_UP -> SignUpScreen(
                 onBack   = { current = AuthDestination.WELCOME },
-                onSignUp = { /* TODO: navigate to main app */ },
+                onSignUp = onAuthSuccess,
                 onSignIn = { current = AuthDestination.SIGN_IN },
             )
         }
