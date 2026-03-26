@@ -20,6 +20,9 @@ struct EditProfileView: View {
     @State private var editedEmail: String
     @State private var selectedPhotoItem: PhotosPickerItem? = nil
     @State private var pickedImageURL: URL? = nil
+    
+    @State private var showPhotoPicker = false
+    @StateObject private var permissionHandler = CameraPermissionHandler()
 
     private var initials: String { editedName.toInitials() }
     private var displayImageUri: URL? { pickedImageURL ?? profileImageUri }
@@ -92,7 +95,16 @@ struct EditProfileView: View {
                     AvatarPickerView(
                         imageUri: displayImageUri,
                         initials: initials,
-                        selectedPhotoItem: $selectedPhotoItem
+                        onEditTap: {
+                            permissionHandler.requestPermissions {
+                                showPhotoPicker = true
+                            }
+                        }
+                    )
+                    .photosPicker(
+                        isPresented: $showPhotoPicker,
+                        selection: $selectedPhotoItem,
+                        matching: .images
                     )
                     .onChange(of: selectedPhotoItem) { oldValue, newItem in
                         Task {
@@ -168,6 +180,16 @@ struct EditProfileView: View {
             }
         }
         .navigationBarHidden(true)
+        .alert("Permissions Required", isPresented: $permissionHandler.showDeniedAlert) {
+            Button("Cancel", role: .cancel) { }
+            Button("Settings") {
+            if let url = URL(string: UIApplication.openSettingsURLString) {
+            UIApplication.shared.open(url)
+                }
+            }
+        } message: {
+            Text("Please allow Camera and Photos access in Settings to update your profile picture.")
+        }
     }
 
     private func saveToTemp(data: Data) -> URL? {
@@ -181,7 +203,7 @@ struct EditProfileView: View {
 private struct AvatarPickerView: View {
     let imageUri: URL?
     let initials: String
-    @Binding var selectedPhotoItem: PhotosPickerItem?
+    let onEditTap: () -> Void
 
     var body: some View {
         ZStack(alignment: .bottom) {
@@ -193,7 +215,7 @@ private struct AvatarPickerView: View {
                         .frame(width: 128, height: 128)
                 )
 
-            PhotosPicker(selection: $selectedPhotoItem, matching: .images) {
+            Button(action: onEditTap) {
                 ZStack {
                     Circle()
                         .fill(Color.white)
