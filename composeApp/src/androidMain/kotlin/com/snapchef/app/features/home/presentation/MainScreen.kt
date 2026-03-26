@@ -29,70 +29,82 @@ fun MainScreen() {
     var profileImageUri by remember { mutableStateOf<Uri?>(null) }
     var isEditingProfile by remember { mutableStateOf(false) }
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(GreenSecondary)
-    ) {
-        // Content Area
-        AnimatedContent(
-            targetState = currentTab,
-            label = "main_content",
-        ) { tab ->
-            when (tab) {
-                MainTab.HOME -> {
-                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Text("Home Screen", style = MaterialTheme.typography.displayLarge, color = GreenPrimary)
-                    }
-                }
-                MainTab.RECIPES -> {
-                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Text("Recipes Screen", style = MaterialTheme.typography.displayLarge, color = GreenPrimary)
-                    }
-                }
-                MainTab.PROFILE -> {
-                    Crossfade(targetState = isEditingProfile, label = "profile_edit_crossfade") { editing ->
-                        if (editing) {
-                            EditProfileScreen(
-                                userName = userName,
-                                userEmail = userEmail,
-                                profileImageUri = profileImageUri,
-                                onPickImage = { profileImageUri = it },
-                                onSave = { newName, newEmail ->
-                                    userName = newName
-                                    userEmail = newEmail
-                                    isEditingProfile = false
-                                },
-                                onCancel = { isEditingProfile = false }
-                            )
-                        } else {
-                            ProfileScreen(
-                                userName = userName,
-                                userEmail = userEmail,
-                                profileImageUri = profileImageUri,
-                                onBack = { currentTab = MainTab.HOME },
-                                onLogout = { /* Handle global logout */ },
-                                onDeleteAccount = { /* Handle account deletion */ },
-                                onEditProfile = { isEditingProfile = true }
+    // Recipe Generation State
+    var activeRecipeIngredients by remember { mutableStateOf<List<String>?>(null) }
+
+    Crossfade(targetState = activeRecipeIngredients, label = "recipe_results_crossfade") { ingredients ->
+        if (ingredients != null) {
+            RecipeResultsScreen(
+                ingredients = ingredients,
+                onBack = { activeRecipeIngredients = null }
+            )
+        } else {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(GreenSecondary)
+            ) {
+                // Content Area
+                AnimatedContent(
+                    targetState = currentTab,
+                    label = "main_content",
+                ) { tab ->
+                    when (tab) {
+                        MainTab.HOME -> {
+                            HomeScreen(
+                                onGenerateRecipes = { activeRecipeIngredients = it }
                             )
                         }
+                        MainTab.RECIPES -> {
+                            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                Text("Recipes Screen", style = MaterialTheme.typography.displayLarge, color = GreenPrimary)
+                            }
+                        }
+                        MainTab.PROFILE -> {
+                            Crossfade(targetState = isEditingProfile, label = "profile_edit_crossfade") { editing ->
+                                if (editing) {
+                                    EditProfileScreen(
+                                        userName = userName,
+                                        userEmail = userEmail,
+                                        profileImageUri = profileImageUri,
+                                        onPickImage = { profileImageUri = it },
+                                        onSave = { newName, newEmail ->
+                                            userName = newName
+                                            userEmail = newEmail
+                                            isEditingProfile = false
+                                        },
+                                        onCancel = { isEditingProfile = false }
+                                    )
+                                } else {
+                                    ProfileScreen(
+                                        userName = userName,
+                                        userEmail = userEmail,
+                                        profileImageUri = profileImageUri,
+                                        onBack = { currentTab = MainTab.HOME },
+                                        onLogout = { /* Handle global logout */ },
+                                        onDeleteAccount = { /* Handle account deletion */ },
+                                        onEditProfile = { isEditingProfile = true }
+                                    )
+                                }
+                            }
+                        }
                     }
+                } // End AnimatedContent
+
+                // Hide bottom bar when editing profile for cleaner UI
+                if (!isEditingProfile || currentTab != MainTab.PROFILE) {
+                    SnapChefBottomBar(
+                        currentTab = currentTab,
+                        onTabSelected = { 
+                            currentTab = it 
+                            if (it != MainTab.PROFILE) isEditingProfile = false
+                        },
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .navigationBarsPadding()
+                    )
                 }
             }
-        }
-
-        // Hide bottom bar when editing profile for cleaner UI
-        if (!isEditingProfile || currentTab != MainTab.PROFILE) {
-            SnapChefBottomBar(
-                currentTab = currentTab,
-                onTabSelected = { 
-                    currentTab = it 
-                    if (it != MainTab.PROFILE) isEditingProfile = false
-                },
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .navigationBarsPadding()
-            )
         }
     }
 }
