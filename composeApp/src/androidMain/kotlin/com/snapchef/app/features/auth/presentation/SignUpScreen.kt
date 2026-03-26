@@ -190,14 +190,12 @@ fun SignUpScreen(
 
             Button(
                 onClick  = onSignUp,
-                enabled  = uiState.agreeTerms,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(56.dp),
                 shape    = RoundedCornerShape(28.dp),
                 colors   = ButtonDefaults.buttonColors(
                     containerColor = GreenPrimary,
-                    disabledContainerColor = GreenSecondary,
                 ),
                 elevation = ButtonDefaults.buttonElevation(defaultElevation = 6.dp),
             ) {
