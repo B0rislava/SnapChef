@@ -32,11 +32,13 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -44,6 +46,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.snapchef.app.core.theme.GreenBackground
@@ -59,11 +62,15 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 fun GroupsScreen(
     modifier: Modifier = Modifier,
     viewModel: GroupsViewModel = viewModel(),
+    onDetailsVisibilityChanged: (Boolean) -> Unit = {},
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val selectedGroup = uiState.groups.firstOrNull { it.id == uiState.selectedGroupId } ?: uiState.groups.first()
     val selectedRecipe = uiState.selectedRecipe
     val infoMessage = uiState.infoMessage
+    LaunchedEffect(selectedRecipe) {
+        onDetailsVisibilityChanged(selectedRecipe != null)
+    }
 
     if (selectedRecipe != null) {
         GroupRecipeDetailsScreen(
@@ -220,13 +227,18 @@ fun GroupsScreen(
                     Spacer(modifier = Modifier.height(12.dp))
 
                     selectedGroup.recipes.forEach { recipe ->
+                        val cardColor = when {
+                            recipe.isExpired() -> Color(0xFFE0E0E0)
+                            recipe.expiresToday() -> Color(0xFFFFD7D7)
+                            else -> GreenBackground
+                        }
                         Card(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(bottom = 10.dp)
                                 .clickable { viewModel.openRecipe(recipe) },
                             shape = RoundedCornerShape(16.dp),
-                            colors = CardDefaults.cardColors(containerColor = GreenBackground),
+                            colors = CardDefaults.cardColors(containerColor = cardColor),
                             elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
                         ) {
                             Column(modifier = Modifier.padding(14.dp)) {
@@ -238,10 +250,27 @@ fun GroupsScreen(
                                 )
                                 Spacer(modifier = Modifier.height(4.dp))
                                 Text(
-                                    text = "Shared by ${recipe.ownerName}",
+                                    text = if (recipe.ownerName == "You") "Saved by you" else "Shared by ${recipe.ownerName}",
                                     style = MaterialTheme.typography.bodySmall,
                                     color = GreenOnBackground.copy(alpha = 0.7f),
                                 )
+                                recipe.earliestDaysLeft()?.let { days ->
+                                    Spacer(modifier = Modifier.height(6.dp))
+                                    Text(
+                                        text = when {
+                                            days < 0 -> "Expired"
+                                            days == 0 -> "Expires today"
+                                            else -> "$days days left"
+                                        },
+                                        style = MaterialTheme.typography.labelMedium,
+                                        color = when {
+                                            days < 0 -> Color.Gray
+                                            days == 0 -> Color(0xFFC62828)
+                                            else -> GreenPrimary
+                                        },
+                                        fontWeight = FontWeight.SemiBold,
+                                    )
+                                }
                             }
                         }
                     }
@@ -404,7 +433,7 @@ private fun GroupRecipeDetailsScreen(
                             colors = CardDefaults.cardColors(containerColor = GreenSecondary),
                         ) {
                             Text(
-                                text = "Shared",
+                                text = if (recipe.ownerName == "You") "Saved" else "Shared",
                                 modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
                                 style = MaterialTheme.typography.labelMedium,
                                 color = GreenOnBackground,
@@ -428,6 +457,87 @@ private fun GroupRecipeDetailsScreen(
                     ) {
                         Column(modifier = Modifier.padding(14.dp)) {
                             Text(
+                                text = "Instructions",
+                                style = MaterialTheme.typography.titleSmall,
+                                color = GreenPrimary,
+                                fontWeight = FontWeight.SemiBold,
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            if (recipe.instructions.isEmpty()) {
+                                Text(
+                                    text = "No instructions available.",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = GreenOnBackground,
+                                )
+                            } else {
+                                recipe.instructions.forEachIndexed { i, step ->
+                                    Text(
+                                        text = "${i + 1}. $step",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = GreenOnBackground,
+                                    )
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                }
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(14.dp))
+
+                    if (recipe.perishableProducts.isNotEmpty()) {
+                        Card(
+                            shape = RoundedCornerShape(16.dp),
+                            colors = CardDefaults.cardColors(containerColor = GreenBackground),
+                        ) {
+                            Column(modifier = Modifier.padding(14.dp)) {
+                                Text(
+                                    text = "Perishable freshness",
+                                    style = MaterialTheme.typography.titleSmall,
+                                    color = GreenPrimary,
+                                    fontWeight = FontWeight.SemiBold,
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                recipe.perishableProducts.forEach { product ->
+                                    val daysLeft = product.daysLeft()
+                                    Text(
+                                        text = product.name,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = if (daysLeft < 0) Color.Gray else GreenOnBackground,
+                                        textDecoration = if (daysLeft < 0) TextDecoration.LineThrough else TextDecoration.None,
+                                        fontWeight = FontWeight.Medium,
+                                    )
+                                    Slider(
+                                        value = product.freshness,
+                                        onValueChange = {},
+                                        valueRange = 0f..1f,
+                                        enabled = false,
+                                    )
+                                    Text(
+                                        text = when {
+                                            daysLeft < 0 -> "Expired"
+                                            daysLeft == 0 -> "Expires today"
+                                            else -> "$daysLeft days left"
+                                        },
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = when {
+                                            daysLeft < 0 -> Color.Gray
+                                            daysLeft == 0 -> Color(0xFFC62828)
+                                            else -> GreenPrimary
+                                        },
+                                    )
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                }
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(14.dp))
+                    }
+
+                    Card(
+                        shape = RoundedCornerShape(16.dp),
+                        colors = CardDefaults.cardColors(containerColor = GreenBackground),
+                    ) {
+                        Column(modifier = Modifier.padding(14.dp)) {
+                            Text(
                                 text = "${recipe.ownerName} needs:",
                                 style = MaterialTheme.typography.titleSmall,
                                 color = GreenPrimary,
@@ -442,11 +552,12 @@ private fun GroupRecipeDetailsScreen(
                                     color = GreenOnBackground,
                                 )
                             } else {
+                                val spoiled = recipe.spoiledProducts()
                                 recipe.missingItems.forEach { item ->
                                     Text(
                                         text = "- $item",
                                         style = MaterialTheme.typography.bodyMedium,
-                                        color = GreenOnBackground,
+                                        color = if (spoiled.any { s -> item.contains(s, ignoreCase = true) }) Color.Gray else GreenOnBackground,
                                     )
                                 }
                             }

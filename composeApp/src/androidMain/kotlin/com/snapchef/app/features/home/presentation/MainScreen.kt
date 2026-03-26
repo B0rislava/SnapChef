@@ -9,6 +9,9 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import com.snapchef.app.core.presentation.components.MainTab
@@ -26,6 +29,7 @@ fun MainScreen(
     viewModel: MainViewModel = viewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    var isViewingGroupRecipeDetails by remember { mutableStateOf(false) }
     LaunchedEffect(uiState.shouldNavigateToAuth) {
         if (uiState.shouldNavigateToAuth) {
             onLogout()
@@ -37,7 +41,8 @@ fun MainScreen(
         if (ingredients != null) {
             RecipeResultsScreen(
                 ingredients = ingredients,
-                onBack = viewModel::closeRecipeResults
+                onBack = viewModel::closeRecipeResults,
+                onSaveRecipe = viewModel::saveGeneratedRecipe,
             )
         } else {
             Box(
@@ -60,7 +65,9 @@ fun MainScreen(
                             )
                         }
                         MainTab.RECIPES -> {
-                            GroupsScreen()
+                            GroupsScreen(
+                                onDetailsVisibilityChanged = { isViewingGroupRecipeDetails = it }
+                            )
                         }
                         MainTab.PROFILE -> {
                             Crossfade(targetState = uiState.isEditingProfile, label = "profile_edit_crossfade") { editing ->
@@ -90,6 +97,7 @@ fun MainScreen(
                 } 
 
                 if (!uiState.isEditingProfile && uiState.currentTab != MainTab.PROFILE && !uiState.isCameraActive) {
+
                     SnapChefBottomBar(
                         currentTab = uiState.currentTab,
                         onTabSelected = viewModel::selectTab,

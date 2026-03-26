@@ -3,6 +3,8 @@ package com.snapchef.app.features.home.presentation
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import com.snapchef.app.core.presentation.components.MainTab
+import com.snapchef.app.features.groups.presentation.RecipeStore
+import com.snapchef.app.features.groups.presentation.SharedRecipe
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -52,6 +54,16 @@ class MainViewModel : ViewModel() {
 
     fun setCameraActive(active: Boolean) {
         _uiState.update { it.copy(isCameraActive = active) }
+    }
+    
+    fun saveGeneratedRecipe(recipe: SharedRecipe, isShared: Boolean) {
+        RecipeStore.addPersonalRecipe(recipe)
+        _uiState.update {
+            it.copy(
+                activeRecipeIngredients = null,
+                currentTab = MainTab.RECIPES,
+            )
+        }
     }
 
     fun logout() {

@@ -6,20 +6,31 @@
 //
 
 import SwiftUI
- 
+
 struct ScreenWrapper: View {
     @State private var currentTab: MainTab = .home
-     
-        var body: some View {
-            ZStack(alignment: .bottom) {
-                Color.greenSecondary
-                    .ignoresSafeArea()
-     
+
+    var body: some View {
+        ZStack(alignment: .bottom) {
+            Color.greenSecondary
+                .ignoresSafeArea()
+
+            ZStack {
                 HomeView()
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
-     
-                SnapChefBottomBar(currentTab: $currentTab)
+                    .opacity(currentTab == .home ? 1 : 0)
+
+                ProfileView(
+                    onBack: { currentTab = .home },
+                    onLogout: { print("Logging out...") },
+                    onDeleteAccount: { print("Deleting account...") }
+                )
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .opacity(currentTab == .profile ? 1 : 0)
             }
-            .ignoresSafeArea(edges: .bottom)
+
+            SnapChefBottomBar(currentTab: $currentTab)
         }
+        .ignoresSafeArea(edges: .bottom)
+    }
 }
