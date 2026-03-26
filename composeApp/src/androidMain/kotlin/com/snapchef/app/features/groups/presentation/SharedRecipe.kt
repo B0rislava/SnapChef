@@ -18,6 +18,7 @@ data class SharedRecipe(
     val description: String,
     val ownerName: String,
     val missingItems: List<String>,
+    val availableItems: List<String> = emptyList(),
     val instructions: List<String> = emptyList(),
     val perishableProducts: List<PerishableProduct> = emptyList(),
 )

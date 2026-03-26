@@ -40,6 +40,9 @@ import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -354,6 +357,7 @@ private fun GroupRecipeDetailsScreen(
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    var inviteMessage by remember { mutableStateOf<String?>(null) }
     Box(
         modifier = modifier
             .fillMaxSize()
@@ -442,6 +446,21 @@ private fun GroupRecipeDetailsScreen(
                     }
 
                     Spacer(modifier = Modifier.height(14.dp))
+
+                    if (recipe.ownerName != "You") {
+                        Button(
+                            onClick = { inviteMessage = "Invitation sent to ${recipe.ownerName}." },
+                            colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = GreenPrimary),
+                            shape = RoundedCornerShape(14.dp),
+                        ) {
+                            Text("Invite to cook together", color = Color.White)
+                        }
+                        inviteMessage?.let {
+                            Spacer(modifier = Modifier.height(6.dp))
+                            Text(it, style = MaterialTheme.typography.bodySmall, color = GreenPrimary)
+                        }
+                        Spacer(modifier = Modifier.height(12.dp))
+                    }
 
                     Text(
                         text = recipe.description,
@@ -537,6 +556,19 @@ private fun GroupRecipeDetailsScreen(
                         colors = CardDefaults.cardColors(containerColor = GreenBackground),
                     ) {
                         Column(modifier = Modifier.padding(14.dp)) {
+                            if (recipe.availableItems.isNotEmpty()) {
+                                Text(
+                                    text = "${recipe.ownerName} has:",
+                                    style = MaterialTheme.typography.titleSmall,
+                                    color = GreenPrimary,
+                                    fontWeight = FontWeight.SemiBold,
+                                )
+                                Spacer(modifier = Modifier.height(6.dp))
+                                recipe.availableItems.forEach { item ->
+                                    Text("- $item", style = MaterialTheme.typography.bodyMedium, color = GreenOnBackground)
+                                }
+                                Spacer(modifier = Modifier.height(10.dp))
+                            }
                             Text(
                                 text = "${recipe.ownerName} needs:",
                                 style = MaterialTheme.typography.titleSmall,

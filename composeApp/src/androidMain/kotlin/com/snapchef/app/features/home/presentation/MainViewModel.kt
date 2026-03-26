@@ -57,7 +57,11 @@ class MainViewModel : ViewModel() {
     }
     
     fun saveGeneratedRecipe(recipe: SharedRecipe, isShared: Boolean) {
-        RecipeStore.addPersonalRecipe(recipe)
+        if (isShared) {
+            RecipeStore.addSharedRecipe(recipe)
+        } else {
+            RecipeStore.addPersonalRecipe(recipe)
+        }
         _uiState.update {
             it.copy(
                 activeRecipeIngredients = null,
