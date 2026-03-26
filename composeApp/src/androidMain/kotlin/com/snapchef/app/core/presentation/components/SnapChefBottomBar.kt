@@ -9,9 +9,11 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.outlined.AccountCircle
 import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material.icons.outlined.Home
+import androidx.compose.material.icons.outlined.StarBorder
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -23,7 +25,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import com.snapchef.app.core.theme.GreenPrimary
 
-enum class MainTab { HOME, RECIPES, PROFILE }
+enum class MainTab { HOME, RECIPES, RECOMMENDED, PROFILE }
 
 @Composable
 fun SnapChefBottomBar(
@@ -74,6 +76,14 @@ fun SnapChefBottomBar(
                 contentDescription = "Profile",
                 isSelected = currentTab == MainTab.PROFILE,
                 onClick = { onTabSelected(MainTab.PROFILE) }
+            )
+
+            BottomBarItem(
+                icon = Icons.Outlined.StarBorder,
+                selectedIcon = Icons.Filled.Star,
+                contentDescription = "Recommended",
+                isSelected = currentTab == MainTab.RECOMMENDED,
+                onClick = { onTabSelected(MainTab.RECOMMENDED) }
             )
         }
     }

@@ -41,6 +41,20 @@ class GroupsViewModel : ViewModel() {
                 }
             }
         }
+        viewModelScope.launch {
+            RecipeStore.sharedRecipes.collect { shared ->
+                _uiState.update { state ->
+                    val updatedGroups = state.groups.map { group ->
+                        if (group.id == "g1") {
+                            group.copy(recipes = flatmatesBaseRecipes() + shared)
+                        } else {
+                            group
+                        }
+                    }
+                    state.copy(groups = updatedGroups)
+                }
+            }
+        }
     }
 
     fun setExpanded(value: Boolean) = _uiState.update { it.copy(expanded = value) }
@@ -169,6 +183,12 @@ class GroupsViewModel : ViewModel() {
                                                 for (m in 0 until miss.length()) add(miss.optString(m))
                                             }
                                         }.orEmpty(),
+                                    availableItems = item.optJSONArray("availableItems")
+                                        ?.let { list ->
+                                            buildList {
+                                                for (idx in 0 until list.length()) add(list.optString(idx))
+                                            }
+                                        }.orEmpty(),
                                     instructions = item.optJSONArray("instructions")
                                         ?.let { steps ->
                                             buildList {
@@ -222,40 +242,7 @@ class GroupsViewModel : ViewModel() {
                 id = "g1",
                 name = "Flatmates",
                 code = "A7K2P1",
-                recipes = listOf(
-                    SharedRecipe(
-                        "Pasta Carbonara",
-                        "Classic creamy pasta with bacon and parmesan.",
-                        "Anton",
-                        listOf("2 eggs"),
-                        instructions = listOf(
-                            "Cook pasta in salted water.",
-                            "Fry bacon until crisp.",
-                            "Mix eggs and cheese in a bowl.",
-                            "Combine pasta with bacon and egg mix off the heat.",
-                        ),
-                        perishableProducts = listOf(
-                            PerishableProduct("Bacon", maxFreshDays = 3, freshness = 0.18f),
-                            PerishableProduct("Eggs", maxFreshDays = 6, freshness = 0.42f),
-                        ),
-                    ),
-                    SharedRecipe(
-                        "Veggie Stir Fry",
-                        "Fast stir fry with peppers and soy sauce.",
-                        "Mira",
-                        listOf("1 red pepper"),
-                        instructions = listOf(
-                            "Chop all vegetables evenly.",
-                            "Heat wok and add oil.",
-                            "Stir-fry vegetables for 4-5 minutes.",
-                            "Add soy sauce and serve.",
-                        ),
-                        perishableProducts = listOf(
-                            PerishableProduct("Bell pepper", maxFreshDays = 5, freshness = 0.06f),
-                            PerishableProduct("Mushrooms", maxFreshDays = 2, freshness = 0.0f),
-                        ),
-                    ),
-                ),
+                recipes = flatmatesBaseRecipes(),
             ),
         )
         return GroupsUiState(groups = groups, selectedGroupId = "personal")
@@ -288,6 +275,43 @@ class GroupsViewModel : ViewModel() {
                 perishableProducts = listOf(
                     PerishableProduct("Chicken breast", maxFreshDays = 2, freshness = 0.65f),
                     PerishableProduct("Green onion", maxFreshDays = 4, freshness = 0.45f),
+                ),
+            ),
+        )
+    }
+
+    private fun flatmatesBaseRecipes(): List<SharedRecipe> {
+        return listOf(
+            SharedRecipe(
+                "Pasta Carbonara",
+                "Classic creamy pasta with bacon and parmesan.",
+                "Anton",
+                listOf("2 eggs"),
+                instructions = listOf(
+                    "Cook pasta in salted water.",
+                    "Fry bacon until crisp.",
+                    "Mix eggs and cheese in a bowl.",
+                    "Combine pasta with bacon and egg mix off the heat.",
+                ),
+                perishableProducts = listOf(
+                    PerishableProduct("Bacon", maxFreshDays = 3, freshness = 0.18f),
+                    PerishableProduct("Eggs", maxFreshDays = 6, freshness = 0.42f),
+                ),
+            ),
+            SharedRecipe(
+                "Veggie Stir Fry",
+                "Fast stir fry with peppers and soy sauce.",
+                "Mira",
+                listOf("1 red pepper"),
+                instructions = listOf(
+                    "Chop all vegetables evenly.",
+                    "Heat wok and add oil.",
+                    "Stir-fry vegetables for 4-5 minutes.",
+                    "Add soy sauce and serve.",
+                ),
+                perishableProducts = listOf(
+                    PerishableProduct("Bell pepper", maxFreshDays = 5, freshness = 0.06f),
+                    PerishableProduct("Mushrooms", maxFreshDays = 2, freshness = 0.0f),
                 ),
             ),
         )

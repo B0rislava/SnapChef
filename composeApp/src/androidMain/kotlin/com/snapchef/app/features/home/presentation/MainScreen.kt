@@ -30,6 +30,9 @@ fun MainScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var isViewingGroupRecipeDetails by remember { mutableStateOf(false) }
+    LaunchedEffect(uiState.currentTab) {
+        if (uiState.currentTab != MainTab.RECIPES) isViewingGroupRecipeDetails = false
+    }
     LaunchedEffect(uiState.shouldNavigateToAuth) {
         if (uiState.shouldNavigateToAuth) {
             onLogout()
@@ -67,6 +70,11 @@ fun MainScreen(
                         MainTab.RECIPES -> {
                             GroupsScreen(
                                 onDetailsVisibilityChanged = { isViewingGroupRecipeDetails = it }
+                            )
+                        }
+                        MainTab.RECOMMENDED -> {
+                            RecommendedRecipesScreen(
+                                onSaveRecipe = viewModel::saveGeneratedRecipe,
                             )
                         }
                         MainTab.PROFILE -> {
