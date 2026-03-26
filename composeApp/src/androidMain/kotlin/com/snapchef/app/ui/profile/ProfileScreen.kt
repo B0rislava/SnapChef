@@ -1,0 +1,453 @@
+package com.snapchef.app.ui.profile
+
+import android.net.Uri
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.systemBarsPadding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.snapchef.app.ProfilePhoto
+import com.snapchef.app.ui.theme.GreenBackground
+import com.snapchef.app.ui.theme.GreenOnBackground
+import com.snapchef.app.ui.theme.GreenPrimary
+import com.snapchef.app.ui.theme.GreenSecondary
+
+private data class SavedRecipe(
+    val title: String,
+    val isQuick: Boolean,
+)
+
+@Composable
+private fun Pill(
+    text: String,
+    isQuick: Boolean,
+) {
+    val bg = if (isQuick) GreenPrimary else GreenSecondary
+    val fg = if (isQuick) Color.White else GreenOnBackground
+    Surface(
+        shape = RoundedCornerShape(999.dp),
+        color = bg,
+        tonalElevation = 2.dp,
+    ) {
+        Text(
+            text = text,
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+            color = fg,
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.SemiBold,
+        )
+    }
+}
+
+@Composable
+fun ProfileScreen(
+    userName: String,
+    userEmail: String,
+    profileImageUri: Uri?,
+    onBack: () -> Unit,
+    onLogout: () -> Unit,
+    onDeleteAccount: () -> Unit,
+    onEditProfile: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val initials = remember(userName) { userName.toInitials() }
+    val recipes = remember {
+        listOf(
+            SavedRecipe("Omelette with Cheese", true),
+            SavedRecipe("Tomato Egg Fried Rice", true),
+            SavedRecipe("Baked Veggie Pasta", false),
+            SavedRecipe("Leftover Chicken Wraps", true),
+        )
+    }
+
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .background(
+                Brush.verticalGradient(listOf(GreenSecondary.copy(alpha = 0.55f), GreenBackground))
+            )
+    ) {
+        // top circle accent
+        Box(
+            modifier = Modifier
+                .size(240.dp)
+                .offset(x = 240.dp, y = (-40).dp)
+                .clip(CircleShape)
+                .background(GreenPrimary.copy(alpha = 0.10f))
+        )
+
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .systemBarsPadding()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // Top header
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                IconButton(
+                    onClick = onBack,
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clip(CircleShape)
+                        .background(GreenPrimary.copy(alpha = 0.10f)),
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = "Back",
+                        tint = GreenPrimary,
+                    )
+                }
+
+                Spacer(modifier = Modifier.width(10.dp))
+
+                Text(
+                    text = "Your Profile",
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = GreenPrimary,
+                )
+            }
+
+            Spacer(modifier = Modifier.height(32.dp))
+
+            // Avatar block
+            Box(
+                modifier = Modifier.fillMaxWidth(),
+                contentAlignment = Alignment.Center,
+            ) {
+                Box(contentAlignment = Alignment.BottomEnd) {
+                    Box(
+                        modifier = Modifier
+                            .size(140.dp)
+                            .clip(CircleShape)
+                            .background(Color.White)
+                            .padding(6.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        ProfilePhoto(
+                            imageUri = profileImageUri,
+                            initials = initials,
+                            modifier = Modifier
+                                .size(128.dp)
+                                .clip(CircleShape),
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(32.dp))
+
+            // Fields inside a nice card
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(24.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.White),
+                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+            ) {
+                Column(
+                    modifier = Modifier.padding(24.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                ) {
+                    ReadOnlyProfileField(
+                        label = "Name",
+                        value = userName,
+                    )
+                    ReadOnlyProfileField(
+                        label = "Email",
+                        value = userEmail,
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // Recipes strip
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(24.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.White),
+                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+            ) {
+                Column(modifier = Modifier.padding(24.dp)) {
+                    Text(
+                        text = "Saved recipes",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = GreenPrimary,
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    val pagerState = rememberPagerState(pageCount = { recipes.size })
+
+                    HorizontalPager(
+                        state = pagerState,
+                        modifier = Modifier.fillMaxWidth(),
+                        pageSpacing = 0.dp,
+                    ) { page ->
+                        RecipeCard(
+                            recipe = recipes[page],
+                            onPress = { /* MVP: visual only */ },
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.Center,
+                    ) {
+                        repeat(recipes.size) { index ->
+                            val isSelected = pagerState.currentPage == index
+                            Box(
+                                modifier = Modifier
+                                    .padding(horizontal = 4.dp)
+                                    .size(if (isSelected) 9.dp else 7.dp)
+                                    .clip(CircleShape)
+                                    .background(
+                                        if (isSelected) GreenPrimary else GreenSecondary.copy(alpha = 0.6f)
+                                    ),
+                            )
+                        }
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(32.dp))
+
+            // Bottom actions
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+            ) {
+                BouncyAction(
+                    modifier = Modifier.weight(1f),
+                    text = "Logout",
+                    container = GreenPrimary,
+                    content = Color.White,
+                    onClick = onLogout,
+                )
+                BouncyAction(
+                    modifier = Modifier.weight(1f),
+                    text = "Delete",
+                    container = GreenSecondary.copy(alpha = 0.5f),
+                    content = GreenPrimary,
+                    onClick = onDeleteAccount,
+                )
+                BouncyAction(
+                    modifier = Modifier.weight(1f),
+                    text = "Edit",
+                    container = GreenSecondary,
+                    content = GreenOnBackground,
+                    onClick = onEditProfile,
+                )
+            }
+
+            Spacer(modifier = Modifier.height(32.dp))
+        }
+    }
+}
+
+@Composable
+private fun ReadOnlyProfileField(
+    label: String,
+    value: String,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Surface(
+            shape = CircleShape,
+            color = GreenSecondary.copy(alpha = 0.35f),
+            modifier = Modifier.size(48.dp),
+            contentColor = GreenPrimary
+        ) {
+            Box(contentAlignment = Alignment.Center) {
+                Text(
+                    text = if (label == "Name") "👤" else "✉️",
+                    style = MaterialTheme.typography.titleLarge,
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.width(16.dp))
+
+        Column {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelLarge,
+                color = GreenOnBackground.copy(alpha = 0.55f),
+            )
+            Spacer(modifier = Modifier.height(2.dp))
+            Text(
+                text = value,
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.Medium,
+                color = GreenOnBackground,
+            )
+        }
+    }
+}
+
+@Composable
+private fun RecipeCard(
+    recipe: SavedRecipe,
+    onPress: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val pressed by interactionSource.collectIsPressedAsState()
+
+    val scale by animateFloatAsState(
+        targetValue = if (pressed) 0.98f else 1f,
+        animationSpec = spring(stiffness = 450f, dampingRatio = 0.65f),
+        label = "recipeCardScale",
+    )
+
+    Surface(
+        modifier = modifier
+            .widthIn(min = 200.dp, max = 420.dp)
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+            }
+            .clip(RoundedCornerShape(16.dp))
+            .clickable(
+                interactionSource = interactionSource,
+                onClick = onPress,
+            ),
+        shape = RoundedCornerShape(16.dp),
+        color = GreenBackground,
+        border = androidx.compose.foundation.BorderStroke(1.5.dp, GreenSecondary),
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Pill(
+                text = if (recipe.isQuick) "Quick" else "Standard",
+                isQuick = recipe.isQuick,
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+            Text(
+                text = recipe.title,
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.SemiBold,
+                color = GreenOnBackground,
+            )
+        }
+    }
+}
+
+@Composable
+private fun BouncyAction(
+    text: String,
+    container: Color,
+    content: Color,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val pressed by interactionSource.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (pressed) 0.98f else 1f,
+        animationSpec = spring(stiffness = 450f, dampingRatio = 0.65f),
+        label = "actionScale",
+    )
+
+    Surface(
+        modifier = Modifier
+            .then(modifier)
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+            },
+        shape = RoundedCornerShape(24.dp),
+        color = container,
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable(
+                    interactionSource = interactionSource,
+                    onClick = onClick,
+                )
+                .padding(vertical = 12.dp),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(text = text, color = content, style = MaterialTheme.typography.labelLarge)
+        }
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+private fun ProfileScreenPreview() {
+    com.snapchef.app.ui.theme.SnapChefTheme {
+        ProfileScreen(
+            userName = "John Doe",
+            userEmail = "john.doe@snapchef.app",
+            profileImageUri = null,
+            onBack = {},
+            onLogout = {},
+            onDeleteAccount = {},
+            onEditProfile = {},
+        )
+    }
+}
+
+private fun String.toInitials(): String {
+    val parts = trim().split("\\s+".toRegex()).filter { it.isNotEmpty() }
+    if (parts.isEmpty()) return "JD"
+    if (parts.size == 1) return parts.first().take(2).uppercase()
+    return (parts.first().first().toString() + parts.last().first().toString()).uppercase()
+}
