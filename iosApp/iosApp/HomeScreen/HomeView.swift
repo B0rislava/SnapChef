@@ -9,9 +9,11 @@ import SwiftUI
 struct HomeView: View {
     var onGenerateRecipes: ([String]) -> Void = { _ in }
 
-    @State private var showModal    = false
-    @State private var isAnalyzing  = false
-    @State private var ingredients: [String] = []
+    @StateObject private var permissions = CameraPermissionHandler()
+
+    @State private var showModal     = false
+    @State private var isAnalyzing   = false
+    @State private var ingredients:  [String] = []
     @State private var newIngredient = ""
 
     var body: some View {
@@ -70,18 +72,31 @@ struct HomeView: View {
             .presentationDetents([.medium, .large])
             .presentationDragIndicator(.visible)
         }
+        // Denied alert — directs user to Settings
+        .alert("Permission Required", isPresented: $permissions.showDeniedAlert) {
+            Button("Open Settings") {
+                if let url = URL(string: UIApplication.openSettingsURLString) {
+                    UIApplication.shared.open(url)
+                }
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("SnapChef needs access to your camera and photo library to identify ingredients. Please enable both in Settings.")
+        }
     }
 
     private func onCameraSnap() {
-        ingredients  = []
-        isAnalyzing  = true
-        showModal    = true
+        permissions.requestPermissions {
+            ingredients  = []
+            isAnalyzing  = true
+            showModal    = true
 
-        // Simulate AI recognition
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
-            withAnimation(.easeInOut(duration: 0.3)) {
-                ingredients = ["Tomatoes", "Eggs", "Cheese", "Onion"]
-                isAnalyzing = false
+            // Simulate AI recognition
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                withAnimation(.easeInOut(duration: 0.3)) {
+                    ingredients = ["Tomatoes", "Eggs", "Cheese", "Onion"]
+                    isAnalyzing = false
+                }
             }
         }
     }
