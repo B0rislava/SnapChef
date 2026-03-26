@@ -35,7 +35,6 @@ fun AuthNavGraph(
         when (destination) {
             AuthDestination.WELCOME -> WelcomeScreen(
                 onGetStarted = { viewModel.goTo(AuthDestination.SIGN_UP) },
-                onSignIn = { viewModel.goTo(AuthDestination.SIGN_IN) },
             )
             AuthDestination.SIGN_IN -> SignInScreen(
                 onBack = { viewModel.goTo(AuthDestination.WELCOME) },
