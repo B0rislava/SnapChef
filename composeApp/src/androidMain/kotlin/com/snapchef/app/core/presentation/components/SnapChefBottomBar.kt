@@ -9,10 +9,12 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.People
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.outlined.AccountCircle
 import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material.icons.outlined.Home
+import androidx.compose.material.icons.outlined.People
 import androidx.compose.material.icons.outlined.StarBorder
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
@@ -25,7 +27,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import com.snapchef.app.core.theme.GreenPrimary
 
-enum class MainTab { HOME, RECIPES, RECOMMENDED, PROFILE }
+enum class MainTab { HOME, RECIPES, GROUPS, RECOMMENDED, PROFILE }
 
 @Composable
 fun SnapChefBottomBar(
@@ -63,6 +65,14 @@ fun SnapChefBottomBar(
             )
 
             BottomBarItem(
+                icon = Icons.Outlined.People,
+                selectedIcon = Icons.Filled.People,
+                contentDescription = "Groups",
+                isSelected = currentTab == MainTab.GROUPS,
+                onClick = { onTabSelected(MainTab.GROUPS) }
+            )
+
+            BottomBarItem(
                 icon = Icons.Outlined.Home,
                 selectedIcon = Icons.Filled.Home,
                 contentDescription = "Home",
@@ -71,19 +81,19 @@ fun SnapChefBottomBar(
             )
 
             BottomBarItem(
-                icon = Icons.Outlined.AccountCircle,
-                selectedIcon = Icons.Filled.AccountCircle,
-                contentDescription = "Profile",
-                isSelected = currentTab == MainTab.PROFILE,
-                onClick = { onTabSelected(MainTab.PROFILE) }
-            )
-
-            BottomBarItem(
                 icon = Icons.Outlined.StarBorder,
                 selectedIcon = Icons.Filled.Star,
                 contentDescription = "Recommended",
                 isSelected = currentTab == MainTab.RECOMMENDED,
                 onClick = { onTabSelected(MainTab.RECOMMENDED) }
+            )
+
+            BottomBarItem(
+                icon = Icons.Outlined.AccountCircle,
+                selectedIcon = Icons.Filled.AccountCircle,
+                contentDescription = "Profile",
+                isSelected = currentTab == MainTab.PROFILE,
+                onClick = { onTabSelected(MainTab.PROFILE) }
             )
         }
     }
