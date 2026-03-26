@@ -14,5 +14,13 @@
 "login" = "Login";
 "continue_google" = "Continue with Google";
 "continue_facebook" = "Continue with Facebook";
-"dont_have_account" = "Don't have an account?";
-"create_account" = "Create an account";
+"dont_have_account" = "Don't have an account? ";
+"create_an_account" = "Create an account";
+"create_account" = "Create Account";
+"join" = "Join for better food insights.";
+"enter_name" = "Enter your name";
+"create_password" = "Create Password";
+"i_agree" = "I agree to the ";
+"terms_privacy" = "Terms & Privacy";
+"sign_up" = "Sign Up";
+"already_have_account" = "Already have an account? ";

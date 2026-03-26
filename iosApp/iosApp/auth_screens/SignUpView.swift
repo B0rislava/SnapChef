@@ -1,35 +1,41 @@
 //
-//  SignInView.swift
+//  SignUpView.swift
 //  iosApp
 //
 //  Created by gergana on 3/26/26.
 //
+
 import SwiftUI
 
-struct SignInView: View {
-    var onBack:   () -> Void = {}
-    var onSignIn: () -> Void = {}
+struct SignUpView: View {
+    var onBack: () -> Void = {}
     var onSignUp: () -> Void = {}
+    var onSignIn: () -> Void = {}
 
-    @State private var email      = ""
-    @State private var password   = ""
-    @State private var showPass   = false
-    @State private var rememberMe = false
+    @State private var name = ""
+    @State private var email = ""
+    @State private var password = ""
+    @State private var showPass = false
+    @State private var agreeTerms = false
 
     var body: some View {
-        ZStack(alignment: .topTrailing) {
-
+        ZStack {
             LinearGradient(
-                colors: [Color.greenSecondary.opacity(0.55), Color.greenBackground],
+                colors: [Color.greenBackground, Color.greenSecondary.opacity(0.50)],
                 startPoint: .top,
                 endPoint: .bottom
             )
             .ignoresSafeArea()
 
             Circle()
-                .fill(Color.greenPrimary.opacity(0.10))
-                .frame(width: 220, height: 220)
-                .offset(x: 60, y: -50)
+                .fill(Color.greenPrimary.opacity(0.07))
+                .frame(width: 180, height: 180)
+                .offset(x: -120, y: 120)
+
+            Circle()
+                .fill(Color.greenSecondary.opacity(0.45))
+                .frame(width: 120, height: 120)
+                .offset(x: 140, y: -260)
 
             ScrollView(showsIndicators: false) {
                 VStack(alignment: .center, spacing: 0) {
@@ -46,22 +52,32 @@ struct SignInView: View {
                     }
                     .padding(.top, 16)
 
-                    Spacer().frame(height: 36)
+                    Spacer().frame(height: 28)
 
-                    Text(NSLocalizedString("welcome_back", comment: ""))
+                    Text(NSLocalizedString("create_account", comment: ""))
                         .font(.system(size: 26, weight: .heavy))
                         .foregroundColor(Color.greenPrimary)
 
                     Spacer().frame(height: 6)
 
-                    Text(NSLocalizedString("sign_in_to_continue", comment: ""))
+                    Text(NSLocalizedString("join", comment: ""))
                         .font(.system(size: 14))
                         .foregroundColor(Color.greenOnBackground.opacity(0.55))
                         .multilineTextAlignment(.center)
 
-                    Spacer().frame(height: 40)
+                    Spacer().frame(height: 32)
 
                     VStack(spacing: 16) {
+
+                        // name
+                        AuthTextField(
+                            value: $name,
+                            placeholder: NSLocalizedString("enter_name", comment: ""),
+                            leadingIcon: AnyView(
+                                Image(systemName: "person")
+                                    .foregroundColor(Color.greenPrimary)
+                            )
+                        )
 
                         // email
                         AuthTextField(
@@ -77,7 +93,7 @@ struct SignInView: View {
                         // password
                         AuthTextField(
                             value: $password,
-                            placeholder: NSLocalizedString("enter_your_password", comment: ""),
+                            placeholder: NSLocalizedString("create_password", comment: ""),
                             leadingIcon: AnyView(
                                 Image(systemName: "lock")
                                     .foregroundColor(Color.greenPrimary)
@@ -91,21 +107,22 @@ struct SignInView: View {
                             isSecure: !showPass
                         )
 
-                        // remember me + forgot password
-                        HStack {
-                            HStack(spacing: 4) {
-                                Toggle("", isOn: $rememberMe)
-                                    .toggleStyle(CheckboxToggleStyle())
-                                Text(NSLocalizedString("remember_me", comment: ""))
-                                    .font(.system(size: 14))
-                                    .foregroundColor(Color.greenOnBackground.opacity(0.65))
-                            }
-                            Spacer()
+                        // terms
+                        HStack(spacing: 4) {
+                            Toggle("", isOn: $agreeTerms)
+                                .toggleStyle(CheckboxToggleStyle())
+
+                            Text(NSLocalizedString("i_agree", comment: ""))
+                                .font(.system(size: 14))
+                                .foregroundColor(Color.greenOnBackground.opacity(0.65))
+
                             Button(action: {}) {
-                                Text(NSLocalizedString("forgot_password", comment: ""))
+                                Text(NSLocalizedString("terms_privacy", comment: ""))
                                     .font(.system(size: 14, weight: .semibold))
                                     .foregroundColor(Color.greenPrimary)
                             }
+
+                            Spacer()
                         }
                     }
                     .padding(24)
@@ -115,16 +132,22 @@ struct SignInView: View {
 
                     Spacer().frame(height: 24)
 
-                    Button(action: onSignIn) {
-                        Text(NSLocalizedString("login", comment: ""))
+                    // sign-up button
+                    Button(action: onSignUp) {
+                        Text(NSLocalizedString("sign_up", comment: ""))
                             .font(.system(size: 15, weight: .semibold))
                             .foregroundColor(.white)
                             .frame(maxWidth: .infinity)
                             .frame(height: 56)
-                            .background(Color.greenPrimary)
+                            .background(agreeTerms ? Color.greenPrimary : Color.greenPrimary.opacity(0.4))
                             .clipShape(Capsule())
-                            .shadow(color: Color.greenPrimary.opacity(0.4), radius: 8, x: 0, y: 4)
+                            .shadow(
+                                color: agreeTerms ? Color.greenPrimary.opacity(0.4) : .clear,
+                                radius: 8, x: 0, y: 4
+                            )
                     }
+                    .disabled(!agreeTerms)
+                    .animation(.easeInOut(duration: 0.2), value: agreeTerms)
 
                     Spacer().frame(height: 24)
 
@@ -138,13 +161,14 @@ struct SignInView: View {
 
                     Spacer().frame(height: 24)
 
+                    // sign-in link
                     HStack(spacing: 0) {
-                        Text(NSLocalizedString("continue_facebook", comment: ""))
+                        Text(NSLocalizedString("already_have_account", comment: ""))
                             .font(.system(size: 14))
                             .foregroundColor(Color.greenOnBackground.opacity(0.6))
 
-                        Button(action: onSignUp) {
-                            Text(NSLocalizedString("create_an_account", comment: ""))
+                        Button(action: onSignIn) {
+                            Text(NSLocalizedString("login", comment: ""))
                                 .font(.system(size: 14, weight: .bold))
                                 .foregroundColor(Color.greenPrimary)
                         }
@@ -156,16 +180,5 @@ struct SignInView: View {
             }
         }
         .navigationBarHidden(true)
-    }
-}
-
-struct CheckboxToggleStyle: ToggleStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        Button(action: { configuration.isOn.toggle() }) {
-            Image(systemName: configuration.isOn ? "checkmark.square.fill" : "square")
-                .foregroundColor(configuration.isOn ? Color.greenPrimary : Color.greenSecondary)
-                .font(.system(size: 20))
-        }
-        .buttonStyle(.plain)
     }
 }
