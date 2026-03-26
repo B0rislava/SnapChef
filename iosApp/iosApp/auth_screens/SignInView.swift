@@ -139,7 +139,7 @@ struct SignInView: View {
                     Spacer().frame(height: 24)
 
                     HStack(spacing: 0) {
-                        Text(NSLocalizedString("continue_facebook", comment: ""))
+                        Text(NSLocalizedString("already_have_account", comment: ""))
                             .font(.system(size: 14))
                             .foregroundColor(Color.greenOnBackground.opacity(0.6))
 

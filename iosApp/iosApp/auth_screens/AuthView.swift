@@ -11,6 +11,8 @@ enum AuthDestination: Int {
 }
 
 struct AuthView: View {
+    var onAuthSuccess: () -> Void = {}
+
     @State private var current: AuthDestination = .welcome
     @State private var previous: AuthDestination = .welcome
 
@@ -27,7 +29,7 @@ struct AuthView: View {
             case .signIn:
                 SignInView(
                     onBack:   { navigate(to: .welcome) },
-                    onSignIn: { /* TODO: navigate to main app */ },
+                    onSignIn: { onAuthSuccess() },
                     onSignUp: { navigate(to: .signUp) }
                 )
                 .transition(transition(to: .signIn, from: previous))
@@ -35,7 +37,7 @@ struct AuthView: View {
             case .signUp:
                 SignUpView(
                     onBack:   { navigate(to: .welcome) },
-                    onSignUp: { /* TODO: navigate to main app */ },
+                    onSignUp: { onAuthSuccess() },
                     onSignIn: { navigate(to: .signIn) }
                 )
                 .transition(transition(to: .signUp, from: previous))
