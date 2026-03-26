@@ -1,11 +1,11 @@
-package com.snapchef.app.ui.auth
+package com.snapchef.app.features.auth.presentation
 
 import androidx.compose.animation.*
 import androidx.compose.animation.core.tween
 import androidx.compose.runtime.*
 
 /** Simple in-memory navigation for the auth flow. */
-enum class AuthDestination { WELCOME, SIGN_IN, SIGN_UP }
+internal enum class AuthDestination { WELCOME, SIGN_IN, SIGN_UP }
 
 @Composable
 fun AuthNavGraph(onAuthSuccess: () -> Unit) {

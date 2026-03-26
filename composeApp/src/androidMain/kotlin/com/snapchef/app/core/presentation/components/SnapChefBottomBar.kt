@@ -1,4 +1,4 @@
-package com.snapchef.app.ui.main
+package com.snapchef.app.core.presentation.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -19,7 +19,7 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
-import com.snapchef.app.ui.theme.GreenPrimary
+import com.snapchef.app.core.theme.GreenPrimary
 
 enum class MainTab { HOME, RECIPES }
 

@@ -1,4 +1,4 @@
-package com.snapchef.app.ui.auth
+package com.snapchef.app.core.presentation.components
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Row
@@ -23,11 +23,10 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.snapchef.app.ui.theme.GreenOnBackground
-import com.snapchef.app.ui.theme.GreenPrimary
-import com.snapchef.app.ui.theme.GreenSecondary
+import com.snapchef.app.core.theme.GreenOnBackground
+import com.snapchef.app.core.theme.GreenPrimary
+import com.snapchef.app.core.theme.GreenSecondary
 
-// ─── Reusable text field ──────────────────────────────────────────────────────
 @Composable
 fun AuthTextField(
     modifier:             Modifier = Modifier,
@@ -68,7 +67,6 @@ fun AuthTextField(
     )
 }
 
-// ─── "Or" divider ─────────────────────────────────────────────────────────────
 @Composable
 fun OrDivider() {
     Row(
@@ -93,7 +91,6 @@ fun OrDivider() {
     }
 }
 
-// ─── Social button ────────────────────────────────────────────────────────────
 @Composable
 fun SocialButton(
     label:   String,

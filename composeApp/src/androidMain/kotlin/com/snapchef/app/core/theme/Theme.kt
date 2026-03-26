@@ -1,11 +1,10 @@
-package com.snapchef.app.ui.theme
+package com.snapchef.app.core.theme
 
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 
-// ─── Brand palette ───────────────────────────────────────────────────────────
 val GreenPrimary    = Color(0xFF587E3D)
 val GreenSecondary  = Color(0xFFCED8B7)
 val GreenBackground = Color(0xFFF5FBF0)

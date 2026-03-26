@@ -1,4 +1,4 @@
-package com.snapchef.app.ui.auth
+package com.snapchef.app.features.auth.presentation
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -52,11 +52,14 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.snapchef.app.ui.theme.GreenBackground
-import com.snapchef.app.ui.theme.GreenPrimary
-import com.snapchef.app.ui.theme.GreenSecondary
-import com.snapchef.app.ui.theme.GreenOnBackground
-import com.snapchef.app.ui.theme.SnapChefTheme
+import com.snapchef.app.core.presentation.components.AuthTextField
+import com.snapchef.app.core.presentation.components.OrDivider
+import com.snapchef.app.core.presentation.components.SocialButton
+import com.snapchef.app.core.theme.GreenBackground
+import com.snapchef.app.core.theme.GreenOnBackground
+import com.snapchef.app.core.theme.GreenPrimary
+import com.snapchef.app.core.theme.GreenSecondary
+import com.snapchef.app.core.theme.SnapChefTheme
 
 @Composable
 fun SignInScreen(
@@ -76,7 +79,6 @@ fun SignInScreen(
                 Brush.verticalGradient(listOf(GreenSecondary.copy(alpha = 0.55f), GreenBackground))
             )
     ) {
-        // top circle accent
         Box(
             modifier = Modifier
                 .size(220.dp)
@@ -96,7 +98,6 @@ fun SignInScreen(
 
             Spacer(Modifier.height(16.dp))
 
-            // ── back button ───────────────────────────────────────────────
             Row(Modifier.fillMaxWidth()) {
                 IconButton(
                     onClick  = onBack,
@@ -115,7 +116,6 @@ fun SignInScreen(
 
             Spacer(Modifier.height(36.dp))
 
-            // ── headline ──────────────────────────────────────────────────
             Text(
                 text       = "Welcome back!",
                 style      = MaterialTheme.typography.headlineMedium,
@@ -132,7 +132,6 @@ fun SignInScreen(
 
             Spacer(Modifier.height(40.dp))
 
-            // ── card ──────────────────────────────────────────────────────
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape    = RoundedCornerShape(24.dp),
@@ -143,7 +142,6 @@ fun SignInScreen(
                     modifier = Modifier.padding(24.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp),
                 ) {
-                    // email
                     AuthTextField(
                         value         = email,
                         onValueChange = { email = it },
@@ -154,7 +152,6 @@ fun SignInScreen(
                         keyboardType  = KeyboardType.Email,
                     )
 
-                    // password
                     AuthTextField(
                         value         = password,
                         onValueChange = { password = it },
@@ -176,7 +173,6 @@ fun SignInScreen(
                         keyboardType = KeyboardType.Password,
                     )
 
-                    // remember me + forgot
                     Row(
                         modifier              = Modifier.fillMaxWidth(),
                         verticalAlignment     = Alignment.CenterVertically,
@@ -208,7 +204,6 @@ fun SignInScreen(
 
             Spacer(Modifier.height(24.dp))
 
-            // ── login button ──────────────────────────────────────────────
             Button(
                 onClick  = onSignIn,
                 modifier = Modifier
@@ -223,19 +218,16 @@ fun SignInScreen(
 
             Spacer(Modifier.height(24.dp))
 
-            // ── divider ───────────────────────────────────────────────────
             OrDivider()
 
             Spacer(Modifier.height(20.dp))
 
-            // ── social buttons ────────────────────────────────────────────
             SocialButton(label = "Continue with Google",  emoji = "G")
             Spacer(Modifier.height(12.dp))
             SocialButton(label = "Continue with Facebook", emoji = "f")
 
             Spacer(Modifier.height(24.dp))
 
-            // ── sign-up link ──────────────────────────────────────────────
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     text  = "Don't have an account? ",

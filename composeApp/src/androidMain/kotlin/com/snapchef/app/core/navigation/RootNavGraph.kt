@@ -1,4 +1,4 @@
-package com.snapchef.app.navigation
+package com.snapchef.app.core.navigation
 
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -7,8 +7,8 @@ import androidx.compose.runtime.Composable
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.snapchef.app.ui.auth.AuthNavGraph
-import com.snapchef.app.ui.main.MainScreen
+import com.snapchef.app.features.auth.presentation.AuthNavGraph
+import com.snapchef.app.features.home.presentation.MainScreen
 
 /**
  * Top-level destination routes.

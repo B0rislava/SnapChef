@@ -1,17 +1,17 @@
-package com.snapchef.app.ui.main
+package com.snapchef.app.features.home.presentation
 
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-
-import com.snapchef.app.ui.theme.GreenPrimary
-import com.snapchef.app.ui.theme.GreenSecondary
+import com.snapchef.app.core.presentation.components.MainTab
+import com.snapchef.app.core.presentation.components.SnapChefBottomBar
+import com.snapchef.app.core.theme.GreenPrimary
+import com.snapchef.app.core.theme.GreenSecondary
 
 @Composable
 fun MainScreen() {
