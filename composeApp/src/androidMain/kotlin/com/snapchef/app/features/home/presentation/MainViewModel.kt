@@ -16,6 +16,7 @@ data class MainUiState(
     val profileImageUri: Uri? = null,
     val isEditingProfile: Boolean = false,
     val activeRecipeIngredients: List<String>? = null,
+    val shouldNavigateToAuth: Boolean = false,
 )
 
 class MainViewModel : ViewModel() {
@@ -46,6 +47,27 @@ class MainViewModel : ViewModel() {
 
     fun closeRecipeResults() {
         _uiState.update { it.copy(activeRecipeIngredients = null) }
+    }
+
+    fun logout() {
+        _uiState.update { it.copy(shouldNavigateToAuth = true) }
+    }
+
+    fun deleteAccount() {
+        _uiState.update {
+            it.copy(
+                userName = "John Doe",
+                userEmail = "john.doe@snapchef.app",
+                profileImageUri = null,
+                isEditingProfile = false,
+                activeRecipeIngredients = null,
+                shouldNavigateToAuth = true,
+            )
+        }
+    }
+
+    fun onAuthNavigationHandled() {
+        _uiState.update { it.copy(shouldNavigateToAuth = false) }
     }
 
     fun applyBackendJson(json: String) {

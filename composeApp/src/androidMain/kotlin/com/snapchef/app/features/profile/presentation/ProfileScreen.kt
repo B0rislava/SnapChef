@@ -33,12 +33,16 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.ui.Alignment
@@ -91,6 +95,8 @@ fun ProfileScreen(
     modifier: Modifier = Modifier,
     viewModel: ProfileViewModel = viewModel(),
 ) {
+    var showLogoutDialog by remember { mutableStateOf(false) }
+    var showDeleteDialog by remember { mutableStateOf(false) }
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val initials = remember(userName) { userName.toInitials() }
     val recipes = uiState.recipes
@@ -267,14 +273,14 @@ fun ProfileScreen(
                     text = "Logout",
                     container = GreenPrimary,
                     content = Color.White,
-                    onClick = onLogout,
+                    onClick = { showLogoutDialog = true },
                 )
                 BouncyAction(
                     modifier = Modifier.weight(1f),
                     text = "Delete",
                     container = GreenSecondary.copy(alpha = 0.5f),
                     content = GreenPrimary,
-                    onClick = onDeleteAccount,
+                    onClick = { showDeleteDialog = true },
                 )
                 BouncyAction(
                     modifier = Modifier.weight(1f),
@@ -287,6 +293,52 @@ fun ProfileScreen(
 
             Spacer(modifier = Modifier.height(32.dp))
         }
+    }
+
+    if (showLogoutDialog) {
+        AlertDialog(
+            onDismissRequest = { showLogoutDialog = false },
+            title = { Text("Log out") },
+            text = { Text("Are you sure you want to log out?") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showLogoutDialog = false
+                        onLogout()
+                    }
+                ) {
+                    Text("Yes")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showLogoutDialog = false }) {
+                    Text("Cancel")
+                }
+            },
+        )
+    }
+
+    if (showDeleteDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = false },
+            title = { Text("Delete account") },
+            text = { Text("Are you sure you want to delete your account? This action cannot be undone.") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showDeleteDialog = false
+                        onDeleteAccount()
+                    }
+                ) {
+                    Text("Delete")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteDialog = false }) {
+                    Text("Cancel")
+                }
+            },
+        )
     }
 }
 

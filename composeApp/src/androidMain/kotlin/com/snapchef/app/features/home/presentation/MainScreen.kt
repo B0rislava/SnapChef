@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -21,9 +22,16 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 
 @Composable
 fun MainScreen(
+    onLogout: () -> Unit,
     viewModel: MainViewModel = viewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    LaunchedEffect(uiState.shouldNavigateToAuth) {
+        if (uiState.shouldNavigateToAuth) {
+            onLogout()
+            viewModel.onAuthNavigationHandled()
+        }
+    }
 
     Crossfade(targetState = uiState.activeRecipeIngredients, label = "recipe_results_crossfade") { ingredients ->
         if (ingredients != null) {
@@ -69,8 +77,8 @@ fun MainScreen(
                                         userEmail = uiState.userEmail,
                                         profileImageUri = uiState.profileImageUri,
                                         onBack = { viewModel.selectTab(MainTab.HOME) },
-                                        onLogout = { /* Handle global logout */ },
-                                        onDeleteAccount = { /* Handle account deletion */ },
+                                        onLogout = viewModel::logout,
+                                        onDeleteAccount = viewModel::deleteAccount,
                                         onEditProfile = viewModel::startEditProfile
                                     )
                                 }
