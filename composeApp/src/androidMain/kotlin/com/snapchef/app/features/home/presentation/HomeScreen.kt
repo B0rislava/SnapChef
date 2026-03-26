@@ -51,7 +51,9 @@ import kotlinx.coroutines.launch
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
-    onGenerateRecipes: (List<String>) -> Unit
+    onGenerateRecipes: (List<String>) -> Unit,
+    isCameraActive: Boolean,
+    onCameraActiveChanged: (Boolean) -> Unit,
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -69,7 +71,6 @@ fun HomeScreen(
             ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED
         )
     }
-    var isCameraActive by remember { mutableStateOf(false) }
 
     // Logic to detect "Don't ask anymore" or repeated denial
     var isPermanentlyDenied by remember { mutableStateOf(false) }
@@ -96,7 +97,7 @@ fun HomeScreen(
     ) { isGranted ->
         hasCameraPermission = isGranted
         if (isGranted) {
-            isCameraActive = true
+            onCameraActiveChanged(true)
             isPermanentlyDenied = false
         } else {
             // Check if we should show rationale now
@@ -203,7 +204,7 @@ fun HomeScreen(
                 ) {
                     IconButton(
                         onClick = {
-                            isCameraActive = false
+                            onCameraActiveChanged(false)
                             coroutineScope.launch {
                                 ingredients = emptyList()
                                 isAnalyzing = true
@@ -237,7 +238,7 @@ fun HomeScreen(
 
                 // Close Camera Button
                 IconButton(
-                    onClick = { isCameraActive = false },
+                    onClick = { onCameraActiveChanged(false) },
                     modifier = Modifier
                         .align(Alignment.TopStart)
                         .padding(24.dp)
@@ -260,7 +261,7 @@ fun HomeScreen(
                         .background(GreenPrimary.copy(alpha = 0.15f))
                         .clickable {
                             if (hasCameraPermission) {
-                                isCameraActive = true
+                                onCameraActiveChanged(true)
                             } else {
                                 showRationale = true
                             }
