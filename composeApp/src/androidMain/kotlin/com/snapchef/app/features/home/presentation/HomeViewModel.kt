@@ -1,13 +1,19 @@
 package com.snapchef.app.features.home.presentation
 
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.graphics.Matrix
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.snapchef.app.core.di.SnapChefServiceLocator
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.io.ByteArrayOutputStream
 
 data class CapturedPhoto(val id: Int, val bytes: ByteArray)
 
@@ -33,11 +39,16 @@ class HomeViewModel : ViewModel() {
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
 
     fun capturePhoto(bytes: ByteArray) {
-        _uiState.update {
-            it.copy(
-                capturedPhotos = it.capturedPhotos + CapturedPhoto(it.nextPhotoId, bytes),
-                nextPhotoId = it.nextPhotoId + 1,
-            )
+        viewModelScope.launch {
+            val resized = withContext(Dispatchers.Default) {
+                resizeImage(bytes, 1080)
+            }
+            _uiState.update {
+                it.copy(
+                    capturedPhotos = it.capturedPhotos + CapturedPhoto(it.nextPhotoId, resized),
+                    nextPhotoId = it.nextPhotoId + 1,
+                )
+            }
         }
     }
 
@@ -67,8 +78,13 @@ class HomeViewModel : ViewModel() {
         }
         viewModelScope.launch {
             try {
+                // Resize images beforehand if coming from gallery (camera photos are already resized in capturePhoto)
+                val processedImages = withContext(Dispatchers.Default) {
+                    images.map { resizeImage(it, 1080) }
+                }
+
                 // 1. Upload scan
-                val scanResponse = apiService.scanFridgeImages(images)
+                val scanResponse = apiService.scanFridgeImages(processedImages)
                 
                 if (scanResponse.items.isEmpty()) {
                     _uiState.update {
@@ -119,6 +135,40 @@ class HomeViewModel : ViewModel() {
 
     fun removeIngredient(item: String) {
         _uiState.update { it.copy(ingredients = it.ingredients.filter { i -> i != item }) }
+    }
+
+    private fun resizeImage(bytes: ByteArray, maxDimension: Int): ByteArray {
+        val options = BitmapFactory.Options().apply {
+            inJustDecodeBounds = true
+        }
+        BitmapFactory.decodeByteArray(bytes, 0, bytes.size, options)
+
+        var width = options.outWidth
+        var height = options.outHeight
+
+        if (width <= maxDimension && height <= maxDimension) {
+            return bytes
+        }
+
+        val scale = if (width > height) {
+            maxDimension.toFloat() / width
+        } else {
+            maxDimension.toFloat() / height
+        }
+
+        val newWidth = (width * scale).toInt()
+        val newHeight = (height * scale).toInt()
+
+        val fullBitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+        val resizedBitmap = Bitmap.createScaledBitmap(fullBitmap, newWidth, newHeight, true)
+        
+        val outputStream = ByteArrayOutputStream()
+        resizedBitmap.compress(Bitmap.CompressFormat.JPEG, 85, outputStream)
+        
+        fullBitmap.recycle()
+        resizedBitmap.recycle()
+        
+        return outputStream.toByteArray()
     }
 }
 

@@ -21,38 +21,61 @@ class HomeApiService(private val client: HttpClient) {
      * The backend returns NDJSON. We read the full string, split by newline, and parse the final JSON.
      */
     suspend fun scanFridgeImages(imagesBytes: List<ByteArray>): ScanSessionResponse {
-        val responseText: String = client.post("${AppConfig.BASE_URL}/ai/sessions") {
-            AuthManager.accessToken?.let { token -> 
-                header("Authorization", "Bearer $token")
-            }
-            
-            setBody(MultiPartFormDataContent(
-                formData {
-                    imagesBytes.forEachIndexed { index, bytes ->
-                        append("files", bytes, Headers.build {
-                            append(HttpHeaders.ContentType, "image/jpeg") 
-                            append(HttpHeaders.ContentDisposition, "filename=\"fridge_$index.jpg\"")
-                        })
-                    }
+        val responseText: String = try {
+            client.post("${AppConfig.BASE_URL}/ai/sessions") {
+                AuthManager.accessToken?.let { token ->
+                    header("Authorization", "Bearer $token")
                 }
-            ))
-        }.body()
+
+                setBody(MultiPartFormDataContent(
+                    formData {
+                        imagesBytes.forEachIndexed { index, bytes ->
+                            append("files", bytes, Headers.build {
+                                append(HttpHeaders.ContentType, "image/jpeg")
+                                append(HttpHeaders.ContentDisposition, "filename=\"fridge_$index.jpg\"")
+                            })
+                        }
+                    }
+                ))
+            }.body()
+        } catch (e: Exception) {
+            println("Upload failed: ${e.message}")
+            throw e
+        }
+
+        println("Backend Raw Response: $responseText")
 
         // It returns JSON lines (NDJSON). The last line with status_msg == "done" has the full items array.
         val lines = responseText.split("\n").filter { it.isNotBlank() }
-        val json = kotlinx.serialization.json.Json { ignoreUnknownKeys = true; isLenient = true; explicitNulls = false }
-        
+        val json = kotlinx.serialization.json.Json { 
+            ignoreUnknownKeys = true 
+            isLenient = true 
+            explicitNulls = false 
+        }
+
         var bestSessionResponse = ScanSessionResponse()
         for (line in lines) {
             try {
                 val parsed = json.decodeFromString<ScanSessionResponse>(line)
+                println("Parsed NDJSON Line: $line")
+                // Capture the session ID if it appears in any line
+                if (parsed.id != 0 && bestSessionResponse.id == 0) {
+                    bestSessionResponse = bestSessionResponse.copy(id = parsed.id)
+                }
+                
+                // If we get items or the final "done" signal, this is our winner
                 if (parsed.status_msg == "done" || parsed.items.isNotEmpty()) {
                     bestSessionResponse = parsed
                 }
             } catch (e: Exception) {
-                // Ignore parsing errors of intermediate lines
+                println("Failed to parse NDJSON line: $line. Error: ${e.message}")
             }
         }
+        
+        if (bestSessionResponse.id == 0 && lines.isNotEmpty()) {
+             println("Warning: Session ID was 0 even after parsing all lines.")
+        }
+        
         return bestSessionResponse
     }
 
