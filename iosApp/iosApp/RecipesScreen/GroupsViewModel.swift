@@ -16,6 +16,18 @@ final class GroupsViewModel: ObservableObject {
     @Published var createNameInput: String = ""
     @Published private(set) var selectedRecipe: SharedRecipe? = nil
     @Published private(set) var infoMessage: String? = nil
+    
+    private var infoMessageTask: Task<Void, Never>?
+
+    private func showInfoMessage(_ message: String) {
+        infoMessage = message
+        infoMessageTask?.cancel()
+        infoMessageTask = Task {
+            try? await Task.sleep(nanoseconds: 5_000_000_000)
+            guard !Task.isCancelled else { return }
+            infoMessage = nil
+        }
+    }
 
     var selectedGroup: RecipeGroup? {
         groups.first { $0.id == selectedGroupId } ?? groups.first
@@ -77,7 +89,7 @@ final class GroupsViewModel: ObservableObject {
     func joinGroup() {
         let code = joinCodeInput.trimmingCharacters(in: .whitespaces).uppercased()
         guard code.count >= 4 else {
-            infoMessage = "Please enter a valid group code."
+            showInfoMessage("Please enter a valid group code.")
             dialogMode = nil
             joinCodeInput = ""
             return
@@ -85,7 +97,7 @@ final class GroupsViewModel: ObservableObject {
 
         if let existing = groups.first(where: { $0.code == code }) {
             selectedGroupId = existing.id
-            infoMessage = "You are already in this group."
+            showInfoMessage("You are already in this group.")
             dialogMode = nil
             joinCodeInput = ""
             return
@@ -111,7 +123,7 @@ final class GroupsViewModel: ObservableObject {
         )
         groups.append(joined)
         selectedGroupId = joined.id
-        infoMessage = "Joined group \(joined.name)."
+        infoMessage = nil
         dialogMode = nil
         joinCodeInput = ""
     }
@@ -119,7 +131,7 @@ final class GroupsViewModel: ObservableObject {
     func createGroup() {
         let name = createNameInput.trimmingCharacters(in: .whitespaces)
         guard !name.isEmpty else {
-            infoMessage = "Group name cannot be empty."
+            showInfoMessage("Group name cannot be empty.")
             dialogMode = nil
             createNameInput = ""
             return
@@ -134,7 +146,7 @@ final class GroupsViewModel: ObservableObject {
         )
         groups.append(created)
         selectedGroupId = created.id
-        infoMessage = "Group created. Code: \(code)"
+        infoMessage = nil
         dialogMode = nil
         createNameInput = ""
     }
