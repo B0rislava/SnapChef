@@ -69,4 +69,21 @@ class SignInViewModel : ViewModel() {
             }
         }
     }
+
+    fun googleSignIn(idToken: String, onSuccess: () -> Unit) {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isLoading = true, errorMessage = null)
+            try {
+                val response = apiService.googleAuth(idToken)
+                AuthManager.accessToken = response.accessToken
+                AuthManager.currentUser = response.user
+                onSuccess()
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    errorMessage = "Google Sign-In failed on the server."
+                )
+            }
+        }
+    }
 }

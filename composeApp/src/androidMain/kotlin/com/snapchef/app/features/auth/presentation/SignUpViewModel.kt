@@ -4,7 +4,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.snapchef.app.core.auth.AuthManager
 import com.snapchef.app.core.di.SnapChefServiceLocator
-import com.snapchef.app.features.auth.data.remote.LoginRequest
 import io.ktor.client.plugins.ClientRequestException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -83,27 +82,38 @@ class SignUpViewModel : ViewModel() {
             try {
                 val response = apiService.signup(com.snapchef.app.features.auth.data.remote.SignupRequest(email, name, password))
                 onVerifyRequired(response.email)
-            } catch (e: Exception) {
-                try {
-                    val fallbackResponse = apiService.login(LoginRequest(email, password))
-                    AuthManager.accessToken = fallbackResponse.accessToken
-                    AuthManager.currentUser = fallbackResponse.user
-                    onSuccess()
-                } catch (loginE: Exception) {
-                    if (loginE is ClientRequestException && loginE.response.status.value == 403) {
-                        onVerifyRequired(email)
-                    } else if (loginE is ClientRequestException && loginE.response.status.value == 401) {
-                         _uiState.value = _uiState.value.copy(
-                            isLoading = false,
-                            errorMessage = "This email is taken, and password does not match. Please log in."
-                        )
-                    } else {
-                        _uiState.value = _uiState.value.copy(
-                            isLoading = false,
-                            errorMessage = "An error occurred during account creation."
-                        )
+            } catch (e: ClientRequestException) {
+                val status = e.response.status.value
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    errorMessage = when (status) {
+                        400, 409 -> "This email is already registered. Please sign in."
+                        403      -> { onVerifyRequired(email); return@launch }
+                        else     -> "An error occurred during account creation."
                     }
-                }
+                )
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    errorMessage = "Network error. Please check your connection."
+                )
+            }
+        }
+    }
+
+    fun googleSignIn(idToken: String, onSuccess: () -> Unit) {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isLoading = true, errorMessage = null)
+            try {
+                val response = apiService.googleAuth(idToken)
+                AuthManager.accessToken = response.accessToken
+                AuthManager.currentUser = response.user
+                onSuccess()
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    errorMessage = "Google Sign-In failed on the server."
+                )
             }
         }
     }

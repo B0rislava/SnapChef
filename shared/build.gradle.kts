@@ -1,6 +1,7 @@
 import com.codingfeline.buildkonfig.compiler.FieldSpec.Type.STRING
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.plugin.mpp.apple.XCFramework
+import java.util.Properties
 
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
@@ -37,6 +38,8 @@ kotlin {
             api(libs.ktor.serialization.kotlinx.json)
             api(libs.ktor.client.logging)
             api(libs.kotlinx.serialization.json)
+            implementation(libs.multiplatform.settings)
+            implementation(libs.multiplatform.settings.no.arg)
         }
         androidMain.dependencies {
             implementation(libs.ktor.client.okhttp)
@@ -50,12 +53,25 @@ kotlin {
     }
 }
 
+val localProperties = Properties()
+val localPropertiesFile = rootProject.file("local.properties")
+if (localPropertiesFile.exists()) {
+    localPropertiesFile.inputStream().use { stream ->
+        localProperties.load(stream)
+    }
+}
+
+val googleWebClientId = localProperties.getProperty("GOOGLE_WEB_CLIENT_ID") ?: System.getenv("GOOGLE_WEB_CLIENT_ID") ?: ""
+val baseUrl = localProperties.getProperty("BASE_URL") ?: "http://10.0.2.2:8000"
+
 buildkonfig {
     packageName = "com.snapchef.app"
-    objectName = "AppConfig"
+    objectName = "AppConfigInternal"
+    exposeObjectWithName = "AppConfig"
 
     defaultConfigs {
-        buildConfigField(STRING, "BASE_URL", "http://172.20.10.7:8000")
+        buildConfigField(STRING, "BASE_URL", baseUrl)
+        buildConfigField(STRING, "GOOGLE_WEB_CLIENT_ID", googleWebClientId)
     }
 }
 

@@ -29,6 +29,10 @@ kotlin {
 
             // Lifecycle
             implementation(libs.androidx.lifecycle.runtime.ktx)
+            // Google Sign In (Credential Manager)
+            implementation(libs.androidx.credentials)
+            implementation(libs.androidx.credentials.play.services.auth)
+            implementation(libs.googleid)
         }
         commonMain.dependencies {
             implementation(libs.compose.runtime)
