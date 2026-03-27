@@ -4,9 +4,8 @@ import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.snapchef.app.core.auth.AuthManager
-import com.snapchef.app.core.data.remote.createHttpClient
+import com.snapchef.app.core.di.SnapChefServiceLocator
 import com.snapchef.app.core.presentation.components.MainTab
-import com.snapchef.app.features.auth.data.remote.AuthApiService
 import com.snapchef.app.features.groups.presentation.RecipeStore
 import com.snapchef.app.features.groups.presentation.SharedRecipe
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -34,7 +33,7 @@ data class MainUiState(
 )
 
 class MainViewModel : ViewModel() {
-    private val apiService = AuthApiService(createHttpClient())
+    private val apiService = SnapChefServiceLocator.authApiService
 
     private val _uiState = MutableStateFlow(
         MainUiState(

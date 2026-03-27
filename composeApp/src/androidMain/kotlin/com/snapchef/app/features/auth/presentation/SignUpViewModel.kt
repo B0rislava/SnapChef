@@ -3,8 +3,7 @@ package com.snapchef.app.features.auth.presentation
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.snapchef.app.core.auth.AuthManager
-import com.snapchef.app.core.data.remote.createHttpClient
-import com.snapchef.app.features.auth.data.remote.AuthApiService
+import com.snapchef.app.core.di.SnapChefServiceLocator
 import com.snapchef.app.features.auth.data.remote.LoginRequest
 import io.ktor.client.plugins.ClientRequestException
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -26,7 +25,7 @@ class SignUpViewModel : ViewModel() {
     private val _uiState = MutableStateFlow(SignUpUiState())
     val uiState: StateFlow<SignUpUiState> = _uiState.asStateFlow()
 
-    private val apiService = AuthApiService(createHttpClient())
+    private val apiService = SnapChefServiceLocator.authApiService
 
     fun updateName(value: String) {
         _uiState.value = _uiState.value.copy(name = value, errorMessage = null)
