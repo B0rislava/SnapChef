@@ -152,7 +152,7 @@ struct ProfileView: View {
                 }
                 .padding(.horizontal, 24)
                 .safeAreaInset(edge: .bottom) {
-                    Color.clear.frame(height: 72)
+                    Color.clear.frame(height: 76)
                 }
             }
         }

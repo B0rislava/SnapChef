@@ -413,6 +413,7 @@ private struct GroupRecipeDetails: View {
                             }
                         }
                         .padding(24)
+                        .frame(maxWidth: .infinity, alignment: .leading)
                         .background(Color.white)
                         .clipShape(RoundedRectangle(cornerRadius: 24))
                         .shadow(color: .black.opacity(0.05), radius: 4, x: 0, y: 2)
