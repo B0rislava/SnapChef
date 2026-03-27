@@ -31,7 +31,7 @@ data class MainUiState(
     val activeRecipeSession: ActiveRecipeSessionSession? = null,
     val shouldNavigateToAuth: Boolean = false,
     val isCameraActive: Boolean = false,
-    val inventoryItems: List<ProfileInventoryItem> = defaultInventoryItems(),
+    val inventoryItems: List<ProfileInventoryItem> = emptyList(),
 )
 
 class MainViewModel : ViewModel() {
@@ -51,6 +51,30 @@ class MainViewModel : ViewModel() {
                 currentTab = tab,
                 isEditingProfile = if (tab == MainTab.PROFILE) it.isEditingProfile else false,
             )
+        }
+        if (tab == MainTab.PROFILE) {
+            refreshPantryItems()
+        }
+    }
+
+    private fun refreshPantryItems() {
+        viewModelScope.launch {
+            try {
+                val items = apiService.fetchPantryItems()
+                _uiState.update { state ->
+                    state.copy(
+                        inventoryItems = items.map {
+                            ProfileInventoryItem(
+                                name = it.name,
+                                category = if (it.source == "scan") "Scanned" else "Manual",
+                                quantity = if (it.unit != null) "${it.quantity} ${it.unit}" else "${it.quantity}"
+                            )
+                        }
+                    )
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
         }
     }
 
@@ -149,15 +173,3 @@ class MainViewModel : ViewModel() {
 
 }
 
-private fun defaultInventoryItems(): List<ProfileInventoryItem> {
-    return listOf(
-        ProfileInventoryItem("Eggs", "Protein", "6"),
-        ProfileInventoryItem("Cheddar Cheese", "Dairy", "200 g"),
-        ProfileInventoryItem("Tomatoes", "Produce", "3"),
-        ProfileInventoryItem("Chicken Breast", "Protein", "400 g"),
-        ProfileInventoryItem("Pasta", "Pantry", "500 g"),
-        ProfileInventoryItem("Spinach", "Produce", "100 g"),
-        ProfileInventoryItem("Milk", "Dairy", "1 L"),
-        ProfileInventoryItem("Olive Oil", "Pantry", "1 bottle"),
-    )
-}

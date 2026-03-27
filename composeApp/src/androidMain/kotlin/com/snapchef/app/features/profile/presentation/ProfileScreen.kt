@@ -106,6 +106,8 @@ fun ProfileScreen(
                     "protein" -> Icons.Default.Eco
                     "dairy" -> Icons.Default.Opacity
                     "produce" -> Icons.Default.LocalFlorist
+                    "scanned" -> Icons.Default.Eco // Using Eco for scanned items
+                    "manual" -> Icons.Default.Inventory2
                     else -> Icons.Default.Inventory2
                 },
             )

@@ -46,3 +46,16 @@ data class AuthResponse(
     @SerialName("token_type") val tokenType: String,
     val user: UserOut
 )
+
+@Serializable
+data class PantryItemOut(
+    val id: Int,
+    val name: String,
+    val quantity: Int,
+    val unit: String? = null,
+    val source: String = "manual",
+    @SerialName("session_id") val sessionId: Int? = null,
+    @SerialName("image_id") val imageId: String? = null,
+    @SerialName("created_at") val createdAt: String? = null,
+    @SerialName("expires_at") val expiresAt: String? = null
+)

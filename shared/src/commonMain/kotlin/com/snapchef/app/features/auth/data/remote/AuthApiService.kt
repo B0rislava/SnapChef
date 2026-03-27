@@ -8,6 +8,7 @@ import io.ktor.client.request.delete
 import io.ktor.client.request.header
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
+import io.ktor.client.request.get
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
 
@@ -47,5 +48,13 @@ class AuthApiService(private val client: HttpClient) {
                 header("Authorization", "Bearer $token")
             }
         }
+    }
+
+    suspend fun fetchPantryItems(): List<PantryItemOut> {
+        return client.get("${AppConfig.BASE_URL}/pantry") {
+            AuthManager.accessToken?.let { token ->
+                header("Authorization", "Bearer $token")
+            }
+        }.body()
     }
 }
