@@ -24,9 +24,24 @@ class SignInViewModel: ObservableObject {
     func navigateBack() { onBack?() }
     func navigateToSignUp() { onNavigateToSignUp?() }
 
+    private func isValidEmail(_ email: String) -> Bool {
+        let emailRegex = #"^[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}$"#
+        return email.range(of: emailRegex, options: .regularExpression) != nil
+    }
+
     func signIn() {
         guard !email.isEmpty, !password.isEmpty else {
             errorMessage = "Please fill all fields"
+            return
+        }
+
+        guard isValidEmail(email) else {
+            errorMessage = "Please enter a valid email address"
+            return
+        }
+
+        guard password.count >= 8 else {
+            errorMessage = "Password must be at least 8 characters"
             return
         }
         
