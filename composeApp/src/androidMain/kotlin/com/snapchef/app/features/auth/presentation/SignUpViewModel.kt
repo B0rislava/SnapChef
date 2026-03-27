@@ -1,10 +1,16 @@
 package com.snapchef.app.features.auth.presentation
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.snapchef.app.core.auth.AuthManager
+import com.snapchef.app.core.data.remote.createHttpClient
+import com.snapchef.app.features.auth.data.remote.AuthApiService
+import com.snapchef.app.features.auth.data.remote.LoginRequest
+import com.snapchef.app.features.auth.data.remote.SignupRequest
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import org.json.JSONObject
+import kotlinx.coroutines.launch
 
 data class SignUpUiState(
     val name: String = "",
@@ -12,22 +18,26 @@ data class SignUpUiState(
     val password: String = "",
     val showPassword: Boolean = false,
     val agreeTerms: Boolean = false,
+    val isLoading: Boolean = false,
+    val errorMessage: String? = null
 )
 
 class SignUpViewModel : ViewModel() {
     private val _uiState = MutableStateFlow(SignUpUiState())
     val uiState: StateFlow<SignUpUiState> = _uiState.asStateFlow()
 
+    private val apiService = AuthApiService(createHttpClient())
+
     fun updateName(value: String) {
-        _uiState.value = _uiState.value.copy(name = value)
+        _uiState.value = _uiState.value.copy(name = value, errorMessage = null)
     }
 
     fun updateEmail(value: String) {
-        _uiState.value = _uiState.value.copy(email = value)
+        _uiState.value = _uiState.value.copy(email = value, errorMessage = null)
     }
 
     fun updatePassword(value: String) {
-        _uiState.value = _uiState.value.copy(password = value)
+        _uiState.value = _uiState.value.copy(password = value, errorMessage = null)
     }
 
     fun toggleShowPassword() {
@@ -38,14 +48,59 @@ class SignUpViewModel : ViewModel() {
         _uiState.value = _uiState.value.copy(agreeTerms = value)
     }
 
-    fun applyBackendJson(json: String) {
-        runCatching {
-            val obj = JSONObject(json)
-            _uiState.value = _uiState.value.copy(
-                name = obj.optString("name", _uiState.value.name),
-                email = obj.optString("email", _uiState.value.email),
-                agreeTerms = obj.optBoolean("agreeTerms", _uiState.value.agreeTerms),
-            )
+    fun signUp(onSuccess: () -> Unit) {
+        val name = _uiState.value.name.trim()
+        val email = _uiState.value.email.trim()
+        val password = _uiState.value.password
+
+        if (name.isBlank() || email.isBlank() || password.isBlank()) {
+            _uiState.value = _uiState.value.copy(errorMessage = "Please fill out all fields.")
+            return
+        }
+
+        if (name.length < 2) {
+            _uiState.value = _uiState.value.copy(errorMessage = "Name must be at least 2 characters long.")
+            return
+        }
+
+        val emailRegex = "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$".toRegex()
+        if (!email.matches(emailRegex)) {
+            _uiState.value = _uiState.value.copy(errorMessage = "Please enter a valid email address.")
+            return
+        }
+
+        if (password.length < 8) {
+            _uiState.value = _uiState.value.copy(errorMessage = "Password must be at least 8 characters long.")
+            return
+        }
+
+        if (!_uiState.value.agreeTerms) {
+            _uiState.value = _uiState.value.copy(errorMessage = "You must agree to the Terms of Service.")
+            return
+        }
+
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isLoading = true, errorMessage = null)
+            try {
+                // First try to sign up
+                val response = apiService.signup(SignupRequest(email, name, password))
+                AuthManager.accessToken = response.accessToken
+                AuthManager.currentUser = response.user
+                onSuccess()
+            } catch (e: Exception) {
+                // If signup fails (e.g. 409 Conflict because email exists), auto-attempt login
+                try {
+                    val fallbackResponse = apiService.login(LoginRequest(email, password))
+                    AuthManager.accessToken = fallbackResponse.accessToken
+                    AuthManager.currentUser = fallbackResponse.user
+                    onSuccess()
+                } catch (loginE: Exception) {
+                    _uiState.value = _uiState.value.copy(
+                        isLoading = false,
+                        errorMessage = "This email is taken, and login failed (wrong password?)"
+                    )
+                }
+            }
         }
     }
 }
