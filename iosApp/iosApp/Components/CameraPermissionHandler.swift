@@ -17,57 +17,57 @@ enum PermissionStatus {
 final class CameraPermissionHandler: ObservableObject {
     @Published var cameraStatus: PermissionStatus = .idle
     @Published var photoStatus:  PermissionStatus = .idle
-    @Published var showDeniedAlert = false
 
-    var allGranted: Bool {
-        cameraStatus == .granted && photoStatus == .granted
-    }
+    @Published var showCameraDeniedAlert = false
+    @Published var showPhotosDeniedAlert = false
 
-    func requestPermissions(onGranted: @escaping () -> Void) {
-        requestCamera {
-            self.requestPhotos {
-                if self.allGranted {
-                    onGranted()
-                } else {
-                    self.showDeniedAlert = true
-                }
-            }
-        }
-    }
+    // Camera only
 
-    private func requestCamera(completion: @escaping () -> Void) {
+    func requestCameraPermission(onGranted: @escaping () -> Void) {
         switch AVCaptureDevice.authorizationStatus(for: .video) {
         case .authorized:
             cameraStatus = .granted
-            completion()
+            onGranted()
         case .notDetermined:
             AVCaptureDevice.requestAccess(for: .video) { granted in
                 DispatchQueue.main.async {
                     self.cameraStatus = granted ? .granted : .denied
-                    completion()
+                    if granted { onGranted() } else { self.showCameraDeniedAlert = true }
                 }
             }
         default:
             cameraStatus = .denied
-            completion()
+            showCameraDeniedAlert = true
         }
     }
 
-    private func requestPhotos(completion: @escaping () -> Void) {
+    // Photos only
+
+    func requestPhotosPermission(onGranted: @escaping () -> Void) {
         switch PHPhotoLibrary.authorizationStatus(for: .readWrite) {
         case .authorized, .limited:
             photoStatus = .granted
-            completion()
+            onGranted()
         case .notDetermined:
             PHPhotoLibrary.requestAuthorization(for: .readWrite) { status in
                 DispatchQueue.main.async {
-                    self.photoStatus = (status == .authorized || status == .limited) ? .granted : .denied
-                    completion()
+                    let granted = status == .authorized || status == .limited
+                    self.photoStatus = granted ? .granted : .denied
+                    if granted { onGranted() } else { self.showPhotosDeniedAlert = true }
                 }
             }
         default:
             photoStatus = .denied
-            completion()
+            showPhotosDeniedAlert = true
+        }
+    }
+    
+    //Both
+    func requestBothPermissions(onGranted: @escaping () -> Void) {
+        requestCameraPermission {
+            self.requestPhotosPermission {
+                onGranted()
+            }
         }
     }
 }

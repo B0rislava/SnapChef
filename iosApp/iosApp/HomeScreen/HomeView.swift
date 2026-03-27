@@ -5,6 +5,7 @@
 //  Created by gergana on 3/26/26.
 //
 import SwiftUI
+import PhotosUI
 
 struct HomeView: View {
     var onGenerateRecipes: ([String]) -> Void = { _ in }
@@ -16,6 +17,10 @@ struct HomeView: View {
     @State private var ingredients:  [String] = []
     @State private var newIngredient = ""
 
+    // Photo picker
+    @State private var selectedPhotoItem: PhotosPickerItem? = nil
+    @State private var showPhotoPicker = false
+
     var body: some View {
         ZStack {
             LinearGradient(
@@ -26,39 +31,109 @@ struct HomeView: View {
             .ignoresSafeArea()
 
             VStack(spacing: 0) {
-                Button(action: onCameraSnap) {
-                    ZStack {
-                        Circle()
-                            .fill(Color.greenPrimary.opacity(0.15))
-                            .frame(width: 240, height: 240)
+                Spacer()
 
-                        Circle()
-                            .fill(Color.greenPrimary)
-                            .frame(width: 180, height: 180)
-
-                        Image(systemName: "camera.fill")
-                            .font(.system(size: 80))
-                            .foregroundColor(.white)
-                    }
+                // Hero icon
+                ZStack {
+                    Circle()
+                        .fill(Color.greenPrimary.opacity(0.10))
+                        .frame(width: 200, height: 200)
+                    Image(systemName: "fork.knife.circle.fill")
+                        .font(.system(size: 90))
+                        .foregroundColor(Color.greenPrimary.opacity(0.25))
                 }
-                .buttonStyle(.plain)
 
-                Spacer().frame(height: 40)
+                Spacer().frame(height: 32)
 
                 Text("Snap your ingredients")
                     .font(.system(size: 26, weight: .heavy))
                     .foregroundColor(Color.greenPrimary)
                     .multilineTextAlignment(.center)
 
-                Spacer().frame(height: 16)
+                Spacer().frame(height: 12)
 
-                Text("Take a photo of the food in your kitchen.\nWe'll recognize what you have and generate delicious recipes instantly.")
+                Text("Take a photo or pick from your gallery.\nWe'll recognise what you have and generate delicious recipes instantly.")
                     .font(.system(size: 16))
                     .foregroundColor(Color.greenOnBackground.opacity(0.7))
                     .multilineTextAlignment(.center)
+
+                Spacer().frame(height: 40)
+
+                HStack(spacing: 16) {
+                    // Camera button
+                    Button(action: onCameraSnap) {
+                        VStack(spacing: 10) {
+                            Image(systemName: "camera.fill")
+                                .font(.system(size: 28, weight: .semibold))
+                                .foregroundColor(.white)
+                                .frame(width: 60, height: 60)
+                                .background(Color.greenPrimary)
+                                .clipShape(RoundedRectangle(cornerRadius: 18))
+
+                            Text("Camera")
+                                .font(.system(size: 14, weight: .semibold))
+                                .foregroundColor(Color.greenPrimary)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 20)
+                        .background(Color.white)
+                        .clipShape(RoundedRectangle(cornerRadius: 24))
+                        .shadow(color: Color.greenPrimary.opacity(0.12), radius: 8, x: 0, y: 4)
+                    }
+                    .buttonStyle(.plain)
+
+                    // Gallery button
+                    Button(action: onGalleryPick) {
+                        VStack(spacing: 10) {
+                            Image(systemName: "photo.on.rectangle.angled")
+                                .font(.system(size: 28, weight: .semibold))
+                                .foregroundColor(Color.greenPrimary)
+                                .frame(width: 60, height: 60)
+                                .background(Color.greenSecondary.opacity(0.35))
+                                .clipShape(RoundedRectangle(cornerRadius: 18))
+
+                            Text("Gallery")
+                                .font(.system(size: 14, weight: .semibold))
+                                .foregroundColor(Color.greenPrimary)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 20)
+                        .background(Color.white)
+                        .clipShape(RoundedRectangle(cornerRadius: 24))
+                        .shadow(color: Color.greenPrimary.opacity(0.12), radius: 8, x: 0, y: 4)
+                    }
+                    .buttonStyle(.plain)
+                }
+
+                Spacer()
             }
             .padding(.horizontal, 32)
         }
+
+        .photosPicker(
+            isPresented: $showPhotoPicker,
+            selection: $selectedPhotoItem,
+            matching: .images
+        )
+        .onChange(of: selectedPhotoItem) { _, newItem in
+            guard let newItem else { return }
+            ingredients  = []
+            isAnalyzing  = true
+            showModal    = true
+
+            Task {
+                // Simulate AI recognition from picked image
+                try? await Task.sleep(nanoseconds: 1_500_000_000)
+                await MainActor.run {
+                    withAnimation(.easeInOut(duration: 0.3)) {
+                        ingredients = ["Tomatoes", "Eggs", "Cheese", "Onion"]
+                        isAnalyzing = false
+                    }
+                }
+            }
+        }
+
+        // Ingredients sheet
         .sheet(isPresented: $showModal) {
             IngredientsSheet(
                 isAnalyzing:   $isAnalyzing,
@@ -72,21 +147,26 @@ struct HomeView: View {
             .presentationDetents([.medium, .large])
             .presentationDragIndicator(.visible)
         }
-        // Denied alert — directs user to Settings
-        .alert("Permission Required", isPresented: $permissions.showDeniedAlert) {
-            Button("Open Settings") {
-                if let url = URL(string: UIApplication.openSettingsURLString) {
-                    UIApplication.shared.open(url)
-                }
-            }
+
+        // Camera denied alert
+        .alert("Camera Access Required", isPresented: $permissions.showCameraDeniedAlert) {
+            Button("Open Settings") { openSettings() }
             Button("Cancel", role: .cancel) {}
         } message: {
-            Text("SnapChef needs access to your camera and photo library to identify ingredients. Please enable both in Settings.")
+            Text("SnapChef needs access to your camera to take photos of ingredients. Please enable Camera access in Settings.")
+        }
+
+        // Photos denied alert
+        .alert("Photo Library Access Required", isPresented: $permissions.showPhotosDeniedAlert) {
+            Button("Open Settings") { openSettings() }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("SnapChef needs access to your photo library to pick ingredient photos. Please enable Photos access in Settings.")
         }
     }
 
     private func onCameraSnap() {
-        permissions.requestPermissions {
+        permissions.requestCameraPermission {
             ingredients  = []
             isAnalyzing  = true
             showModal    = true
@@ -98,6 +178,18 @@ struct HomeView: View {
                     isAnalyzing = false
                 }
             }
+        }
+    }
+
+    private func onGalleryPick() {
+        permissions.requestPhotosPermission {
+            showPhotoPicker = true
+        }
+    }
+
+    private func openSettings() {
+        if let url = URL(string: UIApplication.openSettingsURLString) {
+            UIApplication.shared.open(url)
         }
     }
 }
