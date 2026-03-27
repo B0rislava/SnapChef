@@ -32,11 +32,11 @@ kotlin {
 
     sourceSets {
         commonMain.dependencies {
-            implementation(libs.ktor.client.core)
-            implementation(libs.ktor.client.content.negotiation)
-            implementation(libs.ktor.serialization.kotlinx.json)
-            implementation(libs.ktor.client.logging)
-            implementation(libs.kotlinx.serialization.json)
+            api(libs.ktor.client.core)
+            api(libs.ktor.client.content.negotiation)
+            api(libs.ktor.serialization.kotlinx.json)
+            api(libs.ktor.client.logging)
+            api(libs.kotlinx.serialization.json)
         }
         androidMain.dependencies {
             implementation(libs.ktor.client.okhttp)
@@ -55,7 +55,7 @@ buildkonfig {
     objectName = "AppConfig"
 
     defaultConfigs {
-        buildConfigField(STRING, "BASE_URL", "http://10.0.2.2:8000")
+        buildConfigField(STRING, "BASE_URL", "http://172.20.10.7:8000")
     }
 }
 
