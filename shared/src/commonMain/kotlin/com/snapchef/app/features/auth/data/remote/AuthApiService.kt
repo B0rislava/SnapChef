@@ -13,8 +13,15 @@ import io.ktor.http.contentType
 
 class AuthApiService(private val client: HttpClient) {
 
-    suspend fun signup(request: SignupRequest): AuthResponse {
+    suspend fun signup(request: SignupRequest): SignupResponse {
         return client.post("${AppConfig.BASE_URL}/auth/signup") {
+            contentType(ContentType.Application.Json)
+            setBody(request)
+        }.body()
+    }
+
+    suspend fun verify(request: VerifyRequest): AuthResponse {
+        return client.post("${AppConfig.BASE_URL}/auth/verify") {
             contentType(ContentType.Application.Json)
             setBody(request)
         }.body()

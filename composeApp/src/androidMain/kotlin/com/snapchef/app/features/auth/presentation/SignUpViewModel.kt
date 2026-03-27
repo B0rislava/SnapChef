@@ -6,7 +6,7 @@ import com.snapchef.app.core.auth.AuthManager
 import com.snapchef.app.core.data.remote.createHttpClient
 import com.snapchef.app.features.auth.data.remote.AuthApiService
 import com.snapchef.app.features.auth.data.remote.LoginRequest
-import com.snapchef.app.features.auth.data.remote.SignupRequest
+import io.ktor.client.plugins.ClientRequestException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -48,7 +48,7 @@ class SignUpViewModel : ViewModel() {
         _uiState.value = _uiState.value.copy(agreeTerms = value)
     }
 
-    fun signUp(onSuccess: () -> Unit) {
+    fun signUp(onVerifyRequired: (String) -> Unit, onSuccess: () -> Unit) {
         val name = _uiState.value.name.trim()
         val email = _uiState.value.email.trim()
         val password = _uiState.value.password
@@ -82,23 +82,28 @@ class SignUpViewModel : ViewModel() {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, errorMessage = null)
             try {
-                // First try to sign up
-                val response = apiService.signup(SignupRequest(email, name, password))
-                AuthManager.accessToken = response.accessToken
-                AuthManager.currentUser = response.user
-                onSuccess()
+                val response = apiService.signup(com.snapchef.app.features.auth.data.remote.SignupRequest(email, name, password))
+                onVerifyRequired(response.email)
             } catch (e: Exception) {
-                // If signup fails (e.g. 409 Conflict because email exists), auto-attempt login
                 try {
                     val fallbackResponse = apiService.login(LoginRequest(email, password))
                     AuthManager.accessToken = fallbackResponse.accessToken
                     AuthManager.currentUser = fallbackResponse.user
                     onSuccess()
                 } catch (loginE: Exception) {
-                    _uiState.value = _uiState.value.copy(
-                        isLoading = false,
-                        errorMessage = "This email is taken, and login failed (wrong password?)"
-                    )
+                    if (loginE is ClientRequestException && loginE.response.status.value == 403) {
+                        onVerifyRequired(email)
+                    } else if (loginE is ClientRequestException && loginE.response.status.value == 401) {
+                         _uiState.value = _uiState.value.copy(
+                            isLoading = false,
+                            errorMessage = "This email is taken, and password does not match. Please log in."
+                        )
+                    } else {
+                        _uiState.value = _uiState.value.copy(
+                            isLoading = false,
+                            errorMessage = "An error occurred during account creation."
+                        )
+                    }
                 }
             }
         }

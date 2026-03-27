@@ -62,6 +62,7 @@ fun SignInScreen(
     onBack:       () -> Unit = {},
     onSignIn:     () -> Unit = {},
     onSignUp:     () -> Unit = {},
+    onVerifyRequired: (String) -> Unit = {},
     viewModel: SignInViewModel = viewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -197,7 +198,7 @@ fun SignInScreen(
             }
 
             Button(
-                onClick  = { viewModel.signIn(onSuccess = onSignIn) },
+                onClick  = { viewModel.signIn(onSuccess = onSignIn, onVerifyRequired = onVerifyRequired) },
                 enabled  = !uiState.isLoading,
                 modifier = Modifier
                     .fillMaxWidth()

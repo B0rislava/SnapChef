@@ -6,6 +6,7 @@ import com.snapchef.app.core.auth.AuthManager
 import com.snapchef.app.core.data.remote.createHttpClient
 import com.snapchef.app.features.auth.data.remote.AuthApiService
 import com.snapchef.app.features.auth.data.remote.LoginRequest
+import io.ktor.client.plugins.ClientRequestException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -37,40 +38,36 @@ class SignInViewModel : ViewModel() {
         _uiState.value = _uiState.value.copy(showPassword = !_uiState.value.showPassword)
     }
 
-    fun signIn(onSuccess: () -> Unit) {
+    fun signIn(onSuccess: () -> Unit, onVerifyRequired: (String) -> Unit) {
         val email = _uiState.value.email.trim()
         val password = _uiState.value.password
 
         if (email.isBlank() || password.isBlank()) {
-            _uiState.value = _uiState.value.copy(errorMessage = "Please enter email and password.")
-            return
-        }
-
-        val emailRegex = "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$".toRegex()
-        if (!email.matches(emailRegex)) {
-            _uiState.value = _uiState.value.copy(errorMessage = "Please enter a valid email address.")
-            return
-        }
-
-        if (password.length < 8) {
-            _uiState.value = _uiState.value.copy(errorMessage = "Password must be at least 8 characters long.")
+            _uiState.value = _uiState.value.copy(errorMessage = "Please enter both email and password")
             return
         }
 
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, errorMessage = null)
             try {
+                // Call actual backend
                 val response = apiService.login(LoginRequest(email, password))
+                
+                // Save session properly
                 AuthManager.accessToken = response.accessToken
                 AuthManager.currentUser = response.user
+                
                 onSuccess()
             } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(
-                    isLoading = false,
-                    errorMessage = "Login failed: Incorrect credentials or server error."
-                )
+                if (e is ClientRequestException && e.response.status.value == 403) {
+                    onVerifyRequired(email)
+                } else {
+                    _uiState.value = _uiState.value.copy(
+                        isLoading = false,
+                        errorMessage = "Login failed. Check your credentials."
+                    )
+                }
             }
         }
     }
 }
-

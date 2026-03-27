@@ -60,7 +60,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 @Composable
 fun SignUpScreen(
     onBack:       () -> Unit = {},
-    onSignUp:     () -> Unit = {},
+    onSuccess:    () -> Unit = {},
+    onVerifyRequired: (String) -> Unit = {},
     onSignIn:     () -> Unit = {},
     viewModel: SignUpViewModel = viewModel(),
 ) {
@@ -198,7 +199,7 @@ fun SignUpScreen(
             }
 
             Button(
-                onClick  = { viewModel.signUp(onSuccess = onSignUp) },
+                onClick  = { viewModel.signUp(onVerifyRequired = onVerifyRequired, onSuccess = onSuccess) },
                 enabled  = !uiState.isLoading,
                 modifier = Modifier
                     .fillMaxWidth()
