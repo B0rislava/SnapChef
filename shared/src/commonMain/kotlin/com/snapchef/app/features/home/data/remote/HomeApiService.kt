@@ -41,6 +41,7 @@ class HomeApiService(private val client: HttpClient) {
      * Hits the /recipes/suggest endpoint.
      * Takes a list of strings and returns a list of backend-generated recipes.
      */
+    @Throws(Exception::class)
     suspend fun suggestRecipes(ingredients: List<String>): List<RecipeOut> {
         return client.post("${AppConfig.BASE_URL}/recipes/suggest") {
             AuthManager.accessToken?.let { token -> 

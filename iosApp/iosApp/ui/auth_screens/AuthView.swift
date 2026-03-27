@@ -6,8 +6,11 @@
 //
 import SwiftUI
 
-enum AuthDestination: Int {
-    case signIn, signUp, welcome
+enum AuthDestination: Equatable {
+    case welcome
+    case signIn
+    case signUp
+    case verification(email: String)
 }
 
 struct AuthView: View {
@@ -30,7 +33,8 @@ struct AuthView: View {
                 SignInView(
                     onBack:   { navigate(to: .welcome) },
                     onSignIn: { onAuthSuccess() },
-                    onSignUp: { navigate(to: .signUp) }
+                    onSignUp: { navigate(to: .signUp) },
+                    onVerifyRequired: { email in navigate(to: .verification(email: email)) }
                 )
                 .transition(transition(to: .signIn, from: previous))
 
@@ -38,9 +42,18 @@ struct AuthView: View {
                 SignUpView(
                     onBack:   { navigate(to: .welcome) },
                     onSignUp: { onAuthSuccess() },
-                    onSignIn: { navigate(to: .signIn) }
+                    onSignIn: { navigate(to: .signIn) },
+                    onVerifyRequired: { email in navigate(to: .verification(email: email)) }
                 )
                 .transition(transition(to: .signUp, from: previous))
+                
+            case .verification(let email):
+                VerificationView(
+                    email: email,
+                    onBack: { navigate(to: .signUp) },
+                    onSuccess: { onAuthSuccess() }
+                )
+                .transition(transition(to: .verification(email: email), from: previous))
             }
         }
         .animation(.easeInOut(duration: 0.35), value: current)
@@ -51,8 +64,17 @@ struct AuthView: View {
         current  = destination
     }
     
+    private func navIndex(for dest: AuthDestination) -> Int {
+        switch dest {
+        case .welcome: return 0
+        case .signIn: return 1
+        case .signUp: return 2
+        case .verification: return 3
+        }
+    }
+    
     private func transition(to: AuthDestination, from: AuthDestination) -> AnyTransition {
-        let forward = to.rawValue > from.rawValue
+        let forward = navIndex(for: to) > navIndex(for: from)
         return .asymmetric(
             insertion:  .move(edge: forward ? .trailing : .leading).combined(with: .opacity),
             removal:    .move(edge: forward ? .leading  : .trailing).combined(with: .opacity)

@@ -6,11 +6,15 @@
 //
 
 import SwiftUI
+import Shared
 
 struct SignUpView: View {
     var onBack: () -> Void = {}
     var onSignUp: () -> Void = {}
     var onSignIn: () -> Void = {}
+    var onVerifyRequired: (String) -> Void = { _ in }
+
+    @StateObject private var viewModel = SignUpViewModel()
 
     @State private var name = ""
     @State private var email = ""
@@ -54,13 +58,13 @@ struct SignUpView: View {
 
                     Spacer().frame(height: 28)
 
-                    Text(NSLocalizedString("create_account", comment: ""))
+                    Text("Join SnapChef!")
                         .font(.system(size: 26, weight: .heavy))
                         .foregroundColor(Color.greenPrimary)
 
                     Spacer().frame(height: 6)
 
-                    Text(NSLocalizedString("join", comment: ""))
+                    Text("Start your journey today - Snap, cook, and enjoy.")
                         .font(.system(size: 14))
                         .foregroundColor(Color.greenOnBackground.opacity(0.55))
                         .multilineTextAlignment(.center)
@@ -72,7 +76,7 @@ struct SignUpView: View {
                         // name
                         AuthTextField(
                             value: $name,
-                            placeholder: NSLocalizedString("enter_name", comment: ""),
+                            placeholder: "Enter name",
                             leadingIcon: AnyView(
                                 Image(systemName: "person")
                                     .foregroundColor(Color.greenPrimary)
@@ -82,18 +86,20 @@ struct SignUpView: View {
                         // email
                         AuthTextField(
                             value: $email,
-                            placeholder: NSLocalizedString("enter_your_email", comment: ""),
+                            placeholder: "Enter your email",
                             leadingIcon: AnyView(
                                 Image(systemName: "envelope")
                                     .foregroundColor(Color.greenPrimary)
                             ),
                             keyboardType: .emailAddress
                         )
+                        .autocapitalization(.none)
+                        .disableAutocorrection(true)
 
                         // password
                         AuthTextField(
                             value: $password,
-                            placeholder: NSLocalizedString("create_password", comment: ""),
+                            placeholder: "Create password",
                             leadingIcon: AnyView(
                                 Image(systemName: "lock")
                                     .foregroundColor(Color.greenPrimary)
@@ -112,15 +118,12 @@ struct SignUpView: View {
                             Toggle("", isOn: $agreeTerms)
                                 .toggleStyle(CheckboxToggleStyle())
 
-                            Text(NSLocalizedString("i_agree", comment: ""))
-                                .font(.system(size: 14))
+                            Text("By creating an account you agree to our Terms & Conditions and our Privacy Policy.")
+                                .font(.system(size: 12))
                                 .foregroundColor(Color.greenOnBackground.opacity(0.65))
+                                .padding(.top, 10)
 
-                            Button(action: {}) {
-                                Text(NSLocalizedString("terms_privacy", comment: ""))
-                                    .font(.system(size: 14, weight: .semibold))
-                                    .foregroundColor(Color.greenPrimary)
-                            }
+
 
                             Spacer()
                         }
@@ -132,22 +135,41 @@ struct SignUpView: View {
 
                     Spacer().frame(height: 24)
 
-                    // sign-up button
-                    Button(action: onSignUp) {
-                        Text(NSLocalizedString("sign_up", comment: ""))
-                            .font(.system(size: 15, weight: .semibold))
-                            .foregroundColor(.white)
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 56)
-                            .background(agreeTerms ? Color.greenPrimary : Color.greenPrimary.opacity(0.4))
-                            .clipShape(Capsule())
-                            .shadow(
-                                color: agreeTerms ? Color.greenPrimary.opacity(0.4) : .clear,
-                                radius: 8, x: 0, y: 4
-                            )
+                    if let errorMessage = viewModel.errorMessage {
+                        Text(errorMessage)
+                            .foregroundColor(.red)
+                            .font(.system(size: 14))
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal)
+                        
+                        Spacer().frame(height: 12)
                     }
-                    .disabled(!agreeTerms)
+
+                    Button(action: {
+                        viewModel.signUp(name: name, email: email, password: password)
+                    }) {
+                        ZStack {
+                            if viewModel.isLoading {
+                                ProgressView()
+                                    .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                            } else {
+                                Text("Sign Up")
+                                    .font(.system(size: 15, weight: .semibold))
+                            }
+                        }
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 56)
+                        .background(agreeTerms ? Color.greenPrimary : Color.greenPrimary.opacity(0.4))
+                        .clipShape(Capsule())
+                        .shadow(
+                            color: agreeTerms ? Color.greenPrimary.opacity(0.4) : .clear,
+                            radius: 8, x: 0, y: 4
+                        )
+                    }
+                    .disabled(!agreeTerms || viewModel.isLoading)
                     .animation(.easeInOut(duration: 0.2), value: agreeTerms)
+                    .animation(.easeInOut, value: viewModel.isLoading)
 
                     Spacer().frame(height: 24)
 
@@ -155,20 +177,18 @@ struct SignUpView: View {
 
                     Spacer().frame(height: 20)
 
-                    SocialButton(label: NSLocalizedString("continue_google", comment: ""),   emoji: "G")
-                    Spacer().frame(height: 12)
-                    SocialButton(label: NSLocalizedString("continue_facebook", comment: ""), emoji: "f")
+                    SocialButton(label: "Sign up with Google", emoji: "G")
 
                     Spacer().frame(height: 24)
 
                     // sign-in link
                     HStack(spacing: 0) {
-                        Text(NSLocalizedString("already_have_account", comment: ""))
+                        Text("Already have an account")
                             .font(.system(size: 14))
                             .foregroundColor(Color.greenOnBackground.opacity(0.6))
 
                         Button(action: onSignIn) {
-                            Text(NSLocalizedString("login", comment: ""))
+                            Text("Login")
                                 .font(.system(size: 14, weight: .bold))
                                 .foregroundColor(Color.greenPrimary)
                         }
@@ -180,5 +200,10 @@ struct SignUpView: View {
             }
         }
         .navigationBarHidden(true)
+        .onChange(of: viewModel.isSuccess) { oldValue, newValue in
+            if newValue {
+                onVerifyRequired(email)
+            }
+        }
     }
 }

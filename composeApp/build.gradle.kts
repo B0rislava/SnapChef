@@ -29,6 +29,9 @@ kotlin {
 
             // Lifecycle
             implementation(libs.androidx.lifecycle.runtime.ktx)
+
+            implementation(libs.ktor.client.core)
+            implementation(libs.ktor.client.okhttp)
         }
         commonMain.dependencies {
             implementation(libs.compose.runtime)

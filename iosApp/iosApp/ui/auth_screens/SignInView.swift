@@ -5,16 +5,17 @@
 //  Created by gergana on 3/26/26.
 //
 import SwiftUI
+import Shared
 
 struct SignInView: View {
     var onBack:   () -> Void = {}
     var onSignIn: () -> Void = {}
     var onSignUp: () -> Void = {}
+    var onVerifyRequired: (String) -> Void = { _ in }
 
-    @State private var email      = ""
-    @State private var password   = ""
-    @State private var showPass   = false
-    @State private var rememberMe = false
+    @StateObject private var viewModel = SignInViewModel()
+
+    @State private var showPass = false
 
     var body: some View {
         ZStack(alignment: .topTrailing) {
@@ -35,7 +36,9 @@ struct SignInView: View {
                 VStack(alignment: .center, spacing: 0) {
 
                     HStack {
-                        Button(action: onBack) {
+                        Button(action: {
+                            viewModel.navigateBack()
+                        }) {
                             Image(systemName: "arrow.left")
                                 .foregroundColor(Color.greenPrimary)
                                 .frame(width: 40, height: 40)
@@ -46,38 +49,36 @@ struct SignInView: View {
                     }
                     .padding(.top, 16)
 
-                    Spacer().frame(height: 36)
+                    Spacer().frame(height: 32)
 
-                    Text(NSLocalizedString("welcome_back", comment: ""))
-                        .font(.system(size: 26, weight: .heavy))
+                    Text("Welcome back!")
+                        .font(.system(size: 28, weight: .heavy))
                         .foregroundColor(Color.greenPrimary)
 
-                    Spacer().frame(height: 6)
+                    Spacer().frame(height: 8)
 
-                    Text(NSLocalizedString("sign_in_to_continue", comment: ""))
-                        .font(.system(size: 14))
-                        .foregroundColor(Color.greenOnBackground.opacity(0.55))
+                    Text("Sign in to continue your culinary journey.")
+                        .font(.system(size: 15))
+                        .foregroundColor(Color.greenOnBackground.opacity(0.6))
                         .multilineTextAlignment(.center)
 
-                    Spacer().frame(height: 40)
+                    Spacer().frame(height: 36)
 
                     VStack(spacing: 16) {
-
-                        // email
                         AuthTextField(
-                            value: $email,
-                            placeholder: NSLocalizedString("enter_your_email", comment: ""),
+                            value: $viewModel.email,
+                            placeholder: "Enter your email",
                             leadingIcon: AnyView(
                                 Image(systemName: "envelope")
                                     .foregroundColor(Color.greenPrimary)
                             ),
                             keyboardType: .emailAddress
                         )
-
-                        // password
+                        .autocapitalization(.none)
+                        .disableAutocorrection(true)
                         AuthTextField(
-                            value: $password,
-                            placeholder: NSLocalizedString("enter_your_password", comment: ""),
+                            value: $viewModel.password,
+                            placeholder: "Enter password",
                             leadingIcon: AnyView(
                                 Image(systemName: "lock")
                                     .foregroundColor(Color.greenPrimary)
@@ -91,22 +92,23 @@ struct SignInView: View {
                             isSecure: !showPass
                         )
 
-                        // remember me + forgot password
                         HStack {
-                            HStack(spacing: 4) {
-                                Toggle("", isOn: $rememberMe)
-                                    .toggleStyle(CheckboxToggleStyle())
-                                Text(NSLocalizedString("remember_me", comment: ""))
-                                    .font(.system(size: 14))
-                                    .foregroundColor(Color.greenOnBackground.opacity(0.65))
-                            }
+                            Toggle("", isOn: $viewModel.rememberMe)
+                                .toggleStyle(CheckboxToggleStyle())
+
+                            Text("Remember me")
+                                .font(.system(size: 14))
+                                .foregroundColor(Color.greenOnBackground.opacity(0.7))
+
                             Spacer()
-                            Button(action: {}) {
-                                Text(NSLocalizedString("forgot_password", comment: ""))
+
+                            Button(action: { /* todo */ }) {
+                                Text("Forgot Password?")
                                     .font(.system(size: 14, weight: .semibold))
                                     .foregroundColor(Color.greenPrimary)
                             }
                         }
+                        .padding(.top, 4)
                     }
                     .padding(24)
                     .background(Color.white)
@@ -115,16 +117,37 @@ struct SignInView: View {
 
                     Spacer().frame(height: 24)
 
-                    Button(action: onSignIn) {
-                        Text(NSLocalizedString("login", comment: ""))
-                            .font(.system(size: 15, weight: .semibold))
-                            .foregroundColor(.white)
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 56)
-                            .background(Color.greenPrimary)
-                            .clipShape(Capsule())
-                            .shadow(color: Color.greenPrimary.opacity(0.4), radius: 8, x: 0, y: 4)
+                    if let errorMessage = viewModel.errorMessage {
+                        Text(errorMessage)
+                            .foregroundColor(.red)
+                            .font(.system(size: 14))
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal)
+                        
+                        Spacer().frame(height: 12)
                     }
+
+                    Button(action: {
+                        viewModel.signIn()
+                    }) {
+                        ZStack {
+                            if viewModel.isLoading {
+                                ProgressView()
+                                    .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                            } else {
+                                Text(NSLocalizedString("login", comment: ""))
+                                    .font(.system(size: 16, weight: .bold))
+                            }
+                        }
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 56)
+                        .background(Color.greenPrimary)
+                        .clipShape(Capsule())
+                        .shadow(color: Color.greenPrimary.opacity(0.3), radius: 8, x: 0, y: 4)
+                    }
+                    .disabled(viewModel.isLoading)
+                    .animation(.easeInOut, value: viewModel.isLoading)
 
                     Spacer().frame(height: 24)
 
@@ -132,19 +155,19 @@ struct SignInView: View {
 
                     Spacer().frame(height: 20)
 
-                    SocialButton(label: NSLocalizedString("continue_google", comment: ""),   emoji: "G")
-                    Spacer().frame(height: 12)
-                    SocialButton(label: NSLocalizedString("continue_facebook", comment: ""), emoji: "f")
+                    SocialButton(label: "Continue with Google",   emoji: "G")
 
                     Spacer().frame(height: 24)
 
                     HStack(spacing: 0) {
-                        Text(NSLocalizedString("already_have_account", comment: ""))
+                        Text("Don't have an account? ")
                             .font(.system(size: 14))
                             .foregroundColor(Color.greenOnBackground.opacity(0.6))
 
-                        Button(action: onSignUp) {
-                            Text(NSLocalizedString("create_an_account", comment: ""))
+                        Button(action: {
+                            viewModel.navigateToSignUp()
+                        }) {
+                            Text("Create an account")
                                 .font(.system(size: 14, weight: .bold))
                                 .foregroundColor(Color.greenPrimary)
                         }
@@ -156,6 +179,12 @@ struct SignInView: View {
             }
         }
         .navigationBarHidden(true)
+        .onAppear {
+            viewModel.onBack = onBack
+            viewModel.onSignInSuccess = onSignIn
+            viewModel.onNavigateToSignUp = onSignUp
+            viewModel.onVerifyRequired = onVerifyRequired
+        }
     }
 }
 

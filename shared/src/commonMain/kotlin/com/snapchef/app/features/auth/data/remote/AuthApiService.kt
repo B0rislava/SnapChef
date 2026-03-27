@@ -13,6 +13,7 @@ import io.ktor.http.contentType
 
 class AuthApiService(private val client: HttpClient) {
 
+    @Throws(Exception::class)
     suspend fun signup(request: SignupRequest): SignupResponse {
         return client.post("${AppConfig.BASE_URL}/auth/signup") {
             contentType(ContentType.Application.Json)
@@ -20,6 +21,7 @@ class AuthApiService(private val client: HttpClient) {
         }.body()
     }
 
+    @Throws(Exception::class)
     suspend fun verify(request: VerifyRequest): AuthResponse {
         return client.post("${AppConfig.BASE_URL}/auth/verify") {
             contentType(ContentType.Application.Json)
@@ -27,6 +29,7 @@ class AuthApiService(private val client: HttpClient) {
         }.body()
     }
 
+    @Throws(Exception::class)
     suspend fun login(request: LoginRequest): AuthResponse {
         return client.post("${AppConfig.BASE_URL}/auth/login") {
             contentType(ContentType.Application.Json)
@@ -34,6 +37,7 @@ class AuthApiService(private val client: HttpClient) {
         }.body()
     }
 
+    @Throws(Exception::class)
     suspend fun deleteAccount() {
         client.delete("${AppConfig.BASE_URL}/auth/me") {
             AuthManager.accessToken?.let { token ->
