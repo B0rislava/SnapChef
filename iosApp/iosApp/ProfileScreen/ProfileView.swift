@@ -7,17 +7,34 @@
 
 import SwiftUI
 
-private struct SavedRecipe: Identifiable {
+private struct IngredientItem: Identifiable {
     let id = UUID()
-    let title: String
-    let isQuick: Bool
+    let name: String
+    let quantity: String
+    let category: IngredientCategory
+}
+
+private enum IngredientCategory: String, CaseIterable {
+    case produce = "Produce"
+    case dairy = "Dairy"
+    case protein = "Protein"
+    case pantry = "Pantry"
+
+    var icon: String {
+        switch self {
+        case .produce:  return "leaf"
+        case .dairy:    return "drop"
+        case .protein:  return "flame"
+        case .pantry:   return "archivebox"
+        }
+    }
 }
 
 struct ProfileView: View {
     @State private var userName: String = "John Doe"
     @State private var userEmail: String = "john.doe@example.com"
     @State private var profileImageUri: URL? = nil
-    
+
     @State private var isEditingProfile: Bool = false
 
     var onBack: () -> Void = {}
@@ -26,11 +43,15 @@ struct ProfileView: View {
 
     private var initials: String { userName.toInitials() }
 
-    private let recipes: [SavedRecipe] = [
-        SavedRecipe(title: "Omelette with Cheese", isQuick: true),
-        SavedRecipe(title: "Tomato Egg Fried Rice", isQuick: true),
-        SavedRecipe(title: "Baked Veggie Pasta", isQuick: false),
-        SavedRecipe(title: "Leftover Chicken Wraps", isQuick: true),
+    private let ingredients: [IngredientItem] = [
+        IngredientItem(name: "Eggs",          quantity: "6",       category: .protein),
+        IngredientItem(name: "Cheddar Cheese", quantity: "200 g",  category: .dairy),
+        IngredientItem(name: "Tomatoes",       quantity: "3",       category: .produce),
+        IngredientItem(name: "Chicken Breast", quantity: "400 g",  category: .protein),
+        IngredientItem(name: "Pasta",          quantity: "500 g",  category: .pantry),
+        IngredientItem(name: "Spinach",        quantity: "100 g",  category: .produce),
+        IngredientItem(name: "Milk",           quantity: "1 L",    category: .dairy),
+        IngredientItem(name: "Olive Oil",      quantity: "1 bottle", category: .pantry),
     ]
 
     var body: some View {
@@ -75,22 +96,12 @@ struct ProfileView: View {
                     Spacer().frame(height: 24)
 
                     HStack(spacing: 10) {
-                        Button(action: onBack) {
-                            Image(systemName: "arrow.left")
-                                .font(.system(size: 18, weight: .semibold))
-                                .foregroundColor(Color.greenPrimary)
-                                .frame(width: 40, height: 40)
-                                .background(Color.greenPrimary.opacity(0.10))
-                                .clipShape(Circle())
-                        }
-
                         Text("Your Profile")
                             .font(.system(size: 28, weight: .heavy))
                             .foregroundColor(Color.greenPrimary)
 
                         Spacer()
                     }
-                    .frame(maxWidth: .infinity)
 
                     Spacer().frame(height: 32)
 
@@ -110,8 +121,8 @@ struct ProfileView: View {
 
                     Spacer().frame(height: 24)
 
-                    // Saved recipes card
-                    SavedRecipesCard(recipes: recipes)
+                    // Ingredient inventory card
+                    IngredientInventoryCard(ingredients: ingredients)
 
                     Spacer().frame(height: 32)
 
@@ -140,6 +151,9 @@ struct ProfileView: View {
                     Spacer().frame(height: 32)
                 }
                 .padding(.horizontal, 24)
+                .safeAreaInset(edge: .bottom) {
+                    Color.clear.frame(height: 72)
+                }
             }
         }
         .navigationBarHidden(true)
@@ -195,46 +209,70 @@ private struct ReadOnlyProfileField: View {
     }
 }
 
-private struct SavedRecipesCard: View {
-    let recipes: [SavedRecipe]
-    @State private var currentPage = 0
+// Ingredient Inventory Card
+
+private struct IngredientInventoryCard: View {
+    let ingredients: [IngredientItem]
+
+    private let categories: [String] = ["All"] + IngredientCategory.allCases.map(\.rawValue)
+
+    @State private var selectedCategory: String = "All"
+
+    private var filtered: [IngredientItem] {
+        guard selectedCategory != "All" else { return ingredients }
+        return ingredients.filter { $0.category.rawValue == selectedCategory }
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            Text("Saved recipes")
-                .font(.system(size: 20, weight: .bold))
-                .foregroundColor(Color.greenPrimary)
+
+            // Header row
+            HStack {
+                Text("My Ingredients")
+                    .font(.system(size: 20, weight: .bold))
+                    .foregroundColor(Color.greenPrimary)
+
+                Spacer()
+
+                Text("\(ingredients.count) items")
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundColor(Color.greenOnBackground.opacity(0.45))
+            }
 
             Spacer().frame(height: 16)
 
-            TabView(selection: $currentPage) {
-                ForEach(Array(recipes.enumerated()), id: \.element.id) { index, recipe in
-                    RecipeCard(recipe: recipe)
-                        .tag(index)
-                        .padding(.horizontal, 2)
+            // Category filter pills
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    ForEach(categories, id: \.self) { cat in
+                        FilterPill(
+                            title: cat,
+                            isSelected: cat == selectedCategory,
+                            onTap: { withAnimation(.easeInOut(duration: 0.18)) { selectedCategory = cat } }
+                        )
+                    }
+                }
+                .padding(.vertical, 2)
+            }
+
+            Spacer().frame(height: 16)
+
+            // Ingredient rows
+            VStack(spacing: 10) {
+                ForEach(filtered) { item in
+                    IngredientRow(item: item)
                 }
             }
-            .tabViewStyle(.page(indexDisplayMode: .never))
-            .frame(height: 110)
 
-            Spacer().frame(height: 12)
-
-            HStack(spacing: 8) {
-                Spacer()
-                ForEach(0..<recipes.count, id: \.self) { index in
-                    Circle()
-                        .fill(
-                            index == currentPage
-                                ? Color.greenPrimary
-                                : Color.greenSecondary.opacity(0.6)
-                        )
-                        .frame(
-                            width:  index == currentPage ? 9 : 7,
-                            height: index == currentPage ? 9 : 7
-                        )
-                        .animation(.easeInOut(duration: 0.2), value: currentPage)
+            if filtered.isEmpty {
+                HStack {
+                    Spacer()
+                    Text("No items in this category")
+                        .font(.system(size: 14))
+                        .foregroundColor(Color.greenOnBackground.opacity(0.4))
+                        .padding(.vertical, 20)
+                    Spacer()
                 }
-                Spacer()
             }
         }
         .padding(24)
@@ -245,43 +283,76 @@ private struct SavedRecipesCard: View {
     }
 }
 
-private struct RecipeCard: View {
-    let recipe: SavedRecipe
+private struct FilterPill: View {
+    let title: String
+    let isSelected: Bool
+    let onTap: () -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            PillView(text: recipe.isQuick ? "Quick" : "Standard", isQuick: recipe.isQuick)
-
-            Text(recipe.title)
-                .font(.system(size: 16, weight: .semibold))
-                .foregroundColor(Color.greenOnBackground)
+        Button(action: onTap) {
+            Text(title)
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundColor(isSelected ? .white : Color.greenOnBackground.opacity(0.7))
+                .padding(.horizontal, 14)
+                .padding(.vertical, 7)
+                .background(isSelected ? Color.greenPrimary : Color.greenSecondary.opacity(0.4))
+                .clipShape(Capsule())
         }
-        .padding(16)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color.greenBackground)
-        .clipShape(RoundedRectangle(cornerRadius: 16))
-        .overlay(
-            RoundedRectangle(cornerRadius: 16)
-                .stroke(Color.greenSecondary, lineWidth: 1.5)
-        )
         .buttonStyle(BouncyButtonStyle())
     }
 }
 
-private struct PillView: View {
-    let text: String
-    let isQuick: Bool
+// Ingredient Row
+
+private struct IngredientRow: View {
+    let item: IngredientItem
 
     var body: some View {
-        Text(text)
-            .font(.system(size: 13, weight: .semibold))
-            .foregroundColor(isQuick ? .white : Color.greenOnBackground)
-            .padding(.horizontal, 12)
-            .padding(.vertical, 6)
-            .background(isQuick ? Color.greenPrimary : Color.greenSecondary)
-            .clipShape(Capsule())
+        HStack(spacing: 14) {
+            // Category icon badge
+            ZStack {
+                RoundedRectangle(cornerRadius: 10)
+                    .fill(Color.greenSecondary.opacity(0.35))
+                    .frame(width: 40, height: 40)
+                Image(systemName: item.category.icon)
+                    .font(.system(size: 16, weight: .medium))
+                    .foregroundColor(Color.greenPrimary)
+            }
+
+            // Name + category label
+            VStack(alignment: .leading, spacing: 2) {
+                Text(item.name)
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundColor(Color.greenOnBackground)
+
+                Text(item.category.rawValue)
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundColor(Color.greenOnBackground.opacity(0.45))
+            }
+
+            Spacer()
+
+            // Quantity badge
+            Text(item.quantity)
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundColor(Color.greenPrimary)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 5)
+                .background(Color.greenSecondary.opacity(0.35))
+                .clipShape(Capsule())
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
+        .background(Color.greenBackground)
+        .clipShape(RoundedRectangle(cornerRadius: 14))
+        .overlay(
+            RoundedRectangle(cornerRadius: 14)
+                .stroke(Color.greenSecondary, lineWidth: 1.2)
+        )
     }
 }
+
+// Buttons
 
 private struct BouncyActionButton: View {
     let text: String
