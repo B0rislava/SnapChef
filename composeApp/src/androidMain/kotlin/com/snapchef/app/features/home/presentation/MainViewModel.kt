@@ -2,19 +2,23 @@ package com.snapchef.app.features.home.presentation
 
 import android.net.Uri
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.snapchef.app.core.auth.AuthManager
+import com.snapchef.app.core.data.remote.createHttpClient
 import com.snapchef.app.core.presentation.components.MainTab
+import com.snapchef.app.features.auth.data.remote.AuthApiService
 import com.snapchef.app.features.groups.presentation.RecipeStore
 import com.snapchef.app.features.groups.presentation.SharedRecipe
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
-import org.json.JSONObject
+import kotlinx.coroutines.launch
 
 data class MainUiState(
     val currentTab: MainTab = MainTab.HOME,
-    val userName: String = "John Doe",
-    val userEmail: String = "john.doe@snapchef.app",
+    val userName: String = "",
+    val userEmail: String = "",
     val profileImageUri: Uri? = null,
     val isEditingProfile: Boolean = false,
     val activeRecipeIngredients: List<String>? = null,
@@ -23,7 +27,14 @@ data class MainUiState(
 )
 
 class MainViewModel : ViewModel() {
-    private val _uiState = MutableStateFlow(MainUiState())
+    private val apiService = AuthApiService(createHttpClient())
+
+    private val _uiState = MutableStateFlow(
+        MainUiState(
+            userName = AuthManager.currentUser?.name ?: "SnapChef User",
+            userEmail = AuthManager.currentUser?.email ?: "user@snapchef.app",
+        )
+    )
     val uiState: StateFlow<MainUiState> = _uiState.asStateFlow()
 
     fun selectTab(tab: MainTab) {
@@ -71,19 +82,29 @@ class MainViewModel : ViewModel() {
     }
 
     fun logout() {
+        AuthManager.logout()
         _uiState.update { it.copy(shouldNavigateToAuth = true) }
     }
 
     fun deleteAccount() {
-        _uiState.update {
-            it.copy(
-                userName = "John Doe",
-                userEmail = "john.doe@snapchef.app",
-                profileImageUri = null,
-                isEditingProfile = false,
-                activeRecipeIngredients = null,
-                shouldNavigateToAuth = true,
-            )
+        viewModelScope.launch {
+            try {
+                apiService.deleteAccount()
+            } catch (e: Exception) {
+                // If it fails on backend (e.g. network error), we still want to log them out locally
+                e.printStackTrace()
+            }
+            AuthManager.logout()
+            _uiState.update {
+                it.copy(
+                    userName = "",
+                    userEmail = "",
+                    profileImageUri = null,
+                    isEditingProfile = false,
+                    activeRecipeIngredients = null,
+                    shouldNavigateToAuth = true,
+                )
+            }
         }
     }
 
@@ -91,16 +112,5 @@ class MainViewModel : ViewModel() {
         _uiState.update { it.copy(shouldNavigateToAuth = false) }
     }
 
-    fun applyBackendJson(json: String) {
-        runCatching {
-            val obj = JSONObject(json)
-            _uiState.update {
-                it.copy(
-                    userName = obj.optString("name", it.userName),
-                    userEmail = obj.optString("email", it.userEmail),
-                )
-            }
-        }
-    }
 }
 
