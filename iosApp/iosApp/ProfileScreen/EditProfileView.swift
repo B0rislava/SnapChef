@@ -96,7 +96,7 @@ struct EditProfileView: View {
                         imageUri: displayImageUri,
                         initials: initials,
                         onEditTap: {
-                            permissionHandler.requestPermissions {
+                            permissionHandler.requestBothPermissions {
                                 showPhotoPicker = true
                             }
                         }
@@ -180,16 +180,19 @@ struct EditProfileView: View {
             }
         }
         .navigationBarHidden(true)
-        .alert("Permissions Required", isPresented: $permissionHandler.showDeniedAlert) {
-            Button("Cancel", role: .cancel) { }
-            Button("Settings") {
-            if let url = URL(string: UIApplication.openSettingsURLString) {
-            UIApplication.shared.open(url)
-                }
+        .alert("Camera Access Required", isPresented: $permissionHandler.showCameraDeniedAlert) {
+            Button("Cancel", role: .cancel) {}
+            Button("Settings") { openSettings() }
+            } message: {
+                Text("SnapChef needs camera access to take a profile photo. Please enable it in Settings.")
             }
-        } message: {
-            Text("Please allow Camera and Photos access in Settings to update your profile picture.")
-        }
+            // Photos denied alert
+        .alert("Photo Library Access Required", isPresented: $permissionHandler.showPhotosDeniedAlert) {
+            Button("Cancel", role: .cancel) {}
+            Button("Settings") { openSettings() }
+            } message: {
+                Text("SnapChef needs photo library access to pick a profile picture. Please enable it in Settings.")
+            }
     }
 
     private func saveToTemp(data: Data) -> URL? {
@@ -197,6 +200,12 @@ struct EditProfileView: View {
             .appendingPathComponent(UUID().uuidString + ".jpg")
         try? data.write(to: url)
         return url
+    }
+    
+    private func openSettings() {
+        if let url = URL(string: UIApplication.openSettingsURLString) {
+        UIApplication.shared.open(url)
+        }
     }
 }
 
