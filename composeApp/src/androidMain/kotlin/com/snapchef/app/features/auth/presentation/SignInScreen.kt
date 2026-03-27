@@ -1,7 +1,6 @@
 package com.snapchef.app.features.auth.presentation
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -28,8 +27,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Checkbox
-import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -136,8 +133,7 @@ fun SignInScreen(
                 elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
             ) {
                 Column(
-                    modifier = Modifier.padding(24.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                    modifier = Modifier.padding(start = 24.dp, end = 24.dp, top = 24.dp, bottom = 8.dp),
                 ) {
                     AuthTextField(
                         value         = uiState.email,
@@ -148,6 +144,8 @@ fun SignInScreen(
                         },
                         keyboardType  = KeyboardType.Email,
                     )
+
+                    Spacer(Modifier.height(16.dp))
 
                     AuthTextField(
                         value         = uiState.password,
@@ -170,39 +168,37 @@ fun SignInScreen(
                         keyboardType = KeyboardType.Password,
                     )
 
-                    Row(
-                        modifier              = Modifier.fillMaxWidth(),
-                        verticalAlignment     = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween,
+                    Spacer(Modifier.height(8.dp))
+
+                    TextButton(
+                        onClick = {},
+                        modifier = Modifier.fillMaxWidth(),
+                        contentPadding = PaddingValues(0.dp)
                     ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Checkbox(
-                                checked         = uiState.rememberMe,
-                                onCheckedChange = viewModel::setRememberMe,
-                                colors          = CheckboxDefaults.colors(checkedColor = GreenPrimary),
-                            )
-                            Text(
-                                text  = "Remember me",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = GreenOnBackground.copy(alpha = 0.65f),
-                            )
-                        }
-                        TextButton(onClick = {}) {
-                            Text(
-                                text  = "Forgot Password?",
-                                color = GreenPrimary,
-                                style = MaterialTheme.typography.bodyMedium,
-                                fontWeight = FontWeight.SemiBold,
-                            )
-                        }
+                        Text(
+                            text  = "Forgot Password?",
+                            color = GreenPrimary,
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.SemiBold,
+                        )
                     }
                 }
             }
 
             Spacer(Modifier.height(24.dp))
 
+            uiState.errorMessage?.let { errorMsg ->
+                Text(
+                    text = errorMsg,
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+            }
+
             Button(
-                onClick  = onSignIn,
+                onClick  = { viewModel.signIn(onSuccess = onSignIn) },
+                enabled  = !uiState.isLoading,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(56.dp),
@@ -210,7 +206,15 @@ fun SignInScreen(
                 colors   = ButtonDefaults.buttonColors(containerColor = GreenPrimary),
                 elevation = ButtonDefaults.buttonElevation(defaultElevation = 6.dp),
             ) {
-                Text("Login", style = MaterialTheme.typography.labelLarge, color = Color.White)
+                if (uiState.isLoading) {
+                    androidx.compose.material3.CircularProgressIndicator(
+                        modifier = Modifier.size(24.dp),
+                        color = Color.White,
+                        strokeWidth = 2.dp
+                    )
+                } else {
+                    Text("Login", style = MaterialTheme.typography.labelLarge, color = Color.White)
+                }
             }
 
             Spacer(Modifier.height(24.dp))

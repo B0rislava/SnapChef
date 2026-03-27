@@ -188,8 +188,18 @@ fun SignUpScreen(
 
             Spacer(Modifier.height(24.dp))
 
+            uiState.errorMessage?.let { msg ->
+                Text(
+                    text = msg,
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+            }
+
             Button(
-                onClick  = onSignUp,
+                onClick  = { viewModel.signUp(onSuccess = onSignUp) },
+                enabled  = !uiState.isLoading,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(56.dp),
@@ -199,11 +209,19 @@ fun SignUpScreen(
                 ),
                 elevation = ButtonDefaults.buttonElevation(defaultElevation = 6.dp),
             ) {
-                Text(
-                    text  = "Create Account",
-                    style = MaterialTheme.typography.labelLarge,
-                    color = Color.White,
-                )
+                if (uiState.isLoading) {
+                    androidx.compose.material3.CircularProgressIndicator(
+                        modifier = Modifier.size(24.dp),
+                        color = Color.White,
+                        strokeWidth = 2.dp
+                    )
+                } else {
+                    Text(
+                        text  = "Create Account",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = Color.White,
+                    )
+                }
             }
 
             Spacer(Modifier.height(24.dp))
