@@ -55,7 +55,7 @@ class MainViewModel : ViewModel() {
     fun startEditProfile() = _uiState.update { it.copy(isEditingProfile = true) }
     fun cancelEditProfile() = _uiState.update { it.copy(isEditingProfile = false) }
 
-    fun saveProfile(name: String, email: String) {
+    fun saveProfile(name: String, email: String, password: String, confirmPassword: String) {
         _uiState.update { it.copy(userName = name, userEmail = email, isEditingProfile = false) }
     }
 

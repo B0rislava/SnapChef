@@ -1,6 +1,7 @@
 package com.snapchef.app.features.auth.presentation
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -21,12 +22,15 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.outlined.Email
 import androidx.compose.material.icons.outlined.Lock
+import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.Visibility
 import androidx.compose.material.icons.outlined.VisibilityOff
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -49,11 +53,7 @@ import androidx.compose.ui.unit.dp
 import com.snapchef.app.core.presentation.components.AuthTextField
 import com.snapchef.app.core.presentation.components.OrDivider
 import com.snapchef.app.core.presentation.components.SocialButton
-import com.snapchef.app.core.theme.GreenBackground
-import com.snapchef.app.core.theme.GreenOnBackground
-import com.snapchef.app.core.theme.GreenPrimary
-import com.snapchef.app.core.theme.GreenSecondary
-import com.snapchef.app.core.theme.SnapChefTheme
+import com.snapchef.app.core.theme.*
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 
@@ -63,12 +63,12 @@ import kotlinx.coroutines.launch
 import com.snapchef.app.core.auth.GoogleAuthHelper
 
 @Composable
-fun SignInScreen(
+fun SignUpScreen(
     onBack:       () -> Unit = {},
-    onSignIn:     () -> Unit = {},
-    onSignUp:     () -> Unit = {},
+    onSuccess:    () -> Unit = {},
     onVerifyRequired: (String) -> Unit = {},
-    viewModel: SignInViewModel = viewModel(),
+    onSignIn:     () -> Unit = {},
+    viewModel: SignUpViewModel = viewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
@@ -84,7 +84,7 @@ fun SignInScreen(
         Box(
             modifier = Modifier
                 .size(220.dp)
-                .offset(x = 220.dp, y = (-50).dp)
+                .offset(x = (-100).dp, y = 50.dp)
                 .clip(CircleShape)
                 .background(GreenPrimary.copy(alpha = 0.10f))
         )
@@ -97,7 +97,6 @@ fun SignInScreen(
                 .padding(horizontal = 24.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-
             Spacer(Modifier.height(16.dp))
 
             Row(Modifier.fillMaxWidth()) {
@@ -108,25 +107,21 @@ fun SignInScreen(
                         .clip(CircleShape)
                         .background(GreenPrimary.copy(alpha = 0.10f))
                 ) {
-                    Icon(
-                        Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = "Back",
-                        tint = GreenPrimary,
-                    )
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back", tint = GreenPrimary)
                 }
             }
 
-            Spacer(Modifier.height(36.dp))
+            Spacer(Modifier.height(30.dp))
 
             Text(
-                text       = "Welcome back!",
+                text       = "Join SnapChef!",
                 style      = MaterialTheme.typography.headlineMedium,
                 color      = GreenPrimary,
                 fontWeight = FontWeight.ExtraBold,
             )
             Spacer(Modifier.height(6.dp))
             Text(
-                text      = "Sign in to continue your culinary journey.",
+                text      = "Start your journey today - Snap, cook, and enjoy.",
                 style     = MaterialTheme.typography.bodyMedium,
                 color     = GreenOnBackground.copy(alpha = 0.55f),
                 textAlign = TextAlign.Center,
@@ -141,24 +136,32 @@ fun SignInScreen(
                 elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
             ) {
                 Column(
-                    modifier = Modifier.padding(start = 24.dp, end = 24.dp, top = 24.dp, bottom = 8.dp),
+                    modifier = Modifier.padding(24.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
                 ) {
+                    AuthTextField(
+                        value         = uiState.name,
+                        onValueChange = viewModel::updateName,
+                        placeholder   = "Full Name",
+                        leadingIcon   = {
+                            Icon(Icons.Outlined.Person, null, tint = GreenPrimary)
+                        },
+                    )
+
                     AuthTextField(
                         value         = uiState.email,
                         onValueChange = viewModel::updateEmail,
-                        placeholder   = "Enter your email",
+                        placeholder   = "Email Address",
                         leadingIcon   = {
                             Icon(Icons.Outlined.Email, null, tint = GreenPrimary)
                         },
                         keyboardType  = KeyboardType.Email,
                     )
 
-                    Spacer(Modifier.height(16.dp))
-
                     AuthTextField(
                         value         = uiState.password,
                         onValueChange = viewModel::updatePassword,
-                        placeholder   = "Enter your password",
+                        placeholder   = "Password",
                         leadingIcon   = {
                             Icon(Icons.Outlined.Lock, null, tint = GreenPrimary)
                         },
@@ -166,8 +169,7 @@ fun SignInScreen(
                             IconButton(onClick = viewModel::toggleShowPassword) {
                                 Icon(
                                     if (uiState.showPassword) Icons.Outlined.VisibilityOff else Icons.Outlined.Visibility,
-                                    contentDescription = "Toggle password",
-                                    tint = GreenSecondary,
+                                    null, tint = GreenSecondary,
                                 )
                             }
                         },
@@ -176,18 +178,17 @@ fun SignInScreen(
                         keyboardType = KeyboardType.Password,
                     )
 
-                    Spacer(Modifier.height(8.dp))
-
-                    TextButton(
-                        onClick = {},
-                        modifier = Modifier.fillMaxWidth(),
-                        contentPadding = PaddingValues(0.dp)
-                    ) {
+                    Row(verticalAlignment = Alignment.Top) {
+                        Checkbox(
+                            checked         = uiState.agreeTerms,
+                            onCheckedChange = viewModel::setAgreeTerms,
+                            colors          = CheckboxDefaults.colors(checkedColor = GreenPrimary),
+                        )
                         Text(
-                            text  = "Forgot Password?",
-                            color = GreenPrimary,
-                            style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = FontWeight.SemiBold,
+                            text  = "By creating an account you agree to our Terms & Conditions and our Privacy Policy.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = GreenOnBackground.copy(alpha = 0.65f),
+                            modifier = Modifier.padding(top = 10.dp),
                         )
                     }
                 }
@@ -195,9 +196,9 @@ fun SignInScreen(
 
             Spacer(Modifier.height(24.dp))
 
-            uiState.errorMessage?.let { errorMsg ->
+            uiState.errorMessage?.let { msg ->
                 Text(
-                    text = errorMsg,
+                    text = msg,
                     color = MaterialTheme.colorScheme.error,
                     style = MaterialTheme.typography.bodySmall,
                     modifier = Modifier.padding(bottom = 8.dp)
@@ -205,13 +206,15 @@ fun SignInScreen(
             }
 
             Button(
-                onClick  = { viewModel.signIn(onSuccess = onSignIn, onVerifyRequired = onVerifyRequired) },
+                onClick  = { viewModel.signUp(onVerifyRequired = onVerifyRequired, onSuccess = onSuccess) },
                 enabled  = !uiState.isLoading,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(56.dp),
                 shape    = RoundedCornerShape(28.dp),
-                colors   = ButtonDefaults.buttonColors(containerColor = GreenPrimary),
+                colors   = ButtonDefaults.buttonColors(
+                    containerColor = GreenPrimary,
+                ),
                 elevation = ButtonDefaults.buttonElevation(defaultElevation = 6.dp),
             ) {
                 if (uiState.isLoading) {
@@ -221,7 +224,11 @@ fun SignInScreen(
                         strokeWidth = 2.dp
                     )
                 } else {
-                    Text("Login", style = MaterialTheme.typography.labelLarge, color = Color.White)
+                    Text(
+                        text  = "Create Account",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = Color.White,
+                    )
                 }
             }
 
@@ -232,13 +239,13 @@ fun SignInScreen(
             Spacer(Modifier.height(20.dp))
 
             SocialButton(
-                label = "Continue with Google", 
-                emoji = "G", 
+                label = "Sign up with Google",  
+                emoji = "G",
                 onClick = {
                     scope.launch {
                         val token = GoogleAuthHelper.signInWithGoogle(context)
                         if (token != null) {
-                            viewModel.googleSignIn(token, onSuccess = onSignIn)
+                            viewModel.googleSignIn(token, onSuccess = onSuccess)
                         }
                     }
                 }
@@ -248,16 +255,16 @@ fun SignInScreen(
 
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    text  = "Don't have an account? ",
+                    text  = "Already have an account?",
                     style = MaterialTheme.typography.bodyMedium,
                     color = GreenOnBackground.copy(alpha = 0.6f),
                 )
-                TextButton(onClick = onSignUp, contentPadding = PaddingValues(0.dp)) {
+                TextButton(onClick = onSignIn, contentPadding = PaddingValues(0.dp)) {
                     Text(
-                        text       = "Create an account",
-                        color      = GreenPrimary,
+                        text  = "Sign in",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = GreenPrimary,
                         fontWeight = FontWeight.Bold,
-                        style      = MaterialTheme.typography.bodyMedium,
                     )
                 }
             }
@@ -269,6 +276,6 @@ fun SignInScreen(
 
 @Preview(showBackground = true)
 @Composable
-private fun SignInPreview() {
-    SnapChefTheme { SignInScreen() }
+private fun SignUpPreview() {
+    SnapChefTheme { SignUpScreen() }
 }

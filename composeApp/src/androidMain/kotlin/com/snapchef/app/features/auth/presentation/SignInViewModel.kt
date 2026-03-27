@@ -69,4 +69,26 @@ class SignInViewModel : ViewModel() {
             }
         }
     }
+
+    fun googleSignIn(idToken: String, onSuccess: () -> Unit) {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isLoading = true, errorMessage = null)
+            try {
+                val response = apiService.googleAuth(idToken)
+                AuthManager.accessToken = response.accessToken
+                AuthManager.currentUser = response.user
+                onSuccess()
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    errorMessage = when (e) {
+                        is io.ktor.client.plugins.ResponseException -> {
+                            "Google Sign-In Error: ${e.response.status.value}"
+                        }
+                        else -> "Google Sign-In failed on the server."
+                    }
+                )
+            }
+        }
+    }
 }

@@ -7,6 +7,7 @@ import androidx.compose.runtime.Composable
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.snapchef.app.core.auth.AuthManager
 import com.snapchef.app.features.auth.presentation.AuthNavGraph
 import com.snapchef.app.features.home.presentation.MainScreen
 
@@ -25,10 +26,11 @@ object Routes {
 @Composable
 fun RootNavGraph() {
     val navController = rememberNavController()
+    val startDestination = if (AuthManager.isLoggedIn()) Routes.MAIN else Routes.AUTH
 
     NavHost(
         navController = navController,
-        startDestination = Routes.AUTH,
+        startDestination = startDestination,
         enterTransition = { fadeIn(tween(400)) },
         exitTransition = { fadeOut(tween(400)) },
         popEnterTransition = { fadeIn(tween(400)) },
