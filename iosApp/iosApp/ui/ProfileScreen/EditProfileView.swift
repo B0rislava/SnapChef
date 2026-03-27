@@ -9,23 +9,23 @@ import SwiftUI
 import PhotosUI
 
 struct EditProfileView: View {
-    let userName: String
-    let userEmail: String
     let profileImageUri: URL?
     var onPickImage: (URL) -> Void = { _ in }
     var onSave: (String, String) -> Void = { _, _ in }
     var onCancel: () -> Void = {}
 
-    @State private var editedName: String
-    @State private var editedEmail: String
+    @StateObject private var viewModel = EditProfileViewModel()
     @State private var selectedPhotoItem: PhotosPickerItem? = nil
     @State private var pickedImageURL: URL? = nil
     
     @State private var showPhotoPicker = false
     @StateObject private var permissionHandler = CameraPermissionHandler()
 
-    private var initials: String { editedName.toInitials() }
+    private var initials: String { viewModel.uiState.initials }
     private var displayImageUri: URL? { pickedImageURL ?? profileImageUri }
+    
+    let initialUserName: String
+    let initialUserEmail: String
 
     init(
         userName: String,
@@ -35,14 +35,12 @@ struct EditProfileView: View {
         onSave: @escaping (String, String) -> Void = { _, _ in },
         onCancel: @escaping () -> Void = {}
     ) {
-        self.userName = userName
-        self.userEmail = userEmail
+        self.initialUserName = userName
+        self.initialUserEmail = userEmail
         self.profileImageUri = profileImageUri
         self.onPickImage = onPickImage
         self.onSave = onSave
         self.onCancel = onCancel
-        _editedName  = State(initialValue: userName)
-        _editedEmail = State(initialValue: userEmail)
     }
 
     var body: some View {
@@ -122,13 +120,19 @@ struct EditProfileView: View {
                     // Editable fields card
                     VStack(spacing: 16) {
                         EditProfileTextField(
-                            value: $editedName,
+                            value: Binding(
+                                get: { viewModel.uiState.editedName },
+                                set: { viewModel.updateName($0) }
+                            ),
                             placeholder: "Full Name",
                             icon: "person",
                             keyboardType: .default
                         )
                         EditProfileTextField(
-                            value: $editedEmail,
+                            value: Binding(
+                                get: { viewModel.uiState.editedEmail },
+                                set: { viewModel.updateEmail($0) }
+                            ),
                             placeholder: "Email Address",
                             icon: "envelope",
                             keyboardType: .emailAddress
@@ -160,7 +164,7 @@ struct EditProfileView: View {
                         .buttonStyle(BouncyStyle())
 
                         // Save — filled
-                        Button(action: { onSave(editedName, editedEmail) }) {
+                        Button(action: { onSave(viewModel.uiState.editedName, viewModel.uiState.editedEmail) }) {
                             Text("Save")
                                 .font(.system(size: 15, weight: .semibold))
                                 .foregroundColor(.white)
@@ -180,6 +184,9 @@ struct EditProfileView: View {
             }
         }
         .navigationBarHidden(true)
+        .onAppear {
+            viewModel.setInitialValues(name: initialUserName, email: initialUserEmail)
+        }
         .alert("Camera Access Required", isPresented: $permissionHandler.showCameraDeniedAlert) {
             Button("Cancel", role: .cancel) {}
             Button("Settings") { openSettings() }

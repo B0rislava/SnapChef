@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import Shared
 
 private struct IngredientItem: Identifiable {
     let id = UUID()
@@ -31,6 +32,8 @@ private enum IngredientCategory: String, CaseIterable {
 }
 
 struct ProfileView: View {
+    @StateObject private var viewModel = ProfileViewModel()
+
     @State private var userName: String = "John Doe"
     @State private var userEmail: String = "john.doe@example.com"
     @State private var profileImageUri: URL? = nil
@@ -73,6 +76,12 @@ struct ProfileView: View {
                 )
             } else {
                 displayProfileContent
+            }
+        }
+        .onAppear {
+            if let user = AuthManager.shared.currentUser {
+                self.userName = user.name
+                self.userEmail = user.email
             }
         }
     }
