@@ -1,36 +1,57 @@
 package com.snapchef.app.features.home.presentation
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.snapchef.app.core.di.SnapChefServiceLocator
+import com.snapchef.app.features.groups.presentation.SharedRecipe
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import org.json.JSONArray
-import org.json.JSONObject
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 
 data class RecipeResultsUiState(
-    val ingredients: List<String> = emptyList(),
-    val recipes: List<String> = emptyList(),
+    val isLoading: Boolean = false,
+    val recipes: List<SharedRecipe> = emptyList(),
+    val errorMessage: String? = null
 )
 
 class RecipeResultsViewModel : ViewModel() {
+    private val apiService = SnapChefServiceLocator.homeApiService
     private val _uiState = MutableStateFlow(RecipeResultsUiState())
     val uiState: StateFlow<RecipeResultsUiState> = _uiState.asStateFlow()
 
-    fun setIngredients(value: List<String>) {
-        _uiState.value = _uiState.value.copy(ingredients = value)
-    }
-
-    fun applyBackendJson(json: String) {
-        runCatching {
-            val obj = JSONObject(json)
-            val recipesArray = obj.optJSONArray("recipes") ?: JSONArray()
-            val recipes = buildList {
-                for (i in 0 until recipesArray.length()) {
-                    val item = recipesArray.optJSONObject(i)
-                    add(item?.optString("title") ?: recipesArray.optString(i))
+    fun loadRecipesForSession(sessionId: Int) {
+        if (_uiState.value.recipes.isNotEmpty() || _uiState.value.isLoading) return
+        
+        _uiState.update { it.copy(isLoading = true, errorMessage = null) }
+        viewModelScope.launch {
+            try {
+                val response = apiService.suggestRecipes(sessionId)
+                val mappedRecipes = response.recipes.map { backendRecipe ->
+                    SharedRecipe(
+                        title = backendRecipe.name,
+                        description = "Ready in ${backendRecipe.minutes ?: "?"} mins",
+                        ownerName = "AI Magic",
+                        instructions = backendRecipe.steps,
+                        missingItems = emptyList() // or parse from 'extra'
+                    )
+                }
+                _uiState.update { 
+                    it.copy(
+                        isLoading = false,
+                        recipes = mappedRecipes
+                    ) 
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+                _uiState.update { 
+                    it.copy(
+                        isLoading = false, 
+                        errorMessage = "Failed to generate recipes. Please try again."
+                    ) 
                 }
             }
-            _uiState.value = _uiState.value.copy(recipes = recipes)
         }
     }
 }

@@ -2,37 +2,52 @@ package com.snapchef.app.features.home.data.remote
 
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonElement
 
 // --- Scanning a Fridge Image ---
 
 @Serializable
 data class ScanItemOut(
+    val id: Int,
     val name: String,
-    val quantity: Float? = null,
+    val freshness: Int? = null,
+    val qty: String? = null,
     val unit: String? = null,
     val confidence: Float? = null,
-    @SerialName("expires_at") val expiresAt: String? = null
+    val source: String? = null,
+    val alert: String? = null
 )
 
 @Serializable
-data class ImageScanResponse(
-    val items: List<ScanItemOut> = emptyList(),
-    val raw: String? = null
+data class ScanImageOut(
+    val id: Int,
+    val mime: String
+)
+
+@Serializable
+data class ScanSessionResponse(
+    val id: Int = 0,
+    val status: String = "",
+    val status_msg: String? = null,
+    val images: List<ScanImageOut> = emptyList(),
+    val items: List<ScanItemOut> = emptyList()
 )
 
 // --- Suggesting Recipes ---
 
 @Serializable
-data class RecipeSuggestRequest(
-    val items: List<String>
+data class GroqRecipeSuggestResponse(
+    val recipes: List<SessionRecipeOut>
 )
 
 @Serializable
-data class RecipeOut(
+data class SessionRecipeOut(
     val id: Int,
-    val title: String,
-    val description: String? = null,
-    val ingredients: List<String> = emptyList(),
+    @SerialName("session_id") val sessionId: Int,
+    val name: String,
+    val uses: List<String> = emptyList(),
+    val extra: List<String> = emptyList(),
     val steps: List<String> = emptyList(),
-    val starred: Boolean = false
+    val minutes: Int? = null,
+    val rating: Int? = null
 )

@@ -43,10 +43,11 @@ fun MainScreen(
         }
     }
 
-    Crossfade(targetState = uiState.activeRecipeIngredients, label = "recipe_results_crossfade") { ingredients ->
-        if (ingredients != null) {
+    Crossfade(targetState = uiState.activeRecipeSession, label = "recipe_results_crossfade") { session ->
+        if (session != null) {
             RecipeResultsScreen(
-                ingredients = ingredients,
+                sessionId = session.sessionId,
+                ingredients = session.ingredients,
                 onBack = viewModel::closeRecipeResults,
                 onSaveRecipe = viewModel::saveGeneratedRecipe,
             )

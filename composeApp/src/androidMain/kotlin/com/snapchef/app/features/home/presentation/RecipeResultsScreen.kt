@@ -32,6 +32,9 @@ import com.snapchef.app.core.theme.GreenPrimary
 import com.snapchef.app.core.theme.GreenSecondary
 import com.snapchef.app.features.groups.presentation.SharedRecipe
 
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+
 private data class GroupRecipeContribution(
     val name: String,
     val items: String,
@@ -47,11 +50,19 @@ private data class GroupRecipeResult(
 
 @Composable
 fun RecipeResultsScreen(
+    sessionId: Int,
     ingredients: List<String>,
     onBack: () -> Unit,
     onSaveRecipe: (SharedRecipe, Boolean) -> Unit,
+    viewModel: RecipeResultsViewModel = viewModel()
 ) {
     var selectedTabIndex by remember { mutableStateOf(0) }
+    
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    
+    LaunchedEffect(sessionId) {
+        viewModel.loadRecipesForSession(sessionId)
+    }
     
     val perishableKeywords = remember {
         setOf("egg", "eggs", "milk", "cheese", "yogurt", "chicken", "fish", "meat", "mushroom", "mushrooms")
@@ -67,17 +78,7 @@ fun RecipeResultsScreen(
         }
     }
     
-    val soloRecipes = remember(ingredients) {
-        listOf("Smart Omelette", "Quick Bowl", "Zero-Waste Stir Fry").map { title ->
-            SharedRecipe(
-                title = title,
-                description = "Generated from your detected products: ${ingredients.joinToString()}",
-                ownerName = "You",
-                missingItems = emptyList(),
-                instructions = generateRecipeInstructions(ingredients),
-            )
-        }
-    }
+
 
     val groupRecipes = remember(ingredients) {
         listOf(
@@ -182,9 +183,10 @@ fun RecipeResultsScreen(
             when (tab) {
                 0 -> SoloRecipeList(
                     ingredients = ingredients,
-                    recipes = soloRecipes,
+                    recipes = uiState.recipes,
+                    isLoading = uiState.isLoading,
+                    errorMessage = uiState.errorMessage,
                     perishableIngredients = perishableIngredients,
-                    freshness = freshness,
                     onPreview = { previewRecipeIndex = it },
                     onActionMessage = { actionMessage = it },
                     onSave = onSaveRecipe
@@ -209,11 +211,13 @@ fun RecipeResultsScreen(
 
 
     previewRecipeIndex?.let { index ->
-        val recipe = soloRecipes[index]
-        RecipeInstructionsDialog(
-            recipe = recipe,
-            onDismiss = { previewRecipeIndex = null }
-        )
+        val recipe = uiState.recipes.getOrNull(index)
+        if (recipe != null) {
+            RecipeInstructionsDialog(
+                recipe = recipe,
+                onDismiss = { previewRecipeIndex = null }
+            )
+        }
     }
 
     previewGroupRecipeIndex?.let { index ->
@@ -235,8 +239,9 @@ fun RecipeResultsScreen(
 private fun SoloRecipeList(
     ingredients: List<String>,
     recipes: List<SharedRecipe>,
+    isLoading: Boolean,
+    errorMessage: String?,
     perishableIngredients: List<String>,
-    freshness: Map<String, Float>,
     onPreview: (Int) -> Unit,
     onActionMessage: (String) -> Unit,
     onSave: (SharedRecipe, Boolean) -> Unit
@@ -292,7 +297,38 @@ private fun SoloRecipeList(
             )
         }
 
-        items(recipes.indices.toList()) { index ->
+
+        if (isLoading) {
+            item {
+                Column(
+                    modifier = Modifier.fillMaxWidth().padding(32.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    CircularProgressIndicator(color = GreenPrimary)
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text("Artificial magic at work...", color = GreenPrimary)
+                }
+            }
+        } else if (errorMessage != null) {
+            item {
+                Text(
+                    text = errorMessage,
+                    color = MaterialTheme.colorScheme.error,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth().padding(32.dp)
+                )
+            }
+        } else if (recipes.isEmpty()) {
+            item {
+                Text(
+                    text = "No recipes found. Try adding more ingredients!",
+                    color = GreenPrimary,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth().padding(32.dp)
+                )
+            }
+        } else {
+            items(recipes.indices.toList()) { index ->
             val recipe = recipes[index]
             Card(
                 modifier = Modifier
@@ -344,6 +380,7 @@ private fun SoloRecipeList(
                         contentPadding = PaddingValues(vertical = 12.dp)
                     ) {
                         Text("Save Recipe", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                    }
                     }
                 }
             }

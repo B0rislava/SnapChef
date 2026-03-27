@@ -17,38 +17,64 @@ import io.ktor.http.contentType
 class HomeApiService(private val client: HttpClient) {
     
     /**
-     * Uploads an image to the backend's /ai/scan endpoint using Multipart Form Data.
-     * Returns exactly what the AI model detected.
+     * Uploads images to the backend's /ai/sessions endpoint using Multipart Form Data.
+     * The backend returns NDJSON. We read the full string, split by newline, and parse the final JSON.
      */
-    suspend fun scanFridgeImage(imageBytes: ByteArray): ImageScanResponse {
-        return client.post("${AppConfig.BASE_URL}/ai/scan") {
+    suspend fun scanFridgeImages(imagesBytes: List<ByteArray>): ScanSessionResponse {
+        val responseText: String = client.post("${AppConfig.BASE_URL}/ai/sessions") {
             AuthManager.accessToken?.let { token -> 
                 header("Authorization", "Bearer $token")
             }
             
             setBody(MultiPartFormDataContent(
                 formData {
-                    append("file", imageBytes, Headers.build {
-                        append(HttpHeaders.ContentType, "image/jpeg") 
-                        append(HttpHeaders.ContentDisposition, "filename=\"fridge.jpg\"")
-                    })
+                    imagesBytes.forEachIndexed { index, bytes ->
+                        append("files", bytes, Headers.build {
+                            append(HttpHeaders.ContentType, "image/jpeg") 
+                            append(HttpHeaders.ContentDisposition, "filename=\"fridge_$index.jpg\"")
+                        })
+                    }
                 }
             ))
+        }.body()
+
+        // It returns JSON lines (NDJSON). The last line with status_msg == "done" has the full items array.
+        val lines = responseText.split("\n").filter { it.isNotBlank() }
+        val json = kotlinx.serialization.json.Json { ignoreUnknownKeys = true; isLenient = true; explicitNulls = false }
+        
+        var bestSessionResponse = ScanSessionResponse()
+        for (line in lines) {
+            try {
+                val parsed = json.decodeFromString<ScanSessionResponse>(line)
+                if (parsed.status_msg == "done" || parsed.items.isNotEmpty()) {
+                    bestSessionResponse = parsed
+                }
+            } catch (e: Exception) {
+                // Ignore parsing errors of intermediate lines
+            }
+        }
+        return bestSessionResponse
+    }
+
+    /**
+     * Confirms the session before recipes can be generated.
+     */
+    suspend fun confirmSession(sessionId: Int): ScanSessionResponse {
+        return client.post("${AppConfig.BASE_URL}/ai/sessions/$sessionId/confirm") {
+            AuthManager.accessToken?.let { token -> 
+                header("Authorization", "Bearer $token")
+            }
         }.body()
     }
 
     /**
-     * Hits the /recipes/suggest endpoint.
-     * Takes a list of strings and returns a list of backend-generated recipes.
+     * Hits the /ai/sessions/{id}/groq-recipes endpoint.
      */
-    suspend fun suggestRecipes(ingredients: List<String>): List<RecipeOut> {
-        return client.post("${AppConfig.BASE_URL}/recipes/suggest") {
+    suspend fun suggestRecipes(sessionId: Int): GroqRecipeSuggestResponse {
+        return client.post("${AppConfig.BASE_URL}/ai/sessions/$sessionId/groq-recipes") {
             AuthManager.accessToken?.let { token -> 
                 header("Authorization", "Bearer $token")
             }
-            
-            contentType(ContentType.Application.Json)
-            setBody(RecipeSuggestRequest(items = ingredients))
         }.body()
     }
 }

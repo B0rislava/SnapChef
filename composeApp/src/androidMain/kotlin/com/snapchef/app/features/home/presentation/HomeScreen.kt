@@ -10,6 +10,8 @@ import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.camera.core.CameraSelector
+import androidx.camera.core.ImageCapture
+import androidx.camera.core.ImageProxy
 import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
@@ -54,7 +56,7 @@ import kotlinx.coroutines.launch
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
-    onGenerateRecipes: (List<String>) -> Unit,
+    onGenerateRecipes: (Int, List<String>) -> Unit,
     isCameraActive: Boolean,
     onCameraActiveChanged: (Boolean) -> Unit,
     homeViewModel: HomeViewModel = viewModel(),
@@ -120,9 +122,14 @@ fun HomeScreen(
         ActivityResultContracts.GetMultipleContents()
     ) { uris: List<Uri> ->
         if (uris.isNotEmpty()) {
-            homeViewModel.startAnalysis(uris.size)
+            val bytesList = uris.mapNotNull { uri ->
+                context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
+            }
+            homeViewModel.startAnalysis(bytesList)
         }
     }
+
+    val imageCapture = remember { ImageCapture.Builder().build() }
 
     // ── Camera permission rationale dialog ───────────────────────────────
     if (showRationale) {
@@ -203,7 +210,8 @@ fun HomeScreen(
                                 provider.bindToLifecycle(
                                     lifecycleOwner,
                                     CameraSelector.DEFAULT_BACK_CAMERA,
-                                    preview
+                                    preview,
+                                    imageCapture
                                 )
                             } catch (e: Exception) {
                                 Log.e("CameraX", "Binding failed", e)
@@ -254,7 +262,20 @@ fun HomeScreen(
 
                     // Shutter button
                     IconButton(
-                        onClick = homeViewModel::capturePhoto,
+                        onClick = {
+                            imageCapture.takePicture(
+                                ContextCompat.getMainExecutor(context),
+                                object : ImageCapture.OnImageCapturedCallback() {
+                                    override fun onCaptureSuccess(image: ImageProxy) {
+                                        val buffer = image.planes[0].buffer
+                                        val bytes = ByteArray(buffer.capacity())
+                                        buffer.get(bytes)
+                                        homeViewModel.capturePhoto(bytes)
+                                        image.close()
+                                    }
+                                }
+                            )
+                        },
                         modifier = Modifier
                             .size(80.dp)
                             .clip(CircleShape)
@@ -467,7 +488,7 @@ fun HomeScreen(
                     )
                     Spacer(Modifier.height(20.dp))
 
-                    if (uiState.capturedPhotoIds.isEmpty()) {
+                    if (uiState.capturedPhotos.isEmpty()) {
                         Text(
                             "No photos left. Go back and capture some!",
                             color = GreenOnBackground.copy(alpha = 0.5f),
@@ -480,7 +501,8 @@ fun HomeScreen(
                             contentPadding = PaddingValues(horizontal = 4.dp),
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            itemsIndexed(uiState.capturedPhotoIds) { index, id ->
+                            itemsIndexed(uiState.capturedPhotos) { index, photo ->
+                                val id = photo.id
                                 Box(
                                     modifier = Modifier
                                         .size(110.dp)
@@ -537,11 +559,10 @@ fun HomeScreen(
 
                     Button(
                         onClick = {
-                            val count = uiState.capturedCount
                             onCameraActiveChanged(false)
-                            homeViewModel.startAnalysis(count)
+                            homeViewModel.startAnalysis(uiState.capturedPhotos.map { it.bytes })
                         },
-                        enabled = uiState.capturedPhotoIds.isNotEmpty(),
+                        enabled = uiState.capturedPhotos.isNotEmpty(),
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(54.dp),
@@ -701,7 +722,9 @@ fun HomeScreen(
                                         coroutineScope.launch {
                                             ingredientSheetState.hide()
                                             homeViewModel.dismissIngredientModal()
-                                            onGenerateRecipes(uiState.ingredients)
+                                            uiState.currentSessionId?.let { sessionId ->
+                                                onGenerateRecipes(sessionId, uiState.ingredients)
+                                            }
                                         }
                                     },
                                     modifier = Modifier

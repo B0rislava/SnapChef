@@ -20,13 +20,15 @@ data class ProfileInventoryItem(
     val quantity: String,
 )
 
+data class ActiveRecipeSessionSession(val sessionId: Int, val ingredients: List<String>)
+
 data class MainUiState(
     val currentTab: MainTab = MainTab.HOME,
     val userName: String = "",
     val userEmail: String = "",
     val profileImageUri: Uri? = null,
     val isEditingProfile: Boolean = false,
-    val activeRecipeIngredients: List<String>? = null,
+    val activeRecipeSession: ActiveRecipeSessionSession? = null,
     val shouldNavigateToAuth: Boolean = false,
     val isCameraActive: Boolean = false,
     val inventoryItems: List<ProfileInventoryItem> = defaultInventoryItems(),
@@ -88,12 +90,12 @@ class MainViewModel : ViewModel() {
         }
     }
 
-    fun openRecipeResults(ingredients: List<String>) {
-        _uiState.update { it.copy(activeRecipeIngredients = ingredients) }
+    fun openRecipeResults(sessionId: Int, ingredients: List<String>) {
+        _uiState.update { it.copy(activeRecipeSession = ActiveRecipeSessionSession(sessionId, ingredients)) }
     }
 
     fun closeRecipeResults() {
-        _uiState.update { it.copy(activeRecipeIngredients = null) }
+        _uiState.update { it.copy(activeRecipeSession = null) }
     }
 
     fun setCameraActive(active: Boolean) {
@@ -108,7 +110,7 @@ class MainViewModel : ViewModel() {
         }
         _uiState.update {
             it.copy(
-                activeRecipeIngredients = null,
+                activeRecipeSession = null,
                 currentTab = MainTab.RECIPES,
             )
         }
@@ -134,7 +136,7 @@ class MainViewModel : ViewModel() {
                     userEmail = "",
                     profileImageUri = null,
                     isEditingProfile = false,
-                    activeRecipeIngredients = null,
+                    activeRecipeSession = null,
                     shouldNavigateToAuth = true,
                 )
             }
