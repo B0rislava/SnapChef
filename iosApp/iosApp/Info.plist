@@ -2,6 +2,8 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>GIDSignIn</key>
+	<string>681250427058-6ite6j7uusrt468greuk9ldhiql619ke.apps.googleusercontent.com</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>SnapChef needs photo library access to analyze ingredient photos.</string>
 	<key>NSCameraUsageDescription</key>
