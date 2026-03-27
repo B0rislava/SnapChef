@@ -23,46 +23,6 @@ data class GroupsUiState(
 )
 
 class GroupsViewModel : ViewModel() {
-    private val currentUser = GroupMember(username = "You", avatarSeed = "you")
-    private val discoverableGroups = listOf(
-        RecipeGroup(
-            id = "discover_kitchen",
-            name = "Kitchen Crew",
-            code = "K9M4Q2",
-            recipes = listOf(
-                SharedRecipe(
-                    title = "Shared Salad Bowl",
-                    description = "A quick group salad everyone can customize.",
-                    ownerName = "Niki",
-                    missingItems = listOf("Avocado"),
-                    availableItems = listOf("Lettuce", "Tomatoes", "Cucumber", "Olive oil"),
-                    instructions = listOf(
-                        "Chop all vegetables.",
-                        "Mix dressing in a separate bowl.",
-                        "Toss and serve immediately.",
-                    ),
-                )
-            ),
-            ownerUsername = "Niki",
-            members = listOf(
-                GroupMember("Niki"),
-                GroupMember("Sani"),
-                GroupMember("Viki"),
-            ),
-        ),
-        RecipeGroup(
-            id = "discover_fit",
-            name = "Fit Meals",
-            code = "F3T8L6",
-            recipes = emptyList(),
-            ownerUsername = "Alex",
-            members = listOf(
-                GroupMember("Alex"),
-                GroupMember("Mira"),
-            ),
-        ),
-    )
-
     private val _uiState = MutableStateFlow(defaultState())
     val uiState: StateFlow<GroupsUiState> = _uiState.asStateFlow()
 
@@ -72,7 +32,7 @@ class GroupsViewModel : ViewModel() {
                 _uiState.update { state ->
                     val updatedGroups = state.groups.map { group ->
                         if (group.id == "personal") {
-                            group.copy(recipes = personalBaseRecipes() + savedRecipes)
+                            group.copy(recipes = savedRecipes)
                         } else {
                             group
                         }
@@ -85,8 +45,8 @@ class GroupsViewModel : ViewModel() {
             RecipeStore.sharedRecipes.collect { shared ->
                 _uiState.update { state ->
                     val updatedGroups = state.groups.map { group ->
-                        if (group.id == "g1") {
-                            group.copy(recipes = flatmatesBaseRecipes() + shared)
+                        if (group.id != "personal") {
+                            group.copy(recipes = shared)
                         } else {
                             group
                         }
@@ -126,30 +86,13 @@ class GroupsViewModel : ViewModel() {
             return
         }
 
-        val source = discoverableGroups.firstOrNull { it.code == code }
-        if (source == null) {
-            _uiState.update {
-                it.copy(
-                    infoMessage = "Group with code $code was not found.",
-                    dialogMode = null,
-                    joinCodeInput = "",
-                )
-            }
-            return
-        }
-
-        val joined = source.copy(
-            id = "joined_${Random.nextInt(1000, 9999)}",
-            members = (source.members + currentUser).distinctBy { it.username.lowercase() },
-        )
-
+        // In a real app we'd call the backend here. For now, we'll just show an informative message since
+        // we removed the hardcoded mock groups.
         _uiState.update {
             it.copy(
-                groups = it.groups + joined,
-                selectedGroupId = joined.id,
-                infoMessage = "Joined group ${joined.name}.",
+                infoMessage = "Group discovery is currently restricted to backend-synced groups.",
                 dialogMode = null,
-                joinCodeInput = "",
+                joinCodeInput = ""
             )
         }
     }
@@ -167,8 +110,8 @@ class GroupsViewModel : ViewModel() {
             name = groupName,
             code = code,
             recipes = emptyList(),
-            ownerUsername = currentUser.username,
-            members = listOf(currentUser),
+            ownerUsername = "You",
+            members = listOf(GroupMember("You")),
         )
         _uiState.update {
             it.copy(
@@ -191,7 +134,7 @@ class GroupsViewModel : ViewModel() {
             return
         }
 
-        if (!selected.ownerUsername.equals(currentUser.username, ignoreCase = true)) {
+        if (!selected.ownerUsername.equals("You", ignoreCase = true)) {
             _uiState.update { it.copy(infoMessage = "Only the group admin can edit the group name.") }
             return
         }
@@ -210,12 +153,12 @@ class GroupsViewModel : ViewModel() {
         val state = _uiState.value
         val selected = state.groups.firstOrNull { it.id == state.selectedGroupId } ?: return
 
-        if (!selected.ownerUsername.equals(currentUser.username, ignoreCase = true)) {
+        if (!selected.ownerUsername.equals("You", ignoreCase = true)) {
             _uiState.update { it.copy(infoMessage = "Only the group admin can remove members.") }
             return
         }
 
-        if (username.equals(currentUser.username, ignoreCase = true) ||
+        if (username.equals("You", ignoreCase = true) ||
             username.equals(selected.ownerUsername, ignoreCase = true)
         ) {
             _uiState.update { it.copy(infoMessage = "Admin cannot be removed from the group.") }
@@ -332,7 +275,7 @@ class GroupsViewModel : ViewModel() {
             return
         }
 
-        if (selected.ownerUsername.equals(currentUser.username, ignoreCase = true)) {
+        if (selected.ownerUsername.equals("You", ignoreCase = true)) {
             _uiState.update { it.copy(infoMessage = "Admins cannot leave their own group. Delete it instead.") }
             return
         }
@@ -356,7 +299,7 @@ class GroupsViewModel : ViewModel() {
             return
         }
 
-        if (!selected.ownerUsername.equals(currentUser.username, ignoreCase = true)) {
+        if (!selected.ownerUsername.equals("You", ignoreCase = true)) {
             _uiState.update { it.copy(infoMessage = "Only the group admin can delete this group.") }
             return
         }
@@ -372,140 +315,18 @@ class GroupsViewModel : ViewModel() {
     }
 
     private fun defaultState(): GroupsUiState {
-        val personalRecipes = personalBaseRecipes()
         val groups = listOf(
             RecipeGroup(
                 id = "personal",
                 name = "Your recipes",
                 code = null,
-                recipes = personalRecipes,
-                ownerUsername = currentUser.username,
-                members = listOf(currentUser),
+                recipes = emptyList(),
+                ownerUsername = "You",
+                members = listOf(GroupMember("You")),
                 isPersonal = true,
-            ),
-            RecipeGroup(
-                id = "g1",
-                name = "Flatmates",
-                code = "A7K2P1",
-                recipes = flatmatesBaseRecipes(),
-                ownerUsername = "Anton",
-                members = listOf(
-                    GroupMember("Anton"),
-                    GroupMember("Mira"),
-                    currentUser,
-                ),
-            ),
-            RecipeGroup(
-                id = "g2",
-                name = "Meal Planners",
-                code = "M8L5R3",
-                recipes = listOf(
-                    SharedRecipe(
-                        title = "Mediterranean Wraps",
-                        description = "Fresh wraps for a quick group lunch.",
-                        ownerName = "You",
-                        missingItems = listOf("Hummus"),
-                        availableItems = listOf("Tortillas", "Cucumber", "Tomatoes", "Feta", "Olive oil"),
-                        instructions = listOf(
-                            "Slice vegetables and prepare fillings.",
-                            "Warm tortillas briefly in a pan.",
-                            "Assemble wraps and drizzle olive oil.",
-                        ),
-                    ),
-                    SharedRecipe(
-                        title = "One-Pot Lentil Curry",
-                        description = "Comforting curry that is easy to batch-cook.",
-                        ownerName = "Sani",
-                        missingItems = listOf("Coconut milk"),
-                        availableItems = listOf("Lentils", "Onion", "Garlic", "Curry powder"),
-                        instructions = listOf(
-                            "Saute onion and garlic until soft.",
-                            "Add lentils, spices, and water.",
-                            "Simmer until thick and creamy.",
-                        ),
-                    ),
-                ),
-                ownerUsername = currentUser.username,
-                members = listOf(
-                    currentUser,
-                    GroupMember("Sani"),
-                    GroupMember("Niki"),
-                    GroupMember("Viktor"),
-                ),
-            ),
+            )
         )
-        return GroupsUiState(groups = groups, selectedGroupId = "g1")
-    }
-
-    private fun personalBaseRecipes(): List<SharedRecipe> {
-        return listOf(
-            SharedRecipe(
-                "Tomato Omelette",
-                "Soft omelette with tomatoes and herbs.",
-                "You",
-                missingItems = emptyList(),
-                availableItems = listOf("Eggs", "Tomatoes", "Salt", "Pepper", "Oil", "Fresh Herbs"),
-                instructions = listOf(
-                    "Whisk eggs with salt and pepper.",
-                    "Cook tomatoes for 2 minutes.",
-                    "Pour eggs and cook until set.",
-                ),
-            ),
-            SharedRecipe(
-                "Chicken Rice Bowl",
-                "Rice bowl with chicken and green vegetables.",
-                "You",
-                missingItems = emptyList(),
-                availableItems = listOf("Chicken breast", "Rice", "Green onion", "Soy sauce", "Sesame seeds"),
-                instructions = listOf(
-                    "Cook rice and keep warm.",
-                    "Saute chicken until fully cooked.",
-                    "Add vegetables and stir for 3 minutes.",
-                    "Serve over rice.",
-                ),
-                perishableProducts = listOf(
-                    PerishableProduct("Chicken breast", maxFreshDays = 2, freshness = 0.65f),
-                    PerishableProduct("Green onion", maxFreshDays = 4, freshness = 0.45f),
-                ),
-            ),
-        )
-    }
-
-    private fun flatmatesBaseRecipes(): List<SharedRecipe> {
-        return listOf(
-            SharedRecipe(
-                "Pasta Carbonara",
-                "Classic creamy pasta with bacon and parmesan.",
-                "Anton",
-                listOf("2 eggs"),
-                instructions = listOf(
-                    "Cook pasta in salted water.",
-                    "Fry bacon until crisp.",
-                    "Mix eggs and cheese in a bowl.",
-                    "Combine pasta with bacon and egg mix off the heat.",
-                ),
-                perishableProducts = listOf(
-                    PerishableProduct("Bacon", maxFreshDays = 3, freshness = 0.18f),
-                    PerishableProduct("Eggs", maxFreshDays = 6, freshness = 0.42f),
-                ),
-            ),
-            SharedRecipe(
-                "Veggie Stir Fry",
-                "Fast stir fry with peppers and soy sauce.",
-                "Mira",
-                listOf("1 red pepper"),
-                instructions = listOf(
-                    "Chop all vegetables evenly.",
-                    "Heat wok and add oil.",
-                    "Stir-fry vegetables for 4-5 minutes.",
-                    "Add soy sauce and serve.",
-                ),
-                perishableProducts = listOf(
-                    PerishableProduct("Bell pepper", maxFreshDays = 5, freshness = 0.06f),
-                    PerishableProduct("Mushrooms", maxFreshDays = 2, freshness = 0.0f),
-                ),
-            ),
-        )
+        return GroupsUiState(groups = groups, selectedGroupId = "personal")
     }
 }
 
