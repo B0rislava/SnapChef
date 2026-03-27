@@ -19,6 +19,10 @@ struct ScreenWrapper: View {
                 HomeView()
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .opacity(currentTab == .home ? 1 : 0)
+                
+                RecipesView()
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .opacity(currentTab == .recipes ? 1 : 0)
 
                 ProfileView(
                     onBack: { currentTab = .home },

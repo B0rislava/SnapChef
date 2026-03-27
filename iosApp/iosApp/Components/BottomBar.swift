@@ -40,7 +40,7 @@ struct SnapChefBottomBar: View {
 
     var body: some View {
         HStack(spacing: 0) {
-            ForEach([MainTab.home, .recipes, .profile], id: \.label) { tab in
+            ForEach([.recipes,MainTab.home, .profile], id: \.label) { tab in
                 BottomBarItem(
                     tab: tab,
                     isSelected: currentTab == tab,

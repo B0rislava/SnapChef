@@ -27,10 +27,10 @@ struct ProfileView: View {
     private var initials: String { userName.toInitials() }
 
     private let recipes: [SavedRecipe] = [
-        SavedRecipe(title: "Omelette with Cheese",     isQuick: true),
-        SavedRecipe(title: "Tomato Egg Fried Rice",    isQuick: true),
-        SavedRecipe(title: "Baked Veggie Pasta",       isQuick: false),
-        SavedRecipe(title: "Leftover Chicken Wraps",   isQuick: true),
+        SavedRecipe(title: "Omelette with Cheese", isQuick: true),
+        SavedRecipe(title: "Tomato Egg Fried Rice", isQuick: true),
+        SavedRecipe(title: "Baked Veggie Pasta", isQuick: false),
+        SavedRecipe(title: "Leftover Chicken Wraps", isQuick: true),
     ]
 
     var body: some View {
@@ -40,20 +40,14 @@ struct ProfileView: View {
                     userName: userName,
                     userEmail: userEmail,
                     profileImageUri: profileImageUri,
-                    onPickImage: { newImageURL in
-                        self.profileImageUri = newImageURL
-                    },
+                    onPickImage: { self.profileImageUri = $0 },
                     onSave: { updatedName, updatedEmail in
                         self.userName = updatedName
                         self.userEmail = updatedEmail
-                        withAnimation {
-                            self.isEditingProfile = false
-                        }
+                        withAnimation { self.isEditingProfile = false }
                     },
                     onCancel: {
-                        withAnimation {
-                            self.isEditingProfile = false
-                        }
+                        withAnimation { self.isEditingProfile = false }
                     }
                 )
             } else {
@@ -61,7 +55,7 @@ struct ProfileView: View {
             }
         }
     }
-    
+
     private var displayProfileContent: some View {
         ZStack(alignment: .topLeading) {
             LinearGradient(
@@ -100,12 +94,10 @@ struct ProfileView: View {
 
                     Spacer().frame(height: 32)
 
-                    // Avatar
                     AvatarView(imageUri: profileImageUri, initials: initials)
 
                     Spacer().frame(height: 32)
 
-                    // Profile fields card
                     VStack(spacing: 16) {
                         ReadOnlyProfileField(label: "Name",  value: userName,  icon: "person")
                         ReadOnlyProfileField(label: "Email", value: userEmail, icon: "envelope")
@@ -141,12 +133,7 @@ struct ProfileView: View {
                             text: "Edit",
                             container: Color.greenSecondary,
                             content: Color.greenOnBackground,
-                            action: {
-                                // Transition into Edit Mode
-                                withAnimation {
-                                    isEditingProfile = true
-                                }
-                            }
+                            action: { withAnimation { isEditingProfile = true } }
                         )
                     }
 
@@ -260,7 +247,6 @@ private struct SavedRecipesCard: View {
 
 private struct RecipeCard: View {
     let recipe: SavedRecipe
-    @State private var isPressed = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -278,13 +264,7 @@ private struct RecipeCard: View {
             RoundedRectangle(cornerRadius: 16)
                 .stroke(Color.greenSecondary, lineWidth: 1.5)
         )
-        .scaleEffect(isPressed ? 0.97 : 1.0)
-        .animation(.spring(response: 0.25, dampingFraction: 0.65), value: isPressed)
-        .onLongPressGesture(
-            minimumDuration: .infinity,
-            pressing: { pressing in isPressed = pressing },
-            perform: {}
-        )
+        .buttonStyle(BouncyButtonStyle())
     }
 }
 
@@ -308,8 +288,6 @@ private struct BouncyActionButton: View {
     let container: Color
     let content: Color
     let action: () -> Void
-
-    @State private var isPressed = false
 
     var body: some View {
         Button(action: action) {
