@@ -176,7 +176,16 @@ struct SignUpView: View {
 
                     Spacer().frame(height: 20)
 
-                    SocialButton(label: NSLocalizedString("continue_google", comment: ""),   emoji: "G")
+                    Button {
+                        Task {
+                            let token = await GoogleAuthHelper.signInWithGoogle(context: UIApplication.shared)
+                            if let token {
+                                viewModel.googleSignIn(idToken: token, onSuccess: onSignUp)
+                            }
+                        }
+                    } label: {
+                        SocialButton(label: NSLocalizedString("continue_google", comment: ""), emoji: "G")
+                    }
 
                     Spacer().frame(height: 24)
 
