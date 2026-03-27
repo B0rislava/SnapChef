@@ -23,6 +23,46 @@ data class GroupsUiState(
 )
 
 class GroupsViewModel : ViewModel() {
+    private val currentUser = GroupMember(username = "You", avatarSeed = "you")
+    private val discoverableGroups = listOf(
+        RecipeGroup(
+            id = "discover_kitchen",
+            name = "Kitchen Crew",
+            code = "K9M4Q2",
+            recipes = listOf(
+                SharedRecipe(
+                    title = "Shared Salad Bowl",
+                    description = "A quick group salad everyone can customize.",
+                    ownerName = "Niki",
+                    missingItems = listOf("Avocado"),
+                    availableItems = listOf("Lettuce", "Tomatoes", "Cucumber", "Olive oil"),
+                    instructions = listOf(
+                        "Chop all vegetables.",
+                        "Mix dressing in a separate bowl.",
+                        "Toss and serve immediately.",
+                    ),
+                )
+            ),
+            ownerUsername = "Niki",
+            members = listOf(
+                GroupMember("Niki"),
+                GroupMember("Sani"),
+                GroupMember("Viki"),
+            ),
+        ),
+        RecipeGroup(
+            id = "discover_fit",
+            name = "Fit Meals",
+            code = "F3T8L6",
+            recipes = emptyList(),
+            ownerUsername = "Alex",
+            members = listOf(
+                GroupMember("Alex"),
+                GroupMember("Mira"),
+            ),
+        ),
+    )
+
     private val _uiState = MutableStateFlow(defaultState())
     val uiState: StateFlow<GroupsUiState> = _uiState.asStateFlow()
 
@@ -64,6 +104,7 @@ class GroupsViewModel : ViewModel() {
     fun setCreateNameInput(value: String) = _uiState.update { it.copy(createNameInput = value) }
     fun openRecipe(recipe: SharedRecipe) = _uiState.update { it.copy(selectedRecipe = recipe) }
     fun closeRecipeDetails() = _uiState.update { it.copy(selectedRecipe = null) }
+    fun clearInfoMessage() = _uiState.update { it.copy(infoMessage = null) }
 
     fun joinGroup() {
         val state = _uiState.value
@@ -72,11 +113,11 @@ class GroupsViewModel : ViewModel() {
             _uiState.update { it.copy(infoMessage = "Please enter a valid group code.", dialogMode = null, joinCodeInput = "") }
             return
         }
-        val existing = state.groups.firstOrNull { it.code == code }
-        if (existing != null) {
+        val joinedAlready = state.groups.firstOrNull { it.code == code }
+        if (joinedAlready != null) {
             _uiState.update {
                 it.copy(
-                    selectedGroupId = existing.id,
+                    selectedGroupId = joinedAlready.id,
                     infoMessage = "You are already in this group.",
                     dialogMode = null,
                     joinCodeInput = "",
@@ -84,24 +125,24 @@ class GroupsViewModel : ViewModel() {
             }
             return
         }
-        val joined = RecipeGroup(
+
+        val source = discoverableGroups.firstOrNull { it.code == code }
+        if (source == null) {
+            _uiState.update {
+                it.copy(
+                    infoMessage = "Group with code $code was not found.",
+                    dialogMode = null,
+                    joinCodeInput = "",
+                )
+            }
+            return
+        }
+
+        val joined = source.copy(
             id = "joined_${Random.nextInt(1000, 9999)}",
-            name = "Group ${code.take(4)}",
-            code = code,
-            recipes = listOf(
-                SharedRecipe(
-                    title = "Shared Soup",
-                    description = "Group shared soup recipe.",
-                    ownerName = "Anton",
-                    missingItems = listOf("2 eggs"),
-                    instructions = listOf(
-                        "Boil water in a medium pot.",
-                        "Add vegetables and simmer for 10 minutes.",
-                        "Season and serve warm.",
-                    ),
-                ),
-            ),
+            members = (source.members + currentUser).distinctBy { it.username.lowercase() },
         )
+
         _uiState.update {
             it.copy(
                 groups = it.groups + joined,
@@ -126,6 +167,8 @@ class GroupsViewModel : ViewModel() {
             name = groupName,
             code = code,
             recipes = emptyList(),
+            ownerUsername = currentUser.username,
+            members = listOf(currentUser),
         )
         _uiState.update {
             it.copy(
@@ -134,6 +177,63 @@ class GroupsViewModel : ViewModel() {
                 infoMessage = "Group created. Code: $code",
                 dialogMode = null,
                 createNameInput = "",
+            )
+        }
+    }
+
+    fun renameSelectedGroup(newNameRaw: String) {
+        val state = _uiState.value
+        val selected = state.groups.firstOrNull { it.id == state.selectedGroupId } ?: return
+        val newName = newNameRaw.trim()
+
+        if (newName.isBlank()) {
+            _uiState.update { it.copy(infoMessage = "Group name cannot be empty.") }
+            return
+        }
+
+        if (!selected.ownerUsername.equals(currentUser.username, ignoreCase = true)) {
+            _uiState.update { it.copy(infoMessage = "Only the group admin can edit the group name.") }
+            return
+        }
+
+        _uiState.update { current ->
+            current.copy(
+                groups = current.groups.map { group ->
+                    if (group.id == selected.id) group.copy(name = newName) else group
+                },
+                infoMessage = "Group renamed to $newName.",
+            )
+        }
+    }
+
+    fun kickMemberFromSelectedGroup(username: String) {
+        val state = _uiState.value
+        val selected = state.groups.firstOrNull { it.id == state.selectedGroupId } ?: return
+
+        if (!selected.ownerUsername.equals(currentUser.username, ignoreCase = true)) {
+            _uiState.update { it.copy(infoMessage = "Only the group admin can remove members.") }
+            return
+        }
+
+        if (username.equals(currentUser.username, ignoreCase = true) ||
+            username.equals(selected.ownerUsername, ignoreCase = true)
+        ) {
+            _uiState.update { it.copy(infoMessage = "Admin cannot be removed from the group.") }
+            return
+        }
+
+        val updatedMembers = selected.members.filterNot { it.username.equals(username, ignoreCase = true) }
+        if (updatedMembers.size == selected.members.size) {
+            _uiState.update { it.copy(infoMessage = "Member not found in this group.") }
+            return
+        }
+
+        _uiState.update { current ->
+            current.copy(
+                groups = current.groups.map { group ->
+                    if (group.id == selected.id) group.copy(members = updatedMembers) else group
+                },
+                infoMessage = "$username was removed from ${selected.name}.",
             )
         }
     }
@@ -198,11 +298,76 @@ class GroupsViewModel : ViewModel() {
                             name = g.optString("name", "Group ${i + 1}"),
                             code = if (g.has("code") && !g.isNull("code")) g.optString("code") else null,
                             recipes = recipes,
+                            ownerUsername = g.optString("ownerUsername").takeIf { it.isNotBlank() },
+                            members = g.optJSONArray("members")?.let { membersArray ->
+                                buildList {
+                                    for (m in 0 until membersArray.length()) {
+                                        val item = membersArray.optJSONObject(m) ?: continue
+                                        val username = item.optString("username", "").trim()
+                                        if (username.isNotEmpty()) {
+                                            add(
+                                                GroupMember(
+                                                    username = username,
+                                                    avatarSeed = item.optString("avatarSeed", username),
+                                                )
+                                            )
+                                        }
+                                    }
+                                }
+                            }.orEmpty(),
                         ),
                     )
                 }
             }
             _uiState.update { it.copy(groups = mappedGroups) }
+        }
+    }
+
+    fun leaveSelectedGroup() {
+        val state = _uiState.value
+        val selected = state.groups.firstOrNull { it.id == state.selectedGroupId } ?: return
+
+        if (selected.isPersonal) {
+            _uiState.update { it.copy(infoMessage = "Personal group cannot be left.") }
+            return
+        }
+
+        if (selected.ownerUsername.equals(currentUser.username, ignoreCase = true)) {
+            _uiState.update { it.copy(infoMessage = "Admins cannot leave their own group. Delete it instead.") }
+            return
+        }
+
+        val updatedGroups = state.groups.filterNot { it.id == selected.id }
+        _uiState.update {
+            it.copy(
+                groups = updatedGroups,
+                selectedGroupId = "g1",
+                infoMessage = "You left ${selected.name}.",
+            )
+        }
+    }
+
+    fun deleteSelectedGroup() {
+        val state = _uiState.value
+        val selected = state.groups.firstOrNull { it.id == state.selectedGroupId } ?: return
+
+        if (selected.isPersonal) {
+            _uiState.update { it.copy(infoMessage = "Personal group cannot be deleted.") }
+            return
+        }
+
+        if (!selected.ownerUsername.equals(currentUser.username, ignoreCase = true)) {
+            _uiState.update { it.copy(infoMessage = "Only the group admin can delete this group.") }
+            return
+        }
+
+        val updatedGroups = state.groups.filterNot { it.id == selected.id }
+        _uiState.update {
+            it.copy(
+                groups = updatedGroups,
+                selectedGroupId = "g1",
+                infoMessage = "Group ${selected.name} deleted.",
+            )
         }
     }
 
@@ -214,6 +379,8 @@ class GroupsViewModel : ViewModel() {
                 name = "Your recipes",
                 code = null,
                 recipes = personalRecipes,
+                ownerUsername = currentUser.username,
+                members = listOf(currentUser),
                 isPersonal = true,
             ),
             RecipeGroup(
@@ -221,9 +388,53 @@ class GroupsViewModel : ViewModel() {
                 name = "Flatmates",
                 code = "A7K2P1",
                 recipes = flatmatesBaseRecipes(),
+                ownerUsername = "Anton",
+                members = listOf(
+                    GroupMember("Anton"),
+                    GroupMember("Mira"),
+                    currentUser,
+                ),
+            ),
+            RecipeGroup(
+                id = "g2",
+                name = "Meal Planners",
+                code = "M8L5R3",
+                recipes = listOf(
+                    SharedRecipe(
+                        title = "Mediterranean Wraps",
+                        description = "Fresh wraps for a quick group lunch.",
+                        ownerName = "You",
+                        missingItems = listOf("Hummus"),
+                        availableItems = listOf("Tortillas", "Cucumber", "Tomatoes", "Feta", "Olive oil"),
+                        instructions = listOf(
+                            "Slice vegetables and prepare fillings.",
+                            "Warm tortillas briefly in a pan.",
+                            "Assemble wraps and drizzle olive oil.",
+                        ),
+                    ),
+                    SharedRecipe(
+                        title = "One-Pot Lentil Curry",
+                        description = "Comforting curry that is easy to batch-cook.",
+                        ownerName = "Sani",
+                        missingItems = listOf("Coconut milk"),
+                        availableItems = listOf("Lentils", "Onion", "Garlic", "Curry powder"),
+                        instructions = listOf(
+                            "Saute onion and garlic until soft.",
+                            "Add lentils, spices, and water.",
+                            "Simmer until thick and creamy.",
+                        ),
+                    ),
+                ),
+                ownerUsername = currentUser.username,
+                members = listOf(
+                    currentUser,
+                    GroupMember("Sani"),
+                    GroupMember("Niki"),
+                    GroupMember("Viktor"),
+                ),
             ),
         )
-        return GroupsUiState(groups = groups, selectedGroupId = "personal")
+        return GroupsUiState(groups = groups, selectedGroupId = "g1")
     }
 
     private fun personalBaseRecipes(): List<SharedRecipe> {
@@ -304,4 +515,3 @@ private fun generateGroupCode(): String {
         repeat(6) { append(chars[Random.nextInt(chars.length)]) }
     }
 }
-
