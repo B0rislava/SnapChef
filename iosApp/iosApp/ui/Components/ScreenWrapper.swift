@@ -8,6 +8,8 @@
 import SwiftUI
 
 struct ScreenWrapper: View {
+    var onLogout: () -> Void = {}
+
     @State private var currentTab: MainTab = .home
 
     var body: some View {
@@ -26,7 +28,7 @@ struct ScreenWrapper: View {
 
                 ProfileView(
                     onBack: { currentTab = .home },
-                    onLogout: { print("Logging out...") },
+                    onLogout: onLogout,
                     onDeleteAccount: { print("Deleting account...") }
                 )
                 .frame(maxWidth: .infinity, maxHeight: .infinity)

@@ -7,8 +7,8 @@ import androidx.compose.runtime.getValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 
-/** Simple in-memory navigation for the auth flow. */
-enum class AuthDestination { WELCOME, SIGN_IN, SIGN_UP, VERIFY }
+/** In-memory auth navigation. Sign-up is iOS-only; Android uses welcome → sign-in → verify (if needed). */
+enum class AuthDestination { WELCOME, SIGN_IN, VERIFY }
 
 @Composable
 fun AuthNavGraph(
@@ -34,23 +34,16 @@ fun AuthNavGraph(
     ) { destination ->
         when (destination) {
             AuthDestination.WELCOME -> WelcomeScreen(
-                onGetStarted = { viewModel.goTo(AuthDestination.SIGN_UP) },
+                onGetStarted = { viewModel.goTo(AuthDestination.SIGN_IN) },
             )
             AuthDestination.SIGN_IN -> SignInScreen(
                 onBack = { viewModel.goTo(AuthDestination.WELCOME) },
                 onSignIn = onAuthSuccess,
-                onSignUp = { viewModel.goTo(AuthDestination.SIGN_UP) },
                 onVerifyRequired = { email -> viewModel.goToVerify(email) }
-            )
-            AuthDestination.SIGN_UP -> SignUpScreen(
-                onBack = { viewModel.goTo(AuthDestination.WELCOME) },
-                onSuccess = onAuthSuccess,
-                onVerifyRequired = { email -> viewModel.goToVerify(email) },
-                onSignIn = { viewModel.goTo(AuthDestination.SIGN_IN) },
             )
             AuthDestination.VERIFY -> VerificationScreen(
                 email = viewModel.emailToVerify ?: "",
-                onBack = { viewModel.goTo(AuthDestination.SIGN_UP) },
+                onBack = { viewModel.goTo(AuthDestination.SIGN_IN) },
                 onSuccess = onAuthSuccess
             )
         }

@@ -7,23 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		12C56A482F768D2A00E4EB50 /* shared.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = 12C56A0C2F768D1200E4EB50 /* shared.xcframework */; };
-		12C56A492F768D2A00E4EB50 /* shared.xcframework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 12C56A0C2F768D1200E4EB50 /* shared.xcframework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
-
-/* Begin PBXCopyFilesBuildPhase section */
-		12C56A4A2F768D2A00E4EB50 /* Embed Frameworks */ = {
-			isa = PBXCopyFilesBuildPhase;
-			buildActionMask = 2147483647;
-			dstPath = "";
-			dstSubfolderSpec = 10;
-			files = (
-				12C56A492F768D2A00E4EB50 /* shared.xcframework in Embed Frameworks */,
-			);
-			name = "Embed Frameworks";
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		12C566BA2F768D1200E4EB50 /* AndroidPlatform.dex */ = {isa = PBXFileReference; lastKnownFileType = file; path = AndroidPlatform.dex; sourceTree = "<group>"; };
@@ -419,8 +403,6 @@
 		12C56A002F768D1200E4EB50 /* shared_debug.kotlin_module */ = {isa = PBXFileReference; lastKnownFileType = file; path = shared_debug.kotlin_module; sourceTree = "<group>"; };
 		12C56A032F768D1200E4EB50 /* SharedCommonTest.class */ = {isa = PBXFileReference; lastKnownFileType = compiled.javaclass; path = SharedCommonTest.class; sourceTree = "<group>"; };
 		12C56A072F768D1200E4EB50 /* shared_debugUnitTest.kotlin_module */ = {isa = PBXFileReference; lastKnownFileType = file; path = shared_debugUnitTest.kotlin_module; sourceTree = "<group>"; };
-		12C56A0C2F768D1200E4EB50 /* shared.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; path = shared.xcframework; sourceTree = "<group>"; };
-		12C56A0E2F768D1200E4EB50 /* shared.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; path = shared.xcframework; sourceTree = "<group>"; };
 		12C56A112F768D1200E4EB50 /* project.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = project.json; sourceTree = "<group>"; };
 		12C56A132F768D1200E4EB50 /* Shared.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; path = Shared.framework; sourceTree = "<group>"; };
 		12C56A172F768D1200E4EB50 /* konan.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = konan.txt; sourceTree = "<group>"; };
@@ -471,7 +453,6 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				12C56A482F768D2A00E4EB50 /* shared.xcframework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -4526,7 +4507,6 @@
 		12C56A0D2F768D1200E4EB50 /* debug */ = {
 			isa = PBXGroup;
 			children = (
-				12C56A0C2F768D1200E4EB50 /* shared.xcframework */,
 			);
 			path = debug;
 			sourceTree = "<group>";
@@ -4534,7 +4514,6 @@
 		12C56A0F2F768D1200E4EB50 /* release */ = {
 			isa = PBXGroup;
 			children = (
-				12C56A0E2F768D1200E4EB50 /* shared.xcframework */,
 			);
 			path = release;
 			sourceTree = "<group>";
@@ -4918,7 +4897,6 @@
 				AF1C0E94E9C2CF1EB5F9D21E /* Sources */,
 				5C4805F87DD96722FDC54EC5 /* Frameworks */,
 				64EA150F1A8E2A5C51192E0B /* Resources */,
-				12C56A4A2F768D2A00E4EB50 /* Embed Frameworks */,
 			);
 			buildRules = (
 			);
@@ -5022,6 +5000,10 @@
 				DEVELOPMENT_ASSET_PATHS = "\"iosApp/Preview Content\"";
 				DEVELOPMENT_TEAM = "${TEAM_ID}";
 				ENABLE_PREVIEWS = YES;
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(SRCROOT)/../shared/build/xcode-frameworks/$(CONFIGURATION)/$(SDK_NAME)",
+				);
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = iosApp/Info.plist;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -5032,6 +5014,11 @@
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
+				);
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					"-framework",
+					"Shared",
 				);
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
@@ -5115,6 +5102,10 @@
 				DEVELOPMENT_ASSET_PATHS = "\"iosApp/Preview Content\"";
 				DEVELOPMENT_TEAM = "${TEAM_ID}";
 				ENABLE_PREVIEWS = YES;
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(SRCROOT)/../shared/build/xcode-frameworks/$(CONFIGURATION)/$(SDK_NAME)",
+				);
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = iosApp/Info.plist;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -5125,6 +5116,11 @@
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
+				);
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					"-framework",
+					"Shared",
 				);
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;

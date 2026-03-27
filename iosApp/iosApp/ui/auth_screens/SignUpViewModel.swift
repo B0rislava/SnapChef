@@ -14,6 +14,8 @@ class SignUpViewModel: ObservableObject {
     @Published var isLoading = false
     @Published var errorMessage: String? = nil
     @Published var isSuccess = false
+    /// True when the server returned tokens immediately (e.g. QwenAI testing / instant-verify path); false when email verification is required.
+    @Published var loggedInDirectly = false
     
     private let authService = SnapChefServiceLocator.shared.authApiService
 
@@ -53,7 +55,13 @@ class SignUpViewModel: ObservableObject {
         
         Task {
             do {
-                let _ = try await authService.signup(request: request)
+                let result = try await authService.signup(request: request)
+                if let auth = result.immediateAuth {
+                    AuthManager.shared.signIn(accessToken: auth.accessToken, user: auth.user)
+                    self.loggedInDirectly = true
+                } else {
+                    self.loggedInDirectly = false
+                }
                 self.isSuccess = true
                 self.isLoading = false
             } catch {
@@ -65,6 +73,18 @@ class SignUpViewModel: ObservableObject {
                             || errString.contains("already exists")
                             || errString.contains("already registered") {
                     self.errorMessage = "An account with this email already exists. Try signing in instead."
+                } else if errString.contains("-1001")
+                            || errString.contains("timed out")
+                            || errString.contains("SocketTimeout")
+                            || errString.contains("CancellationException")
+                            || errString.contains("request_timeout")
+                            || errString.contains("Timeout") {
+                    self.errorMessage = "The server took too long to respond (Railway may be waking up). Try again in a moment."
+                } else if errString.contains("-1004")
+                            || errString.contains("Could not connect")
+                            || errString.contains("Connection refused")
+                            || errString.contains(":61") {
+                    self.errorMessage = "Cannot reach the API. Check your network, or verify BASE_URL in shared BuildKonfig matches your backend."
                 } else {
                     self.errorMessage = "Something went wrong. Please try again."
                     print(error.localizedDescription)

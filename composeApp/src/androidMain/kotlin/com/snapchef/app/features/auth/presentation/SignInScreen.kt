@@ -227,25 +227,6 @@ fun SignInScreen(
             SocialButton(label = "Continue with Google",  emoji = "G")
             Spacer(Modifier.height(12.dp))
             SocialButton(label = "Continue with Facebook", emoji = "f")
-
-            Spacer(Modifier.height(24.dp))
-
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    text  = "Don't have an account? ",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = GreenOnBackground.copy(alpha = 0.6f),
-                )
-                TextButton(onClick = onSignUp, contentPadding = PaddingValues(0.dp)) {
-                    Text(
-                        text       = "Create an account",
-                        color      = GreenPrimary,
-                        fontWeight = FontWeight.Bold,
-                        style      = MaterialTheme.typography.bodyMedium,
-                    )
-                }
-            }
-
             Spacer(Modifier.height(32.dp))
         }
     }

@@ -200,9 +200,13 @@ struct SignUpView: View {
             }
         }
         .navigationBarHidden(true)
-        .onChange(of: viewModel.isSuccess) { oldValue, newValue in
+        .onChange(of: viewModel.isSuccess) { _, newValue in
             if newValue {
-                onVerifyRequired(email)
+                if viewModel.loggedInDirectly {
+                    onSignUp()
+                } else {
+                    onVerifyRequired(email)
+                }
             }
         }
     }

@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import Shared
 
 enum RootDestination {
     case auth
@@ -13,7 +14,12 @@ enum RootDestination {
 }
 
 struct RootNavigationView: View {
-    @State private var current: RootDestination = .auth
+    @State private var current: RootDestination
+
+    init() {
+        let start: RootDestination = AuthManager.shared.restoreSessionIfValid() ? .home : .auth
+        _current = State(initialValue: start)
+    }
 
     var body: some View {
         ZStack {
@@ -27,7 +33,12 @@ struct RootNavigationView: View {
                 .transition(.opacity)
 
             case .home:
-                ScreenWrapper()
+                ScreenWrapper(onLogout: {
+                    AuthManager.shared.logout()
+                    withAnimation(.easeInOut(duration: 0.4)) {
+                        current = .auth
+                    }
+                })
                     .transition(.opacity)
             }
         }

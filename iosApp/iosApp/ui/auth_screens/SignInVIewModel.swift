@@ -55,8 +55,7 @@ class SignInViewModel: ObservableObject {
                 
                 let response = try await apiService.login(request: request)
                 
-                AuthManager.shared.accessToken = response.accessToken
-                AuthManager.shared.currentUser = response.user
+                AuthManager.shared.signIn(accessToken: response.accessToken, user: response.user)
                 
                 isLoading = false
                 onSignInSuccess?()
@@ -65,6 +64,18 @@ class SignInViewModel: ObservableObject {
                 let errString = String(describing: error)
                 if errString.contains("403") || errString.contains("Forbidden") {
                     onVerifyRequired?(email)
+                } else if errString.contains("-1001")
+                            || errString.contains("timed out")
+                            || errString.contains("SocketTimeout")
+                            || errString.contains("CancellationException")
+                            || errString.contains("request_timeout")
+                            || errString.contains("Timeout") {
+                    errorMessage = "The server took too long to respond. Try again (Railway cold start can take a minute)."
+                } else if errString.contains("-1004")
+                            || errString.contains("Could not connect")
+                            || errString.contains("Connection refused")
+                            || errString.contains(":61") {
+                    errorMessage = "Cannot reach the API. Check your network, or verify BASE_URL in shared BuildKonfig."
                 } else {
                     errorMessage = "Invalid email or password"
                     print("Error: \(error)")

@@ -32,8 +32,7 @@ class VerificationViewModel: ObservableObject {
                 let request = VerifyRequest(email: email, code: code)
                 let response = try await SnapChefServiceLocator.shared.authApiService.verify(request: request)
                 
-                AuthManager.shared.accessToken = response.accessToken
-                AuthManager.shared.currentUser = response.user
+                AuthManager.shared.signIn(accessToken: response.accessToken, user: response.user)
                 
                 DispatchQueue.main.async {
                     self.isLoading = false

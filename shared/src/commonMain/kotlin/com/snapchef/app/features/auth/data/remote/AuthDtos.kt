@@ -41,3 +41,9 @@ data class AuthResponse(
     @SerialName("token_type") val tokenType: String,
     val user: UserOut
 )
+
+/** POST /auth/signup returns either pending verification or immediate tokens (see QwenAI auth_routes). */
+data class SignupEndpointResult(
+    val immediateAuth: AuthResponse? = null,
+    val pendingVerification: SignupResponse? = null,
+)

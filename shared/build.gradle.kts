@@ -54,8 +54,14 @@ buildkonfig {
     packageName = "com.snapchef.app"
     objectName = "AppConfig"
 
+    // QwenAI API (Railway production).
     defaultConfigs {
-        buildConfigField(STRING, "BASE_URL", "http://172.20.10.7:8000")
+        buildConfigField(STRING, "BASE_URL", "https://qwenai-production.up.railway.app")
+    }
+    targetConfigs {
+        create("android") {
+            buildConfigField(STRING, "BASE_URL", "https://qwenai-production.up.railway.app")
+        }
     }
 }
 

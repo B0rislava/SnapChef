@@ -44,7 +44,7 @@ fun RootNavGraph() {
                 }
             )
         }
-        
+
         composable(Routes.MAIN) {
             MainScreen(
                 onLogout = {
