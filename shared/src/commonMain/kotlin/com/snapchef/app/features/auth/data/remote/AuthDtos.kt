@@ -11,6 +11,18 @@ data class SignupRequest(
 )
 
 @Serializable
+data class SignupResponse(
+    val message: String,
+    val email: String
+)
+
+@Serializable
+data class VerifyRequest(
+    val email: String,
+    val code: String
+)
+
+@Serializable
 data class LoginRequest(
     val email: String,
     val password: String

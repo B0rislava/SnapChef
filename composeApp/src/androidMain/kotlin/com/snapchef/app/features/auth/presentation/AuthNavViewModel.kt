@@ -9,8 +9,16 @@ class AuthNavViewModel : ViewModel() {
     private val _current = MutableStateFlow(AuthDestination.WELCOME)
     val current: StateFlow<AuthDestination> = _current.asStateFlow()
 
+    var emailToVerify: String? = null
+        private set
+
     fun goTo(destination: AuthDestination) {
         _current.value = destination
+    }
+    
+    fun goToVerify(email: String) {
+        emailToVerify = email
+        _current.value = AuthDestination.VERIFY
     }
 }
 
