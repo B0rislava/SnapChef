@@ -2,6 +2,7 @@ package com.snapchef.app.features.auth.presentation
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.snapchef.app.core.auth.AuthManager
 import com.snapchef.app.core.di.SnapChefServiceLocator
 import io.ktor.client.plugins.ClientRequestException
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -95,6 +96,23 @@ class SignUpViewModel : ViewModel() {
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
                     errorMessage = "Network error. Please check your connection."
+                )
+            }
+        }
+    }
+
+    fun googleSignIn(idToken: String, onSuccess: () -> Unit) {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isLoading = true, errorMessage = null)
+            try {
+                val response = apiService.googleAuth(idToken)
+                AuthManager.accessToken = response.accessToken
+                AuthManager.currentUser = response.user
+                onSuccess()
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    errorMessage = "Google Sign-In failed on the server."
                 )
             }
         }

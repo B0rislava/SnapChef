@@ -57,6 +57,11 @@ import com.snapchef.app.core.theme.SnapChefTheme
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.launch
+import com.snapchef.app.core.auth.GoogleAuthHelper
+
 @Composable
 fun SignInScreen(
     onBack:       () -> Unit = {},
@@ -66,6 +71,8 @@ fun SignInScreen(
     viewModel: SignInViewModel = viewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
 
     Box(
         modifier = Modifier
@@ -224,9 +231,18 @@ fun SignInScreen(
 
             Spacer(Modifier.height(20.dp))
 
-            SocialButton(label = "Continue with Google",  emoji = "G")
-            Spacer(Modifier.height(12.dp))
-            SocialButton(label = "Continue with Facebook", emoji = "f")
+            SocialButton(
+                label = "Continue with Google", 
+                emoji = "G", 
+                onClick = {
+                    scope.launch {
+                        val token = GoogleAuthHelper.signInWithGoogle(context)
+                        if (token != null) {
+                            viewModel.googleSignIn(token, onSuccess = onSignIn)
+                        }
+                    }
+                }
+            )
 
             Spacer(Modifier.height(24.dp))
 

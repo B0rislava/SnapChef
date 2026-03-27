@@ -34,6 +34,13 @@ class AuthApiService(private val client: HttpClient) {
         }.body()
     }
 
+    suspend fun googleAuth(idToken: String): AuthResponse {
+        return client.post("${AppConfig.BASE_URL}/auth/google") {
+            contentType(ContentType.Application.Json)
+            setBody(GoogleAuthRequest(idToken = idToken))
+        }.body()
+    }
+
     suspend fun deleteAccount() {
         client.delete("${AppConfig.BASE_URL}/auth/me") {
             AuthManager.accessToken?.let { token ->
