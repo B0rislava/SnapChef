@@ -55,14 +55,6 @@ import com.snapchef.app.core.theme.GreenBackground
 import com.snapchef.app.core.theme.GreenSecondary
 import com.snapchef.app.features.groups.presentation.SharedRecipe
 
-private data class RecommendedRecipeItem(
-    val title: String,
-    val description: String,
-    val instructions: List<String>,
-    val ingredients: List<String>,
-    val isQuick: Boolean,
-)
-
 @Composable
 private fun Pill(
     text: String,

@@ -97,6 +97,7 @@ fun MainScreen(
                                         userName = uiState.userName,
                                         userEmail = uiState.userEmail,
                                         profileImageUri = uiState.profileImageUri,
+                                        inventoryItems = uiState.inventoryItems,
                                         onLogout = viewModel::logout,
                                         onDeleteAccount = viewModel::deleteAccount,
                                         onEditProfile = viewModel::startEditProfile
