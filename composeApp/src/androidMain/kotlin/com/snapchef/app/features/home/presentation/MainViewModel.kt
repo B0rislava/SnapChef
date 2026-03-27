@@ -62,15 +62,24 @@ class MainViewModel : ViewModel() {
             try {
                 val items = apiService.fetchPantryItems()
                 _uiState.update { state ->
-                    state.copy(
-                        inventoryItems = items.map {
+                    // Group by normalized name (lowercase) to unify "Egg" and "egg"
+                    val unifiedItems = items.groupBy { it.name.trim().lowercase() }
+                        .map { (lowerName, group) ->
+                            val firstName = group.first().name.trim().replaceFirstChar { it.uppercase() }
+                            val totalQty = group.sumOf { it.quantity }
+                            // If they have different units, we'll use the unit of the first item for simplicity, 
+                            // or just the quantity if units are missing.
+                            val firstUnit = group.firstOrNull { it.unit != null }?.unit
+                            val quantityStr = if (firstUnit != null) "$totalQty $firstUnit" else "$totalQty"
+                            
                             ProfileInventoryItem(
-                                name = it.name,
-                                category = if (it.source == "scan") "Scanned" else "Manual",
-                                quantity = if (it.unit != null) "${it.quantity} ${it.unit}" else "${it.quantity}"
+                                name = firstName,
+                                category = if (group.any { it.source == "scan" }) "Scanned" else "Manual",
+                                quantity = quantityStr
                             )
                         }
-                    )
+
+                    state.copy(inventoryItems = unifiedItems)
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
