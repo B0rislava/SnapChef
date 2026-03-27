@@ -2,65 +2,70 @@ package com.snapchef.app.features.home.presentation
 
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
-import androidx.compose.foundation.interaction.collectIsPressedAsState
-import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBarsPadding
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.foundation.BorderStroke
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
+import androidx.compose.material.icons.filled.Checklist
+import androidx.compose.material.icons.filled.MenuBook
+import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateMapOf
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.draw.clip
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.snapchef.app.core.theme.GreenBackground
 import com.snapchef.app.core.theme.GreenOnBackground
 import com.snapchef.app.core.theme.GreenPrimary
-import com.snapchef.app.core.theme.GreenBackground
 import com.snapchef.app.core.theme.GreenSecondary
 import com.snapchef.app.features.groups.presentation.SharedRecipe
+import kotlinx.coroutines.delay
 
 @Composable
 private fun Pill(
     text: String,
     isQuick: Boolean,
 ) {
-    // Matches the profile screen pill look (green primary vs secondary).
     val bg = if (isQuick) GreenPrimary else GreenSecondary
     val fg = if (isQuick) Color.White else GreenOnBackground
     Surface(
@@ -75,6 +80,36 @@ private fun Pill(
             style = MaterialTheme.typography.bodyMedium,
             fontWeight = FontWeight.SemiBold,
         )
+    }
+}
+
+@Composable
+private fun InfoChip(
+    icon: ImageVector,
+    text: String,
+) {
+    Surface(
+        shape = RoundedCornerShape(999.dp),
+        color = GreenSecondary.copy(alpha = 0.45f),
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = GreenPrimary,
+                modifier = Modifier.size(14.dp),
+            )
+            Spacer(modifier = Modifier.width(6.dp))
+            Text(
+                text = text,
+                color = GreenOnBackground,
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.SemiBold,
+            )
+        }
     }
 }
 
@@ -110,17 +145,63 @@ private fun RecipeCard(
         border = BorderStroke(1.5.dp, GreenSecondary),
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Pill(
-                text = if (recipe.isQuick) "Quick" else "Standard",
-                isQuick = recipe.isQuick,
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Pill(
+                    text = if (recipe.isQuick) "Quick pick" else "Chef choice",
+                    isQuick = recipe.isQuick,
+                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Default.Schedule,
+                        contentDescription = null,
+                        tint = GreenPrimary,
+                        modifier = Modifier.size(14.dp),
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = if (recipe.isQuick) "15-20 min" else "30-40 min",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = GreenOnBackground.copy(alpha = 0.75f),
+                    )
+                }
+            }
+
             Spacer(modifier = Modifier.height(12.dp))
             Text(
                 text = recipe.title,
-                style = MaterialTheme.typography.bodyLarge,
-                fontWeight = FontWeight.SemiBold,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
                 color = GreenOnBackground,
             )
+            Spacer(modifier = Modifier.height(6.dp))
+            Text(
+                text = recipe.description,
+                style = MaterialTheme.typography.bodyMedium,
+                color = GreenOnBackground.copy(alpha = 0.72f),
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = "${recipe.ingredients.size} ingredients",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = GreenPrimary,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowForwardIos,
+                    contentDescription = null,
+                    tint = GreenPrimary,
+                    modifier = Modifier.size(16.dp),
+                )
+            }
         }
     }
 }
@@ -165,96 +246,22 @@ private fun BouncyAction(
 @Composable
 fun RecommendedRecipesScreen(
     onSaveRecipe: (SharedRecipe, Boolean) -> Unit,
+    onDetailsVisibilityChanged: (Boolean) -> Unit = {},
     modifier: Modifier = Modifier,
+    viewModel: RecommendedRecipesViewModel = viewModel(),
 ) {
-    val recipes = remember {
-        listOf(
-            RecommendedRecipeItem(
-                "Creamy Mushroom Pasta",
-                "Quick creamy pasta for weeknights.",
-                instructions = listOf(
-                    "Boil pasta in salted water until al dente.",
-                    "Cook mushrooms and garlic in olive oil until fragrant.",
-                    "Stir in cream (or a dairy-free alternative) and season to taste.",
-                    "Toss pasta with the sauce and finish with parmesan."
-                ),
-                ingredients = listOf("Pasta", "Mushrooms", "Garlic", "Cream", "Parmesan", "Olive oil"),
-                isQuick = true,
-            ),
-            RecommendedRecipeItem(
-                "Chicken Veggie Bowl",
-                "Balanced protein bowl with fresh vegetables.",
-                instructions = listOf(
-                    "Cook rice (or use leftover rice) and keep warm.",
-                    "Sear chicken until golden and cooked through.",
-                    "Quick-sauté bell pepper and onions.",
-                    "Combine everything with soy sauce and serve."
-                ),
-                ingredients = listOf("Chicken breast", "Rice", "Bell pepper", "Soy sauce", "Green onion", "Onion"),
-                isQuick = true,
-            ),
-            RecommendedRecipeItem(
-                "Spicy Chickpea Tacos",
-                "Smoky, spicy chickpeas with crunchy toppings.",
-                instructions = listOf(
-                    "Sauté onion and garlic, then toast spices for 30 seconds.",
-                    "Simmer chickpeas until saucy and flavorful.",
-                    "Warm tortillas and assemble with toppings.",
-                    "Finish with lime and a creamy drizzle."
-                ),
-                ingredients = listOf("Chickpeas", "Tortillas", "Onion", "Garlic", "Cumin", "Chili powder", "Lime", "Yogurt"),
-                isQuick = false,
-            ),
-            RecommendedRecipeItem(
-                "Lemon Herb Salmon",
-                "Bright lemon-herb salmon with a buttery finish.",
-                instructions = listOf(
-                    "Preheat oven and season salmon with salt and pepper.",
-                    "Bake until just flaky.",
-                    "Mix butter (or olive oil) with lemon zest, juice, and herbs.",
-                    "Pour over salmon and serve with greens."
-                ),
-                ingredients = listOf("Salmon", "Lemon", "Garlic", "Butter", "Dill", "Parsley", "Olive oil"),
-                isQuick = true,
-            ),
-            RecommendedRecipeItem(
-                "Tofu Stir-Fry",
-                "Crispy tofu with colorful vegetables and a savory sauce.",
-                instructions = listOf(
-                    "Press tofu, then pan-sear until crisp.",
-                    "Stir-fry vegetables on high heat.",
-                    "Add sauce (soy + ginger + garlic) and toss until glossy.",
-                    "Serve over rice or noodles."
-                ),
-                ingredients = listOf("Tofu", "Broccoli", "Carrot", "Soy sauce", "Ginger", "Garlic", "Cornstarch", "Sesame oil"),
-                isQuick = true,
-            ),
-            RecommendedRecipeItem(
-                "Greek Quinoa Salad",
-                "Fresh quinoa salad with cucumber, feta, and herbs.",
-                instructions = listOf(
-                    "Cook quinoa and let it cool slightly.",
-                    "Chop cucumber, tomato, and herbs.",
-                    "Whisk olive oil with lemon juice and oregano.",
-                    "Toss everything and finish with feta."
-                ),
-                ingredients = listOf("Quinoa", "Cucumber", "Tomato", "Feta", "Olive oil", "Lemon", "Oregano", "Red onion"),
-                isQuick = false,
-            ),
-        )
-    }
-    var openedRecipeIdx by remember { mutableStateOf<Int?>(null) }
-    val selected = openedRecipeIdx?.let { recipes[it] }
-    val checked = remember(openedRecipeIdx) {
-        mutableStateMapOf<String, Boolean>().apply {
-            selected?.ingredients?.forEach { put(it, true) }
-        }
-    }
-    var info by remember { mutableStateOf<String?>(null) }
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val recipes = uiState.recipes
+    val selected = uiState.openedRecipeIdx?.let { recipes.getOrNull(it) }
 
-    LaunchedEffect(openedRecipeIdx) {
-        // Clear feedback when switching between list and details.
-        info = null
+    LaunchedEffect(selected) {
+        onDetailsVisibilityChanged(selected != null)
+    }
+    LaunchedEffect(uiState.infoMessage) {
+        if (uiState.infoMessage != null) {
+            delay(2500)
+            viewModel.setInfoMessage(null)
+        }
     }
 
     Box(
@@ -266,7 +273,6 @@ fun RecommendedRecipesScreen(
                 )
             )
     ) {
-        // Top circle accent (same vibe as profile).
         Box(
             modifier = Modifier
                 .size(240.dp)
@@ -279,6 +285,7 @@ fun RecommendedRecipesScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .systemBarsPadding()
+                .navigationBarsPadding()
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 24.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
@@ -286,19 +293,60 @@ fun RecommendedRecipesScreen(
             Spacer(modifier = Modifier.height(24.dp))
 
             if (selected == null) {
-                // Header
                 Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        text = "Recommended recipes",
-                        style = MaterialTheme.typography.headlineMedium,
-                        fontWeight = FontWeight.ExtraBold,
-                        color = GreenPrimary,
-                    )
+                    Column {
+                        Text(
+                            text = "Recommended recipes",
+                            style = MaterialTheme.typography.headlineMedium,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = GreenPrimary,
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "Fresh picks personalized for your kitchen.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = GreenOnBackground.copy(alpha = 0.75f),
+                        )
+                    }
                 }
 
-                Spacer(modifier = Modifier.height(32.dp))
+                Spacer(modifier = Modifier.height(16.dp))
 
-                // Recipes strip
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(20.dp),
+                    colors = CardDefaults.cardColors(containerColor = GreenPrimary),
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 14.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                    ) {
+                        Column {
+                            Text(
+                                text = "Today's picks",
+                                style = MaterialTheme.typography.labelLarge,
+                                color = Color.White.copy(alpha = 0.9f),
+                            )
+                            Text(
+                                text = "${recipes.size} curated recipes",
+                                style = MaterialTheme.typography.titleMedium,
+                                color = Color.White,
+                                fontWeight = FontWeight.Bold,
+                            )
+                        }
+                        Icon(
+                            imageVector = Icons.Default.MenuBook,
+                            contentDescription = null,
+                            tint = Color.White,
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(18.dp))
+
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(24.dp),
@@ -307,31 +355,29 @@ fun RecommendedRecipesScreen(
                 ) {
                     Column(modifier = Modifier.padding(24.dp)) {
                         Text(
-                            text = "Pick something tasty",
+                            text = "Choose your next meal",
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.Bold,
                             color = GreenPrimary,
                         )
                         Spacer(modifier = Modifier.height(16.dp))
 
-                        // Vertical list: each recipe lives in its own field (separate card).
                         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                             recipes.forEachIndexed { index, recipe ->
                                 RecipeCard(
                                     recipe = recipe,
-                                    onPress = { openedRecipeIdx = index },
+                                    onPress = { viewModel.openRecipe(index) },
                                 )
                             }
                         }
                     }
                 }
 
-                Spacer(modifier = Modifier.height(32.dp))
+                Spacer(modifier = Modifier.height(96.dp))
             } else {
-                // Details header
                 Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     IconButton(
-                        onClick = { openedRecipeIdx = null },
+                        onClick = viewModel::closeRecipe,
                         modifier = Modifier
                             .size(40.dp)
                             .clip(CircleShape)
@@ -365,6 +411,23 @@ fun RecommendedRecipesScreen(
                         modifier = Modifier.padding(24.dp),
                         verticalArrangement = Arrangement.spacedBy(14.dp),
                     ) {
+                        Text(
+                            text = selected.title,
+                            style = MaterialTheme.typography.headlineSmall,
+                            color = GreenPrimary,
+                            fontWeight = FontWeight.ExtraBold,
+                        )
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Pill(
+                                text = if (selected.isQuick) "Quick pick" else "Chef choice",
+                                isQuick = selected.isQuick,
+                            )
+                            InfoChip(
+                                icon = Icons.Default.Checklist,
+                                text = "${selected.ingredients.size} items",
+                            )
+                        }
+
                         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                             Text(
                                 text = "Description",
@@ -379,47 +442,90 @@ fun RecommendedRecipesScreen(
                             )
                         }
 
-                        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                            Text(
-                                text = "Ingredients",
-                                style = MaterialTheme.typography.titleSmall,
-                                color = GreenPrimary,
-                                fontWeight = FontWeight.SemiBold,
-                            )
+                        Surface(
+                            color = GreenBackground,
+                            shape = RoundedCornerShape(16.dp),
+                            border = BorderStroke(1.dp, GreenSecondary.copy(alpha = 0.6f)),
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(12.dp),
+                                verticalArrangement = Arrangement.spacedBy(10.dp),
+                            ) {
+                                Text(
+                                    text = "Ingredients",
+                                    style = MaterialTheme.typography.titleSmall,
+                                    color = GreenPrimary,
+                                    fontWeight = FontWeight.SemiBold,
+                                )
 
-                            selected.ingredients.forEach { ingredient ->
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    modifier = Modifier.fillMaxWidth(),
-                                ) {
-                                    Checkbox(
-                                        checked = checked[ingredient] ?: false,
-                                        onCheckedChange = { checked[ingredient] = it },
-                                    )
-                                    Text(
-                                        text = ingredient,
-                                        color = GreenOnBackground,
-                                        modifier = Modifier.padding(start = 6.dp),
-                                    )
+                                selected.ingredients.forEach { ingredient ->
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        modifier = Modifier.fillMaxWidth(),
+                                    ) {
+                                        Checkbox(
+                                            checked = uiState.checkedIngredients[ingredient] ?: false,
+                                            onCheckedChange = { viewModel.toggleIngredient(ingredient, it) },
+                                        )
+                                        Text(
+                                            text = ingredient,
+                                            color = GreenOnBackground,
+                                            modifier = Modifier.padding(start = 6.dp),
+                                        )
+                                    }
                                 }
                             }
                         }
 
-                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                            Text(
-                                text = "Instructions",
-                                style = MaterialTheme.typography.titleSmall,
-                                color = GreenPrimary,
-                                fontWeight = FontWeight.SemiBold,
-                            )
-                            selected.instructions.forEachIndexed { i, step ->
+                        Surface(
+                            color = GreenBackground,
+                            shape = RoundedCornerShape(16.dp),
+                            border = BorderStroke(1.dp, GreenSecondary.copy(alpha = 0.6f)),
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(12.dp),
+                                verticalArrangement = Arrangement.spacedBy(10.dp),
+                            ) {
                                 Text(
-                                    text = "${i + 1}. $step",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = GreenOnBackground,
+                                    text = "Instructions",
+                                    style = MaterialTheme.typography.titleSmall,
+                                    color = GreenPrimary,
+                                    fontWeight = FontWeight.SemiBold,
                                 )
+                                selected.instructions.forEachIndexed { i, step ->
+                                    Row(verticalAlignment = Alignment.Top) {
+                                        Surface(
+                                            shape = CircleShape,
+                                            color = GreenPrimary.copy(alpha = 0.14f),
+                                            modifier = Modifier.size(22.dp),
+                                        ) {
+                                            Box(contentAlignment = Alignment.Center) {
+                                                Text(
+                                                    text = "${i + 1}",
+                                                    style = MaterialTheme.typography.labelSmall,
+                                                    color = GreenPrimary,
+                                                    fontWeight = FontWeight.Bold,
+                                                )
+                                            }
+                                        }
+                                        Spacer(modifier = Modifier.width(10.dp))
+                                        Text(
+                                            text = step,
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            color = GreenOnBackground,
+                                            modifier = Modifier.weight(1f),
+                                        )
+                                    }
+                                }
                             }
                         }
+
+                        val checkedCount = selected.ingredients.count { uiState.checkedIngredients[it] == true }
+                        Text(
+                            text = "You have $checkedCount of ${selected.ingredients.size} ingredients ready.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = GreenOnBackground.copy(alpha = 0.85f),
+                        )
                     }
                 }
 
@@ -435,8 +541,8 @@ fun RecommendedRecipesScreen(
                         container = GreenPrimary,
                         content = Color.White,
                         onClick = {
-                            val has = selected.ingredients.filter { checked[it] == true }
-                            val needs = selected.ingredients.filter { checked[it] != true }
+                            val has = selected.ingredients.filter { uiState.checkedIngredients[it] == true }
+                            val needs = selected.ingredients.filter { uiState.checkedIngredients[it] != true }
                             onSaveRecipe(
                                 SharedRecipe(
                                     title = selected.title,
@@ -448,7 +554,7 @@ fun RecommendedRecipesScreen(
                                 ),
                                 false,
                             )
-                            info = "Saved."
+                            viewModel.setInfoMessage("Saved.")
                         },
                     )
                     BouncyAction(
@@ -457,8 +563,8 @@ fun RecommendedRecipesScreen(
                         container = GreenSecondary.copy(alpha = 0.5f),
                         content = GreenPrimary,
                         onClick = {
-                            val has = selected.ingredients.filter { checked[it] == true }
-                            val needs = selected.ingredients.filter { checked[it] != true }
+                            val has = selected.ingredients.filter { uiState.checkedIngredients[it] == true }
+                            val needs = selected.ingredients.filter { uiState.checkedIngredients[it] != true }
                             onSaveRecipe(
                                 SharedRecipe(
                                     title = selected.title,
@@ -470,24 +576,28 @@ fun RecommendedRecipesScreen(
                                 ),
                                 true,
                             )
-                            info = "Shared to your group."
+                            viewModel.setInfoMessage("Shared to your group.")
                         },
                     )
                 }
 
-                info?.let {
+                uiState.infoMessage?.let {
                     Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = it,
-                        color = GreenPrimary,
-                        fontWeight = FontWeight.SemiBold,
-                        modifier = Modifier.align(Alignment.CenterHorizontally),
-                    )
+                    Surface(
+                        color = GreenPrimary.copy(alpha = 0.12f),
+                        shape = RoundedCornerShape(14.dp),
+                    ) {
+                        Text(
+                            text = it,
+                            color = GreenPrimary,
+                            fontWeight = FontWeight.SemiBold,
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                        )
+                    }
                 }
 
-                Spacer(modifier = Modifier.height(32.dp))
+                Spacer(modifier = Modifier.height(96.dp))
             }
         }
     }
 }
-

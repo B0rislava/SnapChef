@@ -31,8 +31,10 @@ fun MainScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var isViewingGroupRecipeDetails by remember { mutableStateOf(false) }
+    var isViewingRecommendedRecipeDetails by remember { mutableStateOf(false) }
     LaunchedEffect(uiState.currentTab) {
         if (uiState.currentTab != MainTab.RECIPES) isViewingGroupRecipeDetails = false
+        if (uiState.currentTab != MainTab.RECOMMENDED) isViewingRecommendedRecipeDetails = false
     }
     LaunchedEffect(uiState.shouldNavigateToAuth) {
         if (uiState.shouldNavigateToAuth) {
@@ -79,6 +81,7 @@ fun MainScreen(
                         MainTab.RECOMMENDED -> {
                             RecommendedRecipesScreen(
                                 onSaveRecipe = viewModel::saveGeneratedRecipe,
+                                onDetailsVisibilityChanged = { isViewingRecommendedRecipeDetails = it },
                             )
                         }
                         MainTab.PROFILE -> {
@@ -108,7 +111,12 @@ fun MainScreen(
                     }
                 } 
 
-                if (!uiState.isEditingProfile && !uiState.isCameraActive) {
+                if (
+                    !uiState.isEditingProfile &&
+                    !uiState.isCameraActive &&
+                    !isViewingGroupRecipeDetails &&
+                    !isViewingRecommendedRecipeDetails
+                ) {
 
                     SnapChefBottomBar(
                         currentTab = uiState.currentTab,
