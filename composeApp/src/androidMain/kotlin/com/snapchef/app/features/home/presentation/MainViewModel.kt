@@ -15,6 +15,12 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
+data class ProfileInventoryItem(
+    val name: String,
+    val category: String,
+    val quantity: String,
+)
+
 data class MainUiState(
     val currentTab: MainTab = MainTab.HOME,
     val userName: String = "",
@@ -24,6 +30,7 @@ data class MainUiState(
     val activeRecipeIngredients: List<String>? = null,
     val shouldNavigateToAuth: Boolean = false,
     val isCameraActive: Boolean = false,
+    val inventoryItems: List<ProfileInventoryItem> = defaultInventoryItems(),
 )
 
 class MainViewModel : ViewModel() {
@@ -54,6 +61,33 @@ class MainViewModel : ViewModel() {
     }
 
     fun setProfileImage(uri: Uri) = _uiState.update { it.copy(profileImageUri = uri) }
+
+    fun addInventoryItem() {
+        _uiState.update {
+            it.copy(
+                inventoryItems = it.inventoryItems + ProfileInventoryItem(
+                    name = "",
+                    category = "Pantry",
+                    quantity = "",
+                )
+            )
+        }
+    }
+
+    fun updateInventoryItem(index: Int, item: ProfileInventoryItem) {
+        _uiState.update { state ->
+            if (index !in state.inventoryItems.indices) return@update state
+            val updated = state.inventoryItems.toMutableList().apply { this[index] = item }
+            state.copy(inventoryItems = updated)
+        }
+    }
+
+    fun removeInventoryItem(index: Int) {
+        _uiState.update { state ->
+            if (index !in state.inventoryItems.indices) return@update state
+            state.copy(inventoryItems = state.inventoryItems.filterIndexed { i, _ -> i != index })
+        }
+    }
 
     fun openRecipeResults(ingredients: List<String>) {
         _uiState.update { it.copy(activeRecipeIngredients = ingredients) }
@@ -114,3 +148,15 @@ class MainViewModel : ViewModel() {
 
 }
 
+private fun defaultInventoryItems(): List<ProfileInventoryItem> {
+    return listOf(
+        ProfileInventoryItem("Eggs", "Protein", "6"),
+        ProfileInventoryItem("Cheddar Cheese", "Dairy", "200 g"),
+        ProfileInventoryItem("Tomatoes", "Produce", "3"),
+        ProfileInventoryItem("Chicken Breast", "Protein", "400 g"),
+        ProfileInventoryItem("Pasta", "Pantry", "500 g"),
+        ProfileInventoryItem("Spinach", "Produce", "100 g"),
+        ProfileInventoryItem("Milk", "Dairy", "1 L"),
+        ProfileInventoryItem("Olive Oil", "Pantry", "1 bottle"),
+    )
+}

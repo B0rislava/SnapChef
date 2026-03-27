@@ -22,6 +22,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -37,7 +39,12 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Email
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material3.Icon
+import androidx.compose.material.icons.filled.Inventory2
+import androidx.compose.material.icons.filled.Eco
+import androidx.compose.material.icons.filled.Opacity
+import androidx.compose.material.icons.filled.LocalFlorist
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -49,16 +56,26 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.snapchef.app.features.home.presentation.ProfileInventoryItem
 import com.snapchef.app.features.profile.presentation.components.ProfilePhoto
 import com.snapchef.app.core.theme.GreenBackground
 import com.snapchef.app.core.theme.GreenOnBackground
 import com.snapchef.app.core.theme.GreenPrimary
 import com.snapchef.app.core.theme.GreenSecondary
 import com.snapchef.app.core.theme.SnapChefTheme
+import kotlinx.coroutines.delay
+
+private data class InventoryItem(
+    val name: String,
+    val category: String,
+    val quantity: String,
+    val icon: ImageVector,
+)
 
 
 @Composable
@@ -66,6 +83,7 @@ fun ProfileScreen(
     userName: String,
     userEmail: String,
     profileImageUri: Uri?,
+    inventoryItems: List<ProfileInventoryItem>,
     onLogout: () -> Unit,
     onDeleteAccount: () -> Unit,
     onEditProfile: () -> Unit,
@@ -74,8 +92,37 @@ fun ProfileScreen(
 ) {
     var showLogoutDialog by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }
+    var infoMessage by remember { mutableStateOf<String?>(null) }
+    var selectedInventoryCategory by remember { mutableStateOf("All") }
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val initials = remember(userName) { userName.toInitials() }
+    val inventory = remember(inventoryItems) {
+        inventoryItems.map { item ->
+            InventoryItem(
+                name = item.name,
+                category = item.category,
+                quantity = item.quantity,
+                icon = when (item.category.lowercase()) {
+                    "protein" -> Icons.Default.Eco
+                    "dairy" -> Icons.Default.Opacity
+                    "produce" -> Icons.Default.LocalFlorist
+                    else -> Icons.Default.Inventory2
+                },
+            )
+        }
+    }
+    val inventoryCategories = remember(inventory) {
+        listOf("All") + inventory.map { it.category }.distinct()
+    }
+    val filteredInventory = remember(inventory, selectedInventoryCategory) {
+        if (selectedInventoryCategory == "All") inventory else inventory.filter { it.category == selectedInventoryCategory }
+    }
+    LaunchedEffect(infoMessage) {
+        if (infoMessage != null) {
+            delay(2500)
+            infoMessage = null
+        }
+    }
 
     Box(
         modifier = modifier
@@ -168,6 +215,22 @@ fun ProfileScreen(
                 }
             }
 
+            infoMessage?.let { message ->
+                Spacer(modifier = Modifier.height(12.dp))
+                Surface(
+                    color = GreenPrimary.copy(alpha = 0.12f),
+                    shape = RoundedCornerShape(14.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text(
+                        text = message,
+                        color = GreenPrimary,
+                        fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+                    )
+                }
+            }
+
             Spacer(modifier = Modifier.height(24.dp))
 
             // Inventory strip
@@ -178,39 +241,103 @@ fun ProfileScreen(
                 elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
             ) {
                 Column(modifier = Modifier.padding(24.dp)) {
-                    Text(
-                        text = "My Inventory",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = GreenPrimary,
-                    )
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    val inventory = remember {
-                        listOf("Eggs", "Milk", "Cheese", "Tomatoes", "Chicken Breast", "Olive Oil", "Bread")
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            text = "My Ingredients",
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = GreenPrimary,
+                        )
+                        Text(
+                            text = "${inventory.size} items",
+                            style = MaterialTheme.typography.labelLarge,
+                            color = GreenOnBackground.copy(alpha = 0.65f),
+                            fontWeight = FontWeight.SemiBold,
+                        )
                     }
 
-                    @OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
-                    androidx.compose.foundation.layout.FlowRow(
+                    Spacer(modifier = Modifier.height(14.dp))
+
+                    LazyRow(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalArrangement = Arrangement.spacedBy(10.dp),
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
                     ) {
-                        inventory.forEach { item ->
-                            val isPerishable = item in listOf("Eggs", "Milk", "Cheese", "Chicken Breast")
-                            Box(
-                                modifier = Modifier
-                                    .clip(RoundedCornerShape(12.dp))
-                                    .background(if (isPerishable) GreenPrimary.copy(alpha = 0.1f) else GreenSecondary.copy(alpha = 0.3f))
-                                    .border(1.dp, if (isPerishable) GreenPrimary else GreenSecondary, RoundedCornerShape(12.dp))
-                                    .padding(horizontal = 14.dp, vertical = 8.dp)
+                        items(inventoryCategories) { category ->
+                            val selected = category == selectedInventoryCategory
+                            Surface(
+                                shape = RoundedCornerShape(14.dp),
+                                color = if (selected) GreenPrimary else GreenSecondary.copy(alpha = 0.30f),
+                                modifier = Modifier.clickable { selectedInventoryCategory = category },
                             ) {
                                 Text(
-                                    text = item,
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = if (isPerishable) GreenPrimary else GreenOnBackground,
-                                    fontWeight = FontWeight.SemiBold
+                                    text = category,
+                                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
+                                    style = MaterialTheme.typography.labelLarge,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = if (selected) Color.White else GreenOnBackground.copy(alpha = 0.75f),
                                 )
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(14.dp))
+
+                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        filteredInventory.forEach { item ->
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(16.dp))
+                                    .background(GreenSecondary.copy(alpha = 0.20f))
+                                    .border(1.dp, GreenSecondary.copy(alpha = 0.65f), RoundedCornerShape(16.dp))
+                                    .padding(horizontal = 12.dp, vertical = 10.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(40.dp)
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .background(GreenSecondary.copy(alpha = 0.35f)),
+                                    contentAlignment = Alignment.Center,
+                                ) {
+                                    Icon(
+                                        imageVector = item.icon,
+                                        contentDescription = null,
+                                        tint = GreenPrimary,
+                                        modifier = Modifier.size(20.dp),
+                                    )
+                                }
+                                Spacer(modifier = Modifier.width(12.dp))
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = item.name,
+                                        style = MaterialTheme.typography.bodyLarge,
+                                        color = GreenOnBackground,
+                                        fontWeight = FontWeight.Bold,
+                                    )
+                                    Text(
+                                        text = item.category,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = GreenOnBackground.copy(alpha = 0.65f),
+                                        fontWeight = FontWeight.SemiBold,
+                                    )
+                                }
+                                Surface(
+                                    shape = RoundedCornerShape(999.dp),
+                                    color = GreenSecondary.copy(alpha = 0.45f),
+                                ) {
+                                    Text(
+                                        text = item.quantity,
+                                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                                        style = MaterialTheme.typography.labelLarge,
+                                        color = GreenPrimary,
+                                        fontWeight = FontWeight.Bold,
+                                    )
+                                }
                             }
                         }
                     }
@@ -243,7 +370,10 @@ fun ProfileScreen(
                     text = "Edit",
                     container = GreenSecondary,
                     content = GreenOnBackground,
-                    onClick = onEditProfile,
+                    onClick = {
+                        infoMessage = "Opening profile editor..."
+                        onEditProfile()
+                    },
                 )
             }
 
@@ -392,6 +522,10 @@ private fun ProfileScreenPreview() {
             userName = "John Doe",
             userEmail = "john.doe@snapchef.app",
             profileImageUri = null,
+            inventoryItems = listOf(
+                ProfileInventoryItem("Eggs", "Protein", "6"),
+                ProfileInventoryItem("Milk", "Dairy", "1 L"),
+            ),
             onLogout = {},
             onDeleteAccount = {},
             onEditProfile = {},
