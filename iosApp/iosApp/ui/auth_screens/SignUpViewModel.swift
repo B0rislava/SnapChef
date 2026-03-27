@@ -7,6 +7,7 @@
 
 import Foundation
 import Shared
+import GoogleSignIn
 
 @MainActor
 class SignUpViewModel: ObservableObject {
@@ -14,7 +15,6 @@ class SignUpViewModel: ObservableObject {
     @Published var isLoading = false
     @Published var errorMessage: String? = nil
     @Published var isSuccess = false
-    /// True when the server returned tokens immediately (e.g. QwenAI testing / instant-verify path); false when email verification is required.
     @Published var loggedInDirectly = false
     
     private let authService = SnapChefServiceLocator.shared.authApiService
@@ -47,28 +47,27 @@ class SignUpViewModel: ObservableObject {
             self.errorMessage = "Password must be at least 8 characters"
             return
         }
-        
+
         isLoading = true
         errorMessage = nil
-        
-        let request = SignupRequest(email: trimmedEmail, name: trimmedName, password: password)
-        
+
         Task {
             do {
-                let result = try await authService.signup(request: request)
-                if let auth = result.immediateAuth {
-                    AuthManager.shared.signIn(accessToken: auth.accessToken, user: auth.user)
-                    self.loggedInDirectly = true
-                } else {
+                let request = SignupRequest(email: trimmedEmail, name: trimmedName, password: password)
+                let response = try await authService.signup(request: request)
+                
+                if response.message == "User registered successfully" || response.message.contains("Verify") {
+                    self.isSuccess = true
                     self.loggedInDirectly = false
+                } else if response.message.contains("successfully") {
+                    self.loggedInDirectly = true
+                    self.isSuccess = true
                 }
-                self.isSuccess = true
                 self.isLoading = false
+                
             } catch {
                 let errString = String(describing: error)
-                if errString.contains("403") || errString.contains("401") {
-                    self.isSuccess = true
-                } else if errString.contains("409")
+                if errString.contains("409")
                             || errString.contains("Conflict")
                             || errString.contains("already exists")
                             || errString.contains("already registered") {
@@ -90,6 +89,52 @@ class SignUpViewModel: ObservableObject {
                     print(error.localizedDescription)
                 }
                 self.isLoading = false
+            }
+        }
+    }
+    
+    func handleGoogleAuth(presenting viewController: UIViewController) {
+        isLoading = true
+        errorMessage = nil
+        
+        GIDSignIn.sharedInstance.signIn(withPresenting: viewController) { [weak self] signInResult, error in
+                guard let self = self else { return }
+            
+            if let error = error {
+                self.isLoading = false
+                self.errorMessage = "Google Sign-In canceled or failed."
+                print("Google UI Error: \(error.localizedDescription)")
+                return
+            }
+            
+            guard let idToken = signInResult?.user.idToken?.tokenString else {
+                self.isLoading = false
+                self.errorMessage = "Failed to retrieve Google token."
+                return
+            }
+            
+            self.authenticateWithBackend(idToken: idToken)
+        }
+    }
+
+    private func authenticateWithBackend(idToken: String) {
+        Task {
+            do {
+                let response = try await SnapChefServiceLocator.shared.authApiService.googleAuth(idToken: idToken)
+                
+                AuthManager.shared.signIn(accessToken: response.accessToken, user: response.user)
+                
+                DispatchQueue.main.async {
+                    self.isLoading = false
+                    self.loggedInDirectly = true
+                    self.isSuccess = true
+                }
+            } catch {
+                DispatchQueue.main.async {
+                    self.isLoading = false
+                    self.errorMessage = "Failed to authenticate with our servers."
+                    print("Backend Error: \(error)")
+                }
             }
         }
     }

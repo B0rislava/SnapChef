@@ -7,6 +7,7 @@
 
 import Foundation
 import Shared
+import GoogleSignIn
 
 @MainActor
 class SignInViewModel: ObservableObject {
@@ -51,9 +52,7 @@ class SignInViewModel: ObservableObject {
         Task {
             do {
                 let request = LoginRequest(email: email, password: password)
-                let apiService = SnapChefServiceLocator.shared.authApiService
-                
-                let response = try await apiService.login(request: request)
+                let response = try await SnapChefServiceLocator.shared.authApiService.login(request: request)
                 
                 AuthManager.shared.signIn(accessToken: response.accessToken, user: response.user)
                 
@@ -79,6 +78,51 @@ class SignInViewModel: ObservableObject {
                 } else {
                     errorMessage = "Invalid email or password"
                     print("Error: \(error)")
+                }
+            }
+        }
+    }
+    
+    func handleGoogleAuth(presenting viewController: UIViewController) {
+        isLoading = true
+        errorMessage = nil
+        
+        GIDSignIn.sharedInstance.signIn(withPresenting: viewController) { [weak self] signInResult, error in
+                guard let self = self else { return }
+            
+            if let error = error {
+                self.isLoading = false
+                self.errorMessage = "Google Sign-In canceled or failed."
+                print("Google UI Error: \(error.localizedDescription)")
+                return
+            }
+            
+            guard let idToken = signInResult?.user.idToken?.tokenString else {
+                self.isLoading = false
+                self.errorMessage = "Failed to retrieve Google token."
+                return
+            }
+            
+            self.authenticateWithBackend(idToken: idToken)
+        }
+    }
+
+    private func authenticateWithBackend(idToken: String) {
+        Task {
+            do {
+                let response = try await SnapChefServiceLocator.shared.authApiService.googleAuth(idToken: idToken)
+                
+                AuthManager.shared.signIn(accessToken: response.accessToken, user: response.user)
+                
+                DispatchQueue.main.async {
+                    self.isLoading = false
+                    self.onSignInSuccess?()
+                }
+            } catch {
+                DispatchQueue.main.async {
+                    self.isLoading = false
+                    self.errorMessage = "Failed to authenticate with our servers."
+                    print("Backend Error: \(error)")
                 }
             }
         }

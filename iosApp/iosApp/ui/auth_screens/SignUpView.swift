@@ -55,117 +55,109 @@ struct SignUpView: View {
                         Spacer()
                     }
                     .padding(.top, 16)
-
-                    Spacer().frame(height: 28)
-
-                    Text("Join SnapChef!")
-                        .font(.system(size: 26, weight: .heavy))
-                        .foregroundColor(Color.greenPrimary)
-
-                    Spacer().frame(height: 6)
-
-                    Text("Start your journey today - Snap, cook, and enjoy.")
-                        .font(.system(size: 14))
-                        .foregroundColor(Color.greenOnBackground.opacity(0.55))
-                        .multilineTextAlignment(.center)
-
+                    
                     Spacer().frame(height: 32)
+                    
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Create Account")
+                            .font(.system(size: 32, weight: .bold))
+                            .foregroundColor(Color.greenOnBackground)
+                        Text("Join us to start reducing food waste")
+                            .font(.system(size: 16))
+                            .foregroundColor(Color.greenOnBackground.opacity(0.7))
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    
+                    Spacer().frame(height: 32)
+                    
+                    VStack(spacing: 20) {
+                        // Name
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Full Name")
+                                .font(.system(size: 14, weight: .medium))
+                                .foregroundColor(Color.greenOnBackground)
+                            
+                            TextField("Enter your name", text: $name)
+                                .padding()
+                                .background(Color.white)
+                                .cornerRadius(12)
+                                .shadow(color: .black.opacity(0.05), radius: 4, y: 2)
+                        }
 
-                    VStack(spacing: 16) {
-
-                        // name
-                        AuthTextField(
-                            value: $name,
-                            placeholder: "Enter name",
-                            leadingIcon: AnyView(
-                                Image(systemName: "person")
-                                    .foregroundColor(Color.greenPrimary)
-                            )
-                        )
-
-                        // email
-                        AuthTextField(
-                            value: $email,
-                            placeholder: "Enter your email",
-                            leadingIcon: AnyView(
-                                Image(systemName: "envelope")
-                                    .foregroundColor(Color.greenPrimary)
-                            ),
-                            keyboardType: .emailAddress
-                        )
-                        .autocapitalization(.none)
-                        .disableAutocorrection(true)
-
-                        // password
-                        AuthTextField(
-                            value: $password,
-                            placeholder: "Create password",
-                            leadingIcon: AnyView(
-                                Image(systemName: "lock")
-                                    .foregroundColor(Color.greenPrimary)
-                            ),
-                            trailingIcon: AnyView(
-                                Button(action: { showPass.toggle() }) {
-                                    Image(systemName: showPass ? "eye.slash" : "eye")
-                                        .foregroundColor(Color.greenSecondary)
+                        // Email
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Email")
+                                .font(.system(size: 14, weight: .medium))
+                                .foregroundColor(Color.greenOnBackground)
+                            
+                            TextField("Enter your email", text: $email)
+                                .keyboardType(.emailAddress)
+                                .autocapitalization(.none)
+                                .padding()
+                                .background(Color.white)
+                                .cornerRadius(12)
+                                .shadow(color: .black.opacity(0.05), radius: 4, y: 2)
+                        }
+                        
+                        // Password
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Password")
+                                .font(.system(size: 14, weight: .medium))
+                                .foregroundColor(Color.greenOnBackground)
+                            
+                            HStack {
+                                if showPass {
+                                    TextField("Create a password", text: $password)
+                                } else {
+                                    SecureField("Create a password", text: $password)
                                 }
-                            ),
-                            isSecure: !showPass
-                        )
-
-                        // terms
-                        HStack(spacing: 4) {
-                            Toggle("", isOn: $agreeTerms)
-                                .toggleStyle(CheckboxToggleStyle())
-
-                            Text("By creating an account you agree to our Terms & Conditions and our Privacy Policy.")
-                                .font(.system(size: 12))
-                                .foregroundColor(Color.greenOnBackground.opacity(0.65))
-                                .padding(.top, 10)
-
-
-
-                            Spacer()
+                                
+                                Button(action: { showPass.toggle() }) {
+                                    Image(systemName: showPass ? "eye.slash.fill" : "eye.fill")
+                                        .foregroundColor(.gray)
+                                }
+                            }
+                            .padding()
+                            .background(Color.white)
+                            .cornerRadius(12)
+                            .shadow(color: .black.opacity(0.05), radius: 4, y: 2)
                         }
                     }
-                    .padding(24)
-                    .background(Color.white)
-                    .clipShape(RoundedRectangle(cornerRadius: 24))
-                    .shadow(color: .black.opacity(0.08), radius: 12, x: 0, y: 4)
-
-                    Spacer().frame(height: 24)
-
-                    if let errorMessage = viewModel.errorMessage {
-                        Text(errorMessage)
+                    
+                    Toggle(isOn: $agreeTerms) {
+                        Text("I agree to the Terms of Service and Privacy Policy")
+                            .font(.system(size: 12))
+                            .foregroundColor(Color.greenOnBackground.opacity(0.7))
+                    }
+                    .toggleStyle(CheckboxToggleStyle())
+                    .padding(.top, 16)
+                    
+                    if let error = viewModel.errorMessage {
+                        Text(error)
                             .foregroundColor(.red)
                             .font(.system(size: 14))
-                            .multilineTextAlignment(.center)
-                            .padding(.horizontal)
-                        
-                        Spacer().frame(height: 12)
+                            .padding(.top, 8)
                     }
+
+                    Spacer().frame(height: 32)
 
                     Button(action: {
                         viewModel.signUp(name: name, email: email, password: password)
                     }) {
-                        ZStack {
+                        HStack {
                             if viewModel.isLoading {
-                                ProgressView()
-                                    .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                                ProgressView().progressViewStyle(CircularProgressViewStyle(tint: .white))
                             } else {
                                 Text("Sign Up")
-                                    .font(.system(size: 15, weight: .semibold))
+                                    .font(.system(size: 16, weight: .bold))
                             }
                         }
                         .foregroundColor(.white)
                         .frame(maxWidth: .infinity)
                         .frame(height: 56)
-                        .background(agreeTerms ? Color.greenPrimary : Color.greenPrimary.opacity(0.4))
+                        .background(Color.greenPrimary)
                         .clipShape(Capsule())
-                        .shadow(
-                            color: agreeTerms ? Color.greenPrimary.opacity(0.4) : .clear,
-                            radius: 8, x: 0, y: 4
-                        )
+                        .shadow(color: Color.greenPrimary.opacity(0.3), radius: 8, x: 0, y: 4)
                     }
                     .disabled(!agreeTerms || viewModel.isLoading)
                     .animation(.easeInOut(duration: 0.2), value: agreeTerms)
@@ -173,17 +165,19 @@ struct SignUpView: View {
 
                     Spacer().frame(height: 24)
 
-                    OrDivider()
-
-                    Spacer().frame(height: 20)
-
                     SocialButton(label: "Sign up with Google", emoji: "G")
+                        .onTapGesture {
+                            let rootVC = getRootViewController()
+                            viewModel.handleGoogleAuth(presenting: rootVC)
+                        }
+                        .disabled(viewModel.isLoading)
+                        .opacity(viewModel.isLoading ? 0.6 : 1.0)
 
                     Spacer().frame(height: 24)
 
                     // sign-in link
                     HStack(spacing: 0) {
-                        Text("Already have an account")
+                        Text("Already have an account? ")
                             .font(.system(size: 14))
                             .foregroundColor(Color.greenOnBackground.opacity(0.6))
 

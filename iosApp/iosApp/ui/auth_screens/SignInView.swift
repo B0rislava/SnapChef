@@ -14,12 +14,10 @@ struct SignInView: View {
     var onVerifyRequired: (String) -> Void = { _ in }
 
     @StateObject private var viewModel = SignInViewModel()
-
     @State private var showPass = false
 
     var body: some View {
         ZStack(alignment: .topTrailing) {
-
             LinearGradient(
                 colors: [Color.greenSecondary.opacity(0.55), Color.greenBackground],
                 startPoint: .top,
@@ -34,7 +32,6 @@ struct SignInView: View {
 
             ScrollView(showsIndicators: false) {
                 VStack(alignment: .center, spacing: 0) {
-
                     HStack {
                         Button(action: {
                             viewModel.navigateBack()
@@ -51,91 +48,76 @@ struct SignInView: View {
 
                     Spacer().frame(height: 32)
 
-                    Text("Welcome back!")
-                        .font(.system(size: 28, weight: .heavy))
-                        .foregroundColor(Color.greenPrimary)
-
-                    Spacer().frame(height: 8)
-
-                    Text("Sign in to continue your culinary journey.")
-                        .font(.system(size: 15))
-                        .foregroundColor(Color.greenOnBackground.opacity(0.6))
-                        .multilineTextAlignment(.center)
-
-                    Spacer().frame(height: 36)
-
-                    VStack(spacing: 16) {
-                        AuthTextField(
-                            value: $viewModel.email,
-                            placeholder: "Enter your email",
-                            leadingIcon: AnyView(
-                                Image(systemName: "envelope")
-                                    .foregroundColor(Color.greenPrimary)
-                            ),
-                            keyboardType: .emailAddress
-                        )
-                        .autocapitalization(.none)
-                        .disableAutocorrection(true)
-                        AuthTextField(
-                            value: $viewModel.password,
-                            placeholder: "Enter password",
-                            leadingIcon: AnyView(
-                                Image(systemName: "lock")
-                                    .foregroundColor(Color.greenPrimary)
-                            ),
-                            trailingIcon: AnyView(
-                                Button(action: { showPass.toggle() }) {
-                                    Image(systemName: showPass ? "eye.slash" : "eye")
-                                        .foregroundColor(Color.greenSecondary)
-                                }
-                            ),
-                            isSecure: !showPass
-                        )
-
-                        HStack {
-                            Toggle("", isOn: $viewModel.rememberMe)
-                                .toggleStyle(CheckboxToggleStyle())
-
-                            Text("Remember me")
-                                .font(.system(size: 14))
-                                .foregroundColor(Color.greenOnBackground.opacity(0.7))
-
-                            Spacer()
-
-                            Button(action: { /* todo */ }) {
-                                Text("Forgot Password?")
-                                    .font(.system(size: 14, weight: .semibold))
-                                    .foregroundColor(Color.greenPrimary)
-                            }
-                        }
-                        .padding(.top, 4)
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Welcome Back")
+                            .font(.system(size: 32, weight: .bold))
+                            .foregroundColor(Color.greenOnBackground)
+                        Text("Sign in to continue your zero-waste journey")
+                            .font(.system(size: 16))
+                            .foregroundColor(Color.greenOnBackground.opacity(0.7))
                     }
-                    .padding(24)
-                    .background(Color.white)
-                    .clipShape(RoundedRectangle(cornerRadius: 24))
-                    .shadow(color: .black.opacity(0.08), radius: 12, x: 0, y: 4)
-
-                    Spacer().frame(height: 24)
-
-                    if let errorMessage = viewModel.errorMessage {
-                        Text(errorMessage)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    
+                    Spacer().frame(height: 32)
+                    
+                    VStack(spacing: 20) {
+                        // Email
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Email")
+                                .font(.system(size: 14, weight: .medium))
+                                .foregroundColor(Color.greenOnBackground)
+                            
+                            TextField("Enter your email", text: $viewModel.email)
+                                .keyboardType(.emailAddress)
+                                .autocapitalization(.none)
+                                .padding()
+                                .background(Color.white)
+                                .cornerRadius(12)
+                                .shadow(color: .black.opacity(0.05), radius: 4, y: 2)
+                        }
+                        
+                        // Password
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Password")
+                                .font(.system(size: 14, weight: .medium))
+                                .foregroundColor(Color.greenOnBackground)
+                            
+                            HStack {
+                                if showPass {
+                                    TextField("Enter your password", text: $viewModel.password)
+                                } else {
+                                    SecureField("Enter your password", text: $viewModel.password)
+                                }
+                                
+                                Button(action: { showPass.toggle() }) {
+                                    Image(systemName: showPass ? "eye.slash.fill" : "eye.fill")
+                                        .foregroundColor(.gray)
+                                }
+                            }
+                            .padding()
+                            .background(Color.white)
+                            .cornerRadius(12)
+                            .shadow(color: .black.opacity(0.05), radius: 4, y: 2)
+                        }
+                    }
+                    
+                    if let error = viewModel.errorMessage {
+                        Text(error)
                             .foregroundColor(.red)
                             .font(.system(size: 14))
-                            .multilineTextAlignment(.center)
-                            .padding(.horizontal)
-                        
-                        Spacer().frame(height: 12)
+                            .padding(.top, 8)
                     }
+
+                    Spacer().frame(height: 32)
 
                     Button(action: {
                         viewModel.signIn()
                     }) {
-                        ZStack {
+                        HStack {
                             if viewModel.isLoading {
-                                ProgressView()
-                                    .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                                ProgressView().progressViewStyle(CircularProgressViewStyle(tint: .white))
                             } else {
-                                Text(NSLocalizedString("login", comment: ""))
+                                Text("Sign In")
                                     .font(.system(size: 16, weight: .bold))
                             }
                         }
@@ -147,15 +129,16 @@ struct SignInView: View {
                         .shadow(color: Color.greenPrimary.opacity(0.3), radius: 8, x: 0, y: 4)
                     }
                     .disabled(viewModel.isLoading)
-                    .animation(.easeInOut, value: viewModel.isLoading)
-
+                    
                     Spacer().frame(height: 24)
 
-                    OrDivider()
-
-                    Spacer().frame(height: 20)
-
-                    SocialButton(label: "Continue with Google",   emoji: "G")
+                    SocialButton(label: "Continue with Google", emoji: "G")
+                        .onTapGesture {
+                            let rootVC = getRootViewController()
+                            viewModel.handleGoogleAuth(presenting: rootVC)
+                        }
+                        .disabled(viewModel.isLoading)
+                        .opacity(viewModel.isLoading ? 0.6 : 1.0)
 
                     Spacer().frame(height: 24)
 

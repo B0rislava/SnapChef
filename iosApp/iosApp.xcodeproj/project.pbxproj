@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		1238770A2F76F671003FF56D /* GoogleSignIn in Frameworks */ = {isa = PBXBuildFile; productRef = 123877092F76F671003FF56D /* GoogleSignIn */; };
+		1238770C2F76F671003FF56D /* GoogleSignInSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 1238770B2F76F671003FF56D /* GoogleSignInSwift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -453,6 +455,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				1238770A2F76F671003FF56D /* GoogleSignIn in Frameworks */,
+				1238770C2F76F671003FF56D /* GoogleSignInSwift in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -4907,6 +4911,8 @@
 			);
 			name = iosApp;
 			packageProductDependencies = (
+				123877092F76F671003FF56D /* GoogleSignIn */,
+				1238770B2F76F671003FF56D /* GoogleSignInSwift */,
 			);
 			productName = iosApp;
 			productReference = 630CCF6830EB3B5CB1D4E536 /* SnapChef.app */;
@@ -4936,6 +4942,9 @@
 			);
 			mainGroup = 9AECF4E82B78E9259B99D6EF;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				123877082F76F671003FF56D /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = D40A9EA3E54A7DE9508CD802 /* Products */;
 			projectDirPath = "";
@@ -5018,7 +5027,7 @@
 				OTHER_LDFLAGS = (
 					"$(inherited)",
 					"-framework",
-					"Shared",
+					Shared,
 				);
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
@@ -5120,7 +5129,7 @@
 				OTHER_LDFLAGS = (
 					"$(inherited)",
 					"-framework",
-					"Shared",
+					Shared,
 				);
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
@@ -5208,6 +5217,30 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		123877082F76F671003FF56D /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/google/GoogleSignIn-iOS";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 9.1.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		123877092F76F671003FF56D /* GoogleSignIn */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 123877082F76F671003FF56D /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */;
+			productName = GoogleSignIn;
+		};
+		1238770B2F76F671003FF56D /* GoogleSignInSwift */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 123877082F76F671003FF56D /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */;
+			productName = GoogleSignInSwift;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = DE08EFED3876B9ED24FD6FF5 /* Project object */;
 }
