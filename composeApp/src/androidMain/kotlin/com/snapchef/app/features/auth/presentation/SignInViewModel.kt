@@ -81,7 +81,12 @@ class SignInViewModel : ViewModel() {
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
-                    errorMessage = "Google Sign-In failed on the server."
+                    errorMessage = when (e) {
+                        is io.ktor.client.plugins.ResponseException -> {
+                            "Google Sign-In Error: ${e.response.status.value}"
+                        }
+                        else -> "Google Sign-In failed on the server."
+                    }
                 )
             }
         }

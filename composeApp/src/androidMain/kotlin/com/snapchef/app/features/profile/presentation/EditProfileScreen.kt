@@ -26,6 +26,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.outlined.Email
 import androidx.compose.material.icons.outlined.Person
+import androidx.compose.material.icons.outlined.Lock
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -34,6 +36,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -64,7 +67,7 @@ fun EditProfileScreen(
     userEmail: String,
     profileImageUri: Uri?,
     onPickImage: (Uri) -> Unit,
-    onSave: (String, String) -> Unit,
+    onSave: (String, String, String, String) -> Unit,
     onCancel: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: EditProfileViewModel = viewModel(),
@@ -226,10 +229,48 @@ fun EditProfileScreen(
                         },
                         keyboardType = KeyboardType.Email,
                     )
+
+                    AuthTextField(
+                        value = uiState.editedPassword,
+                        onValueChange = viewModel::updatePassword,
+                        placeholder = "New Password (Optional)",
+                        leadingIcon = { 
+                            Icon(Icons.Outlined.Lock, null, tint = GreenPrimary)
+                        },
+                        keyboardType = KeyboardType.Password,
+                        visualTransformation = PasswordVisualTransformation(),
+                    )
+
+                    AuthTextField(
+                        value = uiState.editedConfirmPassword,
+                        onValueChange = viewModel::updateConfirmPassword,
+                        placeholder = "Confirm Password",
+                        leadingIcon = { 
+                            Icon(Icons.Outlined.Lock, null, tint = GreenPrimary)
+                        },
+                        keyboardType = KeyboardType.Password,
+                        visualTransformation = PasswordVisualTransformation(),
+                    )
                 }
             }
 
-            Spacer(modifier = Modifier.height(32.dp))
+            uiState.errorMessage?.let { message ->
+                Spacer(modifier = Modifier.height(8.dp))
+                Surface(
+                    color = MaterialTheme.colorScheme.errorContainer,
+                    shape = RoundedCornerShape(14.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        text = message,
+                        color = MaterialTheme.colorScheme.onErrorContainer,
+                        fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -248,7 +289,7 @@ fun EditProfileScreen(
                 }
 
                 Button(
-                    onClick = { onSave(uiState.editedName, uiState.editedEmail) },
+                    onClick = { viewModel.validateAndSave(onSave) },
                     modifier = Modifier
                         .weight(1f)
                         .height(56.dp),
@@ -277,7 +318,7 @@ private fun EditProfileScreenPreview() {
             userEmail = "john.doe@snapchef.app",
             profileImageUri = null,
             onPickImage = {},
-            onSave = { _, _ -> },
+            onSave = { _, _, _, _ -> },
             onCancel = {},
         )
     }

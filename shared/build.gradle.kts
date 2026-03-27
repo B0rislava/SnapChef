@@ -61,8 +61,8 @@ if (localPropertiesFile.exists()) {
     }
 }
 
-val googleWebClientId = localProperties.getProperty("GOOGLE_WEB_CLIENT_ID") ?: System.getenv("GOOGLE_WEB_CLIENT_ID") ?: ""
-val baseUrl = localProperties.getProperty("BASE_URL") ?: "http://10.0.2.2:8000"
+val googleWebClientId = (localProperties.getProperty("GOOGLE_WEB_CLIENT_ID") ?: System.getenv("GOOGLE_WEB_CLIENT_ID") ?: "").trim()
+val baseUrl = (localProperties.getProperty("BASE_URL") ?: "https://qwenai-production.up.railway.app").trim()
 
 buildkonfig {
     packageName = "com.snapchef.app"

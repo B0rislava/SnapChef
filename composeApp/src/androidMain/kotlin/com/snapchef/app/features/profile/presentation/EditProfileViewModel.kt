@@ -10,6 +10,9 @@ import org.json.JSONObject
 data class EditProfileUiState(
     val editedName: String = "",
     val editedEmail: String = "",
+    val editedPassword: String = "",
+    val editedConfirmPassword: String = "",
+    val errorMessage: String? = null,
 ) {
     val initials: String
         get() {
@@ -31,8 +34,47 @@ class EditProfileViewModel : ViewModel() {
         }
     }
 
-    fun updateName(value: String) = _uiState.update { it.copy(editedName = value) }
-    fun updateEmail(value: String) = _uiState.update { it.copy(editedEmail = value) }
+    fun updateName(value: String) = _uiState.update { it.copy(editedName = value, errorMessage = null) }
+    fun updateEmail(value: String) = _uiState.update { it.copy(editedEmail = value, errorMessage = null) }
+    fun updatePassword(value: String) = _uiState.update { it.copy(editedPassword = value, errorMessage = null) }
+    fun updateConfirmPassword(value: String) = _uiState.update { it.copy(editedConfirmPassword = value, errorMessage = null) }
+
+    fun validateAndSave(onValidSave: (String, String, String, String) -> Unit) {
+        val name = _uiState.value.editedName.trim()
+        val email = _uiState.value.editedEmail.trim()
+        val password = _uiState.value.editedPassword
+        val confirmPassword = _uiState.value.editedConfirmPassword
+
+        if (name.isBlank() || email.isBlank()) {
+            _uiState.update { it.copy(errorMessage = "Name and email cannot be empty.") }
+            return
+        }
+
+        if (name.length < 2) {
+            _uiState.update { it.copy(errorMessage = "Name must be at least 2 characters long.") }
+            return
+        }
+
+        val emailRegex = "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$".toRegex()
+        if (!email.matches(emailRegex)) {
+            _uiState.update { it.copy(errorMessage = "Please enter a valid email address.") }
+            return
+        }
+
+        if (password.isNotEmpty()) {
+            if (password.length < 8) {
+                _uiState.update { it.copy(errorMessage = "Password must be at least 8 characters long.") }
+                return
+            }
+            if (password != confirmPassword) {
+                _uiState.update { it.copy(errorMessage = "Passwords do not match.") }
+                return
+            }
+        }
+
+        _uiState.update { it.copy(errorMessage = null) }
+        onValidSave(name, email, password, confirmPassword)
+    }
 
     fun applyBackendJson(json: String) {
         runCatching {
