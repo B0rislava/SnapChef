@@ -20,6 +20,7 @@ class HomeApiService(private val client: HttpClient) {
      * Uploads images to the backend's /ai/sessions endpoint using Multipart Form Data.
      * The backend returns NDJSON. We read the full string, split by newline, and parse the final JSON.
      */
+    @Throws(Exception::class)
     suspend fun scanFridgeImages(imagesBytes: List<ByteArray>): ScanSessionResponse {
         val responseText: String = try {
             client.post("${AppConfig.BASE_URL}/ai/sessions") {
@@ -82,6 +83,7 @@ class HomeApiService(private val client: HttpClient) {
     /**
      * Confirms the session before recipes can be generated.
      */
+    @Throws(Exception::class)
     suspend fun confirmSession(sessionId: Int): ScanSessionResponse {
         return client.post("${AppConfig.BASE_URL}/ai/sessions/$sessionId/confirm") {
             AuthManager.accessToken?.let { token -> 
@@ -93,6 +95,7 @@ class HomeApiService(private val client: HttpClient) {
     /**
      * Hits the /ai/sessions/{id}/groq-recipes endpoint.
      */
+    @Throws(Exception::class)
     suspend fun suggestRecipes(sessionId: Int): GroqRecipeSuggestResponse {
         return client.post("${AppConfig.BASE_URL}/ai/sessions/$sessionId/groq-recipes") {
             AuthManager.accessToken?.let { token -> 
