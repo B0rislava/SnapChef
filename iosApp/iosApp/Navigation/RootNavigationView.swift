@@ -7,30 +7,22 @@
 
 import SwiftUI
 
-enum RootDestination {
-    case auth
-    case home
-}
-
 struct RootNavigationView: View {
-    @State private var current: RootDestination = .auth
+    @StateObject private var session = SessionManager.shared
 
     var body: some View {
         ZStack {
-            switch current {
-            case .auth:
-                AuthView(onAuthSuccess: {
-                    withAnimation(.easeInOut(duration: 0.4)) {
-                        current = .home
-                    }
-                })
-                .transition(.opacity)
-
-            case .home:
+            if session.isLoggedIn {
                 ScreenWrapper()
                     .transition(.opacity)
+            } else {
+                AuthView(onAuthSuccess: {
+                    session.onAuthSuccess()
+                })
+                .transition(.opacity)
             }
         }
-        .animation(.easeInOut(duration: 0.4), value: current)
+        .animation(.easeInOut(duration: 0.4), value: session.isLoggedIn)
+        .environmentObject(session)
     }
 }

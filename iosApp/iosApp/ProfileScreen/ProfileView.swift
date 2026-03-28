@@ -7,77 +7,87 @@
 
 import SwiftUI
 
-private struct IngredientItem: Identifiable {
-    let id = UUID()
-    let name: String
-    let quantity: String
-    let category: IngredientCategory
-}
-
 private enum IngredientCategory: String, CaseIterable {
     case produce = "Produce"
-    case dairy = "Dairy"
+    case dairy   = "Dairy"
     case protein = "Protein"
-    case pantry = "Pantry"
+    case pantry  = "Pantry"
 
-    var icon: String {
+    var systemIcon: String {
         switch self {
-        case .produce:  return "leaf"
-        case .dairy:    return "drop"
-        case .protein:  return "flame"
-        case .pantry:   return "archivebox"
+        case .produce: return "leaf"
+        case .dairy:   return "drop"
+        case .protein: return "flame"
+        case .pantry:  return "archivebox"
         }
     }
 }
 
+
 struct ProfileView: View {
-    @State private var userName: String = "John Doe"
-    @State private var userEmail: String = "john.doe@example.com"
-    @State private var profileImageUri: URL? = nil
 
-    @State private var isEditingProfile: Bool = false
+    @StateObject private var viewModel = ProfileViewModel()
 
-    var onBack: () -> Void = {}
-    var onLogout: () -> Void = {}
+    @State private var isEditingProfile  = false
+    @State private var showLogoutDialog  = false
+    @State private var showDeleteDialog  = false
+    @State private var infoMessage: String? = nil
+
+    var onBack:          () -> Void = {}
+    var onLogout:        () -> Void = {}
     var onDeleteAccount: () -> Void = {}
 
-    private var initials: String { userName.toInitials() }
 
-    private let ingredients: [IngredientItem] = [
-        IngredientItem(name: "Eggs",          quantity: "6",       category: .protein),
-        IngredientItem(name: "Cheddar Cheese", quantity: "200 g",  category: .dairy),
-        IngredientItem(name: "Tomatoes",       quantity: "3",       category: .produce),
-        IngredientItem(name: "Chicken Breast", quantity: "400 g",  category: .protein),
-        IngredientItem(name: "Pasta",          quantity: "500 g",  category: .pantry),
-        IngredientItem(name: "Spinach",        quantity: "100 g",  category: .produce),
-        IngredientItem(name: "Milk",           quantity: "1 L",    category: .dairy),
-        IngredientItem(name: "Olive Oil",      quantity: "1 bottle", category: .pantry),
-    ]
+    private var initials: String { viewModel.userName.toInitials() }
 
     var body: some View {
         Group {
             if isEditingProfile {
                 EditProfileView(
-                    userName: userName,
-                    userEmail: userEmail,
-                    profileImageUri: profileImageUri,
-                    onPickImage: { self.profileImageUri = $0 },
-                    onSave: { updatedName, updatedEmail in
-                        self.userName = updatedName
-                        self.userEmail = updatedEmail
-                        withAnimation { self.isEditingProfile = false }
+                    userName:        viewModel.userName,
+                    userEmail:       viewModel.userEmail,
+                    profileImageUri: viewModel.profileImageUri,
+                    onPickImage: { viewModel.profileImageUri = $0 },
+                    onSave: { name, email, _, _ in
+                        viewModel.updateUser(name: name, email: email)
+                        withAnimation { isEditingProfile = false }
                     },
                     onCancel: {
-                        withAnimation { self.isEditingProfile = false }
+                        withAnimation { isEditingProfile = false }
                     }
                 )
             } else {
-                displayProfileContent
+                profileContent
             }
+        }
+        .onChange(of: infoMessage) { _, msg in
+            guard msg != nil else { return }
+            Task {
+                try? await Task.sleep(nanoseconds: 2_500_000_000)
+                infoMessage = nil
+            }
+        }
+        .alert("Log out", isPresented: $showLogoutDialog) {
+            Button("Yes", role: .destructive) {
+                viewModel.logout()
+                onLogout()
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Are you sure you want to log out?")
+        }
+        .alert("Delete account", isPresented: $showDeleteDialog) {
+            Button("Delete", role: .destructive) {
+                viewModel.deleteAccount()
+                onDeleteAccount()
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Are you sure you want to delete your account? This action cannot be undone.")
         }
     }
 
-    private var displayProfileContent: some View {
+    private var profileContent: some View {
         ZStack(alignment: .topLeading) {
             LinearGradient(
                 colors: [Color.greenSecondary.opacity(0.55), Color.greenBackground],
@@ -95,23 +105,39 @@ struct ProfileView: View {
                 VStack(alignment: .center, spacing: 0) {
                     Spacer().frame(height: 24)
 
-                    HStack(spacing: 10) {
+                    HStack {
                         Text("Your Profile")
                             .font(.system(size: 28, weight: .heavy))
                             .foregroundColor(Color.greenPrimary)
-
                         Spacer()
                     }
 
                     Spacer().frame(height: 32)
 
-                    AvatarView(imageUri: profileImageUri, initials: initials)
+                    Circle()
+                        .fill(Color.white)
+                        .frame(width: 140, height: 140)
+                        .overlay(
+                            ProfilePhoto(
+                                imageUri: viewModel.profileImageUri,
+                                initials: initials
+                            )
+                            .frame(width: 128, height: 128)
+                        )
 
                     Spacer().frame(height: 32)
-
+                    
                     VStack(spacing: 16) {
-                        ReadOnlyProfileField(label: "Name",  value: userName,  icon: "person")
-                        ReadOnlyProfileField(label: "Email", value: userEmail, icon: "envelope")
+                        ReadOnlyProfileField(
+                            label: "Name",
+                            value: viewModel.userName,
+                            icon:  "person"
+                        )
+                        ReadOnlyProfileField(
+                            label: "Email",
+                            value: viewModel.userEmail,
+                            icon:  "envelope"
+                        )
                     }
                     .padding(24)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -119,66 +145,63 @@ struct ProfileView: View {
                     .clipShape(RoundedRectangle(cornerRadius: 24))
                     .shadow(color: .black.opacity(0.08), radius: 8, x: 0, y: 4)
 
+                    if let msg = infoMessage {
+                        Spacer().frame(height: 12)
+                        Text(msg)
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundColor(Color.greenPrimary)
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 10)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .background(Color.greenPrimary.opacity(0.12))
+                            .clipShape(RoundedRectangle(cornerRadius: 14))
+                            .transition(.opacity)
+                    }
+
                     Spacer().frame(height: 24)
 
-                    // Ingredient inventory card
-                    IngredientInventoryCard(ingredients: ingredients)
+                    IngredientInventoryCard(items: viewModel.inventoryItems)
 
                     Spacer().frame(height: 32)
-
-                    // Bottom action buttons
                     HStack(spacing: 16) {
                         BouncyActionButton(
-                            text: "Logout",
+                            text:      "Logout",
                             container: Color.greenPrimary,
-                            content: .white,
-                            action: onLogout
+                            content:   .white,
+                            action:    { showLogoutDialog = true }
                         )
                         BouncyActionButton(
-                            text: "Delete",
+                            text:      "Delete",
                             container: Color.greenSecondary.opacity(0.5),
-                            content: Color.greenPrimary,
-                            action: onDeleteAccount
+                            content:   Color.greenPrimary,
+                            action:    { showDeleteDialog = true }
                         )
                         BouncyActionButton(
-                            text: "Edit",
+                            text:      "Edit",
                             container: Color.greenSecondary,
-                            content: Color.greenOnBackground,
-                            action: { withAnimation { isEditingProfile = true } }
+                            content:   Color.greenOnBackground,
+                            action: {
+                                infoMessage = "Opening profile editor..."
+                                withAnimation { isEditingProfile = true }
+                            }
                         )
                     }
 
                     Spacer().frame(height: 32)
                 }
                 .padding(.horizontal, 24)
-                .safeAreaInset(edge: .bottom) {
-                    Color.clear.frame(height: 76)
-                }
+                .safeAreaInset(edge: .bottom) { Color.clear.frame(height: 76) }
             }
         }
         .navigationBarHidden(true)
     }
 }
 
-private struct AvatarView: View {
-    let imageUri: URL?
-    let initials: String
-
-    var body: some View {
-        Circle()
-            .fill(Color.white)
-            .frame(width: 140, height: 140)
-            .overlay(
-                ProfilePhoto(imageUri: imageUri, initials: initials)
-                    .frame(width: 128, height: 128)
-            )
-    }
-}
 
 private struct ReadOnlyProfileField: View {
     let label: String
     let value: String
-    let icon: String
+    let icon:  String
 
     var body: some View {
         HStack(spacing: 16) {
@@ -190,74 +213,76 @@ private struct ReadOnlyProfileField: View {
                     .font(.system(size: 18, weight: .medium))
                     .foregroundColor(Color.greenPrimary)
             }
-
             VStack(alignment: .leading, spacing: 2) {
                 Text(label)
                     .font(.system(size: 12, weight: .semibold))
                     .foregroundColor(Color.greenOnBackground.opacity(0.55))
                     .textCase(.uppercase)
                     .tracking(0.5)
-
                 Text(value)
                     .font(.system(size: 16, weight: .medium))
                     .foregroundColor(Color.greenOnBackground)
             }
-
             Spacer()
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
 
-// Ingredient Inventory Card
-
 private struct IngredientInventoryCard: View {
-    let ingredients: [IngredientItem]
-
-    private let categories: [String] = ["All"] + IngredientCategory.allCases.map(\.rawValue)
+    let items: [ProfileInventoryItem]
 
     @State private var selectedCategory: String = "All"
 
-    private var filtered: [IngredientItem] {
-        guard selectedCategory != "All" else { return ingredients }
-        return ingredients.filter { $0.category.rawValue == selectedCategory }
+    private var categories: [String] {
+        ["All"] + items.map(\.category).removingDuplicates()
+    }
+
+    private var filtered: [ProfileInventoryItem] {
+        guard selectedCategory != "All" else { return items }
+        return items.filter { $0.category == selectedCategory }
     }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
 
-            // Header row
             HStack {
                 Text("My Ingredients")
                     .font(.system(size: 20, weight: .bold))
                     .foregroundColor(Color.greenPrimary)
-
                 Spacer()
-
-                Text("\(ingredients.count) items")
-                    .font(.system(size: 13, weight: .medium))
-                    .foregroundColor(Color.greenOnBackground.opacity(0.45))
+                Text("\(items.count) items")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundColor(Color.greenOnBackground.opacity(0.65))
             }
 
-            Spacer().frame(height: 16)
+            Spacer().frame(height: 14)
 
-            // Category filter pills
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 8) {
                     ForEach(categories, id: \.self) { cat in
-                        FilterPill(
-                            title: cat,
-                            isSelected: cat == selectedCategory,
-                            onTap: { withAnimation(.easeInOut(duration: 0.18)) { selectedCategory = cat } }
-                        )
+                        let selected = cat == selectedCategory
+                        Button {
+                            withAnimation(.easeInOut(duration: 0.18)) {
+                                selectedCategory = cat
+                            }
+                        } label: {
+                            Text(cat)
+                                .font(.system(size: 13, weight: .semibold))
+                                .foregroundColor(selected ? .white : Color.greenOnBackground.opacity(0.75))
+                                .padding(.horizontal, 14)
+                                .padding(.vertical, 8)
+                                .background(selected ? Color.greenPrimary : Color.greenSecondary.opacity(0.30))
+                                .clipShape(RoundedRectangle(cornerRadius: 14))
+                        }
+                        .buttonStyle(BouncyButtonStyle())
                     }
                 }
                 .padding(.vertical, 2)
             }
 
-            Spacer().frame(height: 16)
+            Spacer().frame(height: 14)
 
-            // Ingredient rows
             VStack(spacing: 10) {
                 ForEach(filtered) { item in
                     IngredientRow(item: item)
@@ -283,82 +308,64 @@ private struct IngredientInventoryCard: View {
     }
 }
 
-private struct FilterPill: View {
-    let title: String
-    let isSelected: Bool
-    let onTap: () -> Void
-
-    var body: some View {
-        Button(action: onTap) {
-            Text(title)
-                .font(.system(size: 13, weight: .semibold))
-                .foregroundColor(isSelected ? .white : Color.greenOnBackground.opacity(0.7))
-                .padding(.horizontal, 14)
-                .padding(.vertical, 7)
-                .background(isSelected ? Color.greenPrimary : Color.greenSecondary.opacity(0.4))
-                .clipShape(Capsule())
-        }
-        .buttonStyle(BouncyButtonStyle())
-    }
-}
-
-// Ingredient Row
-
 private struct IngredientRow: View {
-    let item: IngredientItem
+    let item: ProfileInventoryItem
+
+    private var categoryIcon: String {
+        switch item.category.lowercased() {
+        case "protein": return "flame"
+        case "dairy":   return "drop"
+        case "produce": return "leaf.fill"
+        default:        return "archivebox"
+        }
+    }
 
     var body: some View {
-        HStack(spacing: 14) {
-            // Category icon badge
+        HStack(spacing: 12) {
             ZStack {
-                RoundedRectangle(cornerRadius: 10)
+                RoundedRectangle(cornerRadius: 12)
                     .fill(Color.greenSecondary.opacity(0.35))
                     .frame(width: 40, height: 40)
-                Image(systemName: item.category.icon)
+                Image(systemName: categoryIcon)
                     .font(.system(size: 16, weight: .medium))
                     .foregroundColor(Color.greenPrimary)
             }
 
-            // Name + category label
             VStack(alignment: .leading, spacing: 2) {
                 Text(item.name)
-                    .font(.system(size: 15, weight: .semibold))
+                    .font(.system(size: 15, weight: .bold))
                     .foregroundColor(Color.greenOnBackground)
-
-                Text(item.category.rawValue)
-                    .font(.system(size: 12, weight: .medium))
-                    .foregroundColor(Color.greenOnBackground.opacity(0.45))
+                Text(item.category)
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundColor(Color.greenOnBackground.opacity(0.65))
             }
 
             Spacer()
 
-            // Quantity badge
             Text(item.quantity)
-                .font(.system(size: 13, weight: .semibold))
+                .font(.system(size: 13, weight: .bold))
                 .foregroundColor(Color.greenPrimary)
-                .padding(.horizontal, 10)
-                .padding(.vertical, 5)
-                .background(Color.greenSecondary.opacity(0.35))
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
+                .background(Color.greenSecondary.opacity(0.45))
                 .clipShape(Capsule())
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 10)
-        .background(Color.greenBackground)
-        .clipShape(RoundedRectangle(cornerRadius: 14))
+        .background(Color.greenSecondary.opacity(0.20))
+        .clipShape(RoundedRectangle(cornerRadius: 16))
         .overlay(
-            RoundedRectangle(cornerRadius: 14)
-                .stroke(Color.greenSecondary, lineWidth: 1.2)
+            RoundedRectangle(cornerRadius: 16)
+                .stroke(Color.greenSecondary.opacity(0.65), lineWidth: 1)
         )
     }
 }
 
-// Buttons
-
 private struct BouncyActionButton: View {
-    let text: String
+    let text:      String
     let container: Color
-    let content: Color
-    let action: () -> Void
+    let content:   Color
+    let action:    () -> Void
 
     var body: some View {
         Button(action: action) {
@@ -378,7 +385,8 @@ private struct BouncyButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .scaleEffect(configuration.isPressed ? 0.97 : 1.0)
-            .animation(.spring(response: 0.25, dampingFraction: 0.65), value: configuration.isPressed)
+            .animation(.spring(response: 0.25, dampingFraction: 0.65),
+                       value: configuration.isPressed)
     }
 }
 
@@ -390,5 +398,19 @@ private extension String {
         guard !parts.isEmpty else { return "JD" }
         if parts.count == 1 { return String(parts[0].prefix(2)).uppercased() }
         return (String(parts[0].first!) + String(parts[parts.count - 1].first!)).uppercased()
+    }
+}
+
+private extension Array where Element: Equatable {
+    func removingDuplicates() -> [Element] {
+        var seen: [Element] = []
+        var result: [Element] = []
+        for element in self {
+            if !seen.contains(element) {
+                seen.append(element)
+                result.append(element)
+            }
+        }
+        return result
     }
 }

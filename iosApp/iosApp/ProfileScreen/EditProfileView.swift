@@ -9,44 +9,28 @@ import SwiftUI
 import PhotosUI
 
 struct EditProfileView: View {
-    let userName: String
-    let userEmail: String
+
+    let userName:        String
+    let userEmail:       String
     let profileImageUri: URL?
+
     var onPickImage: (URL) -> Void = { _ in }
-    var onSave: (String, String) -> Void = { _, _ in }
+    var onSave: (String, String, String, String) -> Void = { _, _, _, _ in }
     var onCancel: () -> Void = {}
 
-    @State private var editedName: String
-    @State private var editedEmail: String
+    @StateObject private var viewModel = EditProfileViewModel()
+
     @State private var selectedPhotoItem: PhotosPickerItem? = nil
     @State private var pickedImageURL: URL? = nil
-    
     @State private var showPhotoPicker = false
     @StateObject private var permissionHandler = CameraPermissionHandler()
 
-    private var initials: String { editedName.toInitials() }
     private var displayImageUri: URL? { pickedImageURL ?? profileImageUri }
 
-    init(
-        userName: String,
-        userEmail: String,
-        profileImageUri: URL?,
-        onPickImage: @escaping (URL) -> Void = { _ in },
-        onSave: @escaping (String, String) -> Void = { _, _ in },
-        onCancel: @escaping () -> Void = {}
-    ) {
-        self.userName = userName
-        self.userEmail = userEmail
-        self.profileImageUri = profileImageUri
-        self.onPickImage = onPickImage
-        self.onSave = onSave
-        self.onCancel = onCancel
-        _editedName  = State(initialValue: userName)
-        _editedEmail = State(initialValue: userEmail)
-    }
 
     var body: some View {
         ZStack(alignment: .topLeading) {
+
             LinearGradient(
                 colors: [Color.greenSecondary.opacity(0.55), Color.greenBackground],
                 startPoint: .top,
@@ -63,7 +47,6 @@ struct EditProfileView: View {
                 VStack(alignment: .center, spacing: 0) {
                     Spacer().frame(height: 16)
 
-                    // Back button
                     HStack {
                         Button(action: onCancel) {
                             Image(systemName: "arrow.left")
@@ -78,7 +61,6 @@ struct EditProfileView: View {
 
                     Spacer().frame(height: 24)
 
-                    // Title
                     Text("Edit Profile")
                         .font(.system(size: 28, weight: .heavy))
                         .foregroundColor(Color.greenPrimary)
@@ -91,10 +73,9 @@ struct EditProfileView: View {
 
                     Spacer().frame(height: 40)
 
-                    // Avatar with edit button
                     AvatarPickerView(
                         imageUri: displayImageUri,
-                        initials: initials,
+                        initials: viewModel.uiState.initials,
                         onEditTap: {
                             permissionHandler.requestBothPermissions {
                                 showPhotoPicker = true
@@ -103,13 +84,13 @@ struct EditProfileView: View {
                     )
                     .photosPicker(
                         isPresented: $showPhotoPicker,
-                        selection: $selectedPhotoItem,
-                        matching: .images
+                        selection:   $selectedPhotoItem,
+                        matching:    .images
                     )
-                    .onChange(of: selectedPhotoItem) { oldValue, newItem in
+                    .onChange(of: selectedPhotoItem) { _, newItem in
                         Task {
                             guard let newItem,
-                                  let data = try? await newItem.loadTransferable(type: Data.self),
+                                  let data   = try? await newItem.loadTransferable(type: Data.self),
                                   let tmpURL = saveToTemp(data: data)
                             else { return }
                             pickedImageURL = tmpURL
@@ -119,19 +100,50 @@ struct EditProfileView: View {
 
                     Spacer().frame(height: 40)
 
-                    // Editable fields card
                     VStack(spacing: 16) {
+
+                        // Full Name
                         EditProfileTextField(
-                            value: $editedName,
-                            placeholder: "Full Name",
-                            icon: "person",
+                            value: Binding(
+                                get: { viewModel.uiState.editedName },
+                                set: { viewModel.updateName($0) }
+                            ),
+                            placeholder:  "Full Name",
+                            icon:         "person",
                             keyboardType: .default
                         )
+
+                        // Email Address
                         EditProfileTextField(
-                            value: $editedEmail,
-                            placeholder: "Email Address",
-                            icon: "envelope",
+                            value: Binding(
+                                get: { viewModel.uiState.editedEmail },
+                                set: { viewModel.updateEmail($0) }
+                            ),
+                            placeholder:  "Email Address",
+                            icon:         "envelope",
                             keyboardType: .emailAddress
+                        )
+
+                        // New Password
+                        EditProfileTextField(
+                            value: Binding(
+                                get: { viewModel.uiState.editedPassword },
+                                set: { viewModel.updatePassword($0) }
+                            ),
+                            placeholder: "New Password (Optional)",
+                            icon:        "lock",
+                            isSecure:    true
+                        )
+
+                        // Confirm Password
+                        EditProfileTextField(
+                            value: Binding(
+                                get: { viewModel.uiState.editedConfirmPassword },
+                                set: { viewModel.updateConfirmPassword($0) }
+                            ),
+                            placeholder: "Confirm Password",
+                            icon:        "lock",
+                            isSecure:    true
                         )
                     }
                     .padding(24)
@@ -140,10 +152,23 @@ struct EditProfileView: View {
                     .clipShape(RoundedRectangle(cornerRadius: 24))
                     .shadow(color: .black.opacity(0.08), radius: 8, x: 0, y: 4)
 
-                    Spacer().frame(height: 32)
+                    if let error = viewModel.uiState.errorMessage {
+                        Spacer().frame(height: 8)
+                        Text(error)
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundColor(Color(UIColor.systemRed))
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 10)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .background(Color(UIColor.systemRed).opacity(0.10))
+                            .clipShape(RoundedRectangle(cornerRadius: 14))
+                    }
+
+                    Spacer().frame(height: 24)
 
                     // Cancel / Save buttons
                     HStack(spacing: 16) {
+
                         Button(action: onCancel) {
                             Text("Cancel")
                                 .font(.system(size: 15, weight: .semibold))
@@ -152,15 +177,15 @@ struct EditProfileView: View {
                                 .frame(height: 56)
                                 .background(Color.white)
                                 .clipShape(Capsule())
-                                .overlay(
-                                    Capsule()
-                                        .stroke(Color.greenSecondary, lineWidth: 1.5)
-                                )
+                                .overlay(Capsule().stroke(Color.greenSecondary, lineWidth: 1.5))
                         }
                         .buttonStyle(BouncyStyle())
 
-                        // Save — filled
-                        Button(action: { onSave(editedName, editedEmail) }) {
+                        Button {
+                            viewModel.validateAndSave { name, email, password, confirm in
+                                onSave(name, email, password, confirm)
+                            }
+                        } label: {
                             Text("Save")
                                 .font(.system(size: 15, weight: .semibold))
                                 .foregroundColor(.white)
@@ -180,19 +205,26 @@ struct EditProfileView: View {
             }
         }
         .navigationBarHidden(true)
-        .alert("Camera Access Required", isPresented: $permissionHandler.showCameraDeniedAlert) {
+        .onAppear {
+            viewModel.setInitialValues(name: userName, email: userEmail)
+        }
+        .onChange(of: userName)  { _, v in viewModel.setInitialValues(name: v,       email: userEmail) }
+        .onChange(of: userEmail) { _, v in viewModel.setInitialValues(name: userName, email: v) }
+
+        .alert("Camera Access Required",
+               isPresented: $permissionHandler.showCameraDeniedAlert) {
             Button("Cancel", role: .cancel) {}
             Button("Settings") { openSettings() }
-            } message: {
-                Text("SnapChef needs camera access to take a profile photo. Please enable it in Settings.")
-            }
-            // Photos denied alert
-        .alert("Photo Library Access Required", isPresented: $permissionHandler.showPhotosDeniedAlert) {
+        } message: {
+            Text("SnapChef needs camera access to take a profile photo. Please enable it in Settings.")
+        }
+        .alert("Photo Library Access Required",
+               isPresented: $permissionHandler.showPhotosDeniedAlert) {
             Button("Cancel", role: .cancel) {}
             Button("Settings") { openSettings() }
-            } message: {
-                Text("SnapChef needs photo library access to pick a profile picture. Please enable it in Settings.")
-            }
+        } message: {
+            Text("SnapChef needs photo library access to pick a profile picture. Please enable it in Settings.")
+        }
     }
 
     private func saveToTemp(data: Data) -> URL? {
@@ -201,10 +233,10 @@ struct EditProfileView: View {
         try? data.write(to: url)
         return url
     }
-    
+
     private func openSettings() {
         if let url = URL(string: UIApplication.openSettingsURLString) {
-        UIApplication.shared.open(url)
+            UIApplication.shared.open(url)
         }
     }
 }
@@ -226,14 +258,8 @@ private struct AvatarPickerView: View {
 
             Button(action: onEditTap) {
                 ZStack {
-                    Circle()
-                        .fill(Color.white)
-                        .frame(width: 40, height: 40)
-
-                    Circle()
-                        .fill(Color.greenPrimary)
-                        .frame(width: 32, height: 32)
-
+                    Circle().fill(Color.white).frame(width: 40, height: 40)
+                    Circle().fill(Color.greenPrimary).frame(width: 32, height: 32)
                     Image(systemName: "pencil")
                         .font(.system(size: 14, weight: .semibold))
                         .foregroundColor(.white)
@@ -245,11 +271,13 @@ private struct AvatarPickerView: View {
     }
 }
 
+
 private struct EditProfileTextField: View {
-    @Binding var value: String
-    let placeholder: String
-    let icon: String
-    var keyboardType: UIKeyboardType = .default
+    @Binding var value:    String
+    let placeholder:       String
+    let icon:              String
+    var keyboardType:      UIKeyboardType = .default
+    var isSecure:          Bool           = false
 
     var body: some View {
         HStack(spacing: 12) {
@@ -258,12 +286,18 @@ private struct EditProfileTextField: View {
                 .foregroundColor(Color.greenPrimary)
                 .frame(width: 24)
 
-            TextField(placeholder, text: $value)
-                .font(.system(size: 16))
-                .foregroundColor(Color.greenOnBackground)
-                .keyboardType(keyboardType)
-                .autocapitalization(keyboardType == .emailAddress ? .none : .words)
-                .disableAutocorrection(keyboardType == .emailAddress)
+            if isSecure {
+                SecureField(placeholder, text: $value)
+                    .font(.system(size: 16))
+                    .foregroundColor(Color.greenOnBackground)
+            } else {
+                TextField(placeholder, text: $value)
+                    .font(.system(size: 16))
+                    .foregroundColor(Color.greenOnBackground)
+                    .keyboardType(keyboardType)
+                    .autocapitalization(keyboardType == .emailAddress ? .none : .words)
+                    .disableAutocorrection(keyboardType == .emailAddress)
+            }
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 16)
@@ -276,22 +310,12 @@ private struct EditProfileTextField: View {
     }
 }
 
+
 private struct BouncyStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .scaleEffect(configuration.isPressed ? 0.97 : 1.0)
             .animation(.spring(response: 0.25, dampingFraction: 0.65),
                        value: configuration.isPressed)
-    }
-}
-
-private extension String {
-    func toInitials() -> String {
-        let parts = trimmingCharacters(in: .whitespaces)
-            .components(separatedBy: .whitespaces)
-            .filter { !$0.isEmpty }
-        guard !parts.isEmpty else { return "JD" }
-        if parts.count == 1 { return String(parts[0].prefix(2)).uppercased() }
-        return (String(parts[0].first!) + String(parts[parts.count - 1].first!)).uppercased()
     }
 }

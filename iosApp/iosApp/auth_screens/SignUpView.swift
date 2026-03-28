@@ -8,22 +8,18 @@
 import SwiftUI
 
 struct SignUpView: View {
-    var onBack: () -> Void = {}
-    var onSignUp: () -> Void = {}
-    var onSignIn: () -> Void = {}
+    @ObservedObject var viewModel: SignUpViewModel
 
-    @State private var name = ""
-    @State private var email = ""
-    @State private var password = ""
-    @State private var showPass = false
-    @State private var agreeTerms = false
+    var onBack:           () -> Void = {}
+    var onSignUp:         () -> Void = {}
+    var onSignIn:         () -> Void = {}
+    var onVerifyRequired: (String) -> Void = { _ in }
 
     var body: some View {
         ZStack {
             LinearGradient(
                 colors: [Color.greenBackground, Color.greenSecondary.opacity(0.50)],
-                startPoint: .top,
-                endPoint: .bottom
+                startPoint: .top, endPoint: .bottom
             )
             .ignoresSafeArea()
 
@@ -69,48 +65,53 @@ struct SignUpView: View {
 
                     VStack(spacing: 16) {
 
-                        // name
                         AuthTextField(
-                            value: $name,
+                            value: Binding(
+                                get: { viewModel.name },
+                                set: { viewModel.updateName($0) }
+                            ),
                             placeholder: NSLocalizedString("enter_name", comment: ""),
                             leadingIcon: AnyView(
-                                Image(systemName: "person")
-                                    .foregroundColor(Color.greenPrimary)
+                                Image(systemName: "person").foregroundColor(Color.greenPrimary)
                             )
                         )
 
-                        // email
                         AuthTextField(
-                            value: $email,
+                            value: Binding(
+                                get: { viewModel.email },
+                                set: { viewModel.updateEmail($0) }
+                            ),
                             placeholder: NSLocalizedString("enter_your_email", comment: ""),
                             leadingIcon: AnyView(
-                                Image(systemName: "envelope")
-                                    .foregroundColor(Color.greenPrimary)
+                                Image(systemName: "envelope").foregroundColor(Color.greenPrimary)
                             ),
                             keyboardType: .emailAddress
                         )
 
-                        // password
                         AuthTextField(
-                            value: $password,
+                            value: Binding(
+                                get: { viewModel.password },
+                                set: { viewModel.updatePassword($0) }
+                            ),
                             placeholder: NSLocalizedString("create_password", comment: ""),
                             leadingIcon: AnyView(
-                                Image(systemName: "lock")
-                                    .foregroundColor(Color.greenPrimary)
+                                Image(systemName: "lock").foregroundColor(Color.greenPrimary)
                             ),
                             trailingIcon: AnyView(
-                                Button(action: { showPass.toggle() }) {
-                                    Image(systemName: showPass ? "eye.slash" : "eye")
+                                Button(action: viewModel.toggleShowPassword) {
+                                    Image(systemName: viewModel.showPassword ? "eye.slash" : "eye")
                                         .foregroundColor(Color.greenSecondary)
                                 }
                             ),
-                            isSecure: !showPass
+                            isSecure: !viewModel.showPassword
                         )
 
-                        // terms
                         HStack(spacing: 4) {
-                            Toggle("", isOn: $agreeTerms)
-                                .toggleStyle(CheckboxToggleStyle())
+                            Toggle("", isOn: Binding(
+                                get: { viewModel.agreeTerms },
+                                set: { viewModel.setAgreeTerms($0) }
+                            ))
+                            .toggleStyle(CheckboxToggleStyle())
 
                             Text(NSLocalizedString("i_agree", comment: ""))
                                 .font(.system(size: 14))
@@ -130,24 +131,44 @@ struct SignUpView: View {
                     .clipShape(RoundedRectangle(cornerRadius: 24))
                     .shadow(color: .black.opacity(0.08), radius: 12, x: 0, y: 4)
 
-                    Spacer().frame(height: 24)
+                    Spacer().frame(height: 16)
 
-                    // sign-up button
-                    Button(action: onSignUp) {
-                        Text(NSLocalizedString("sign_up", comment: ""))
-                            .font(.system(size: 15, weight: .semibold))
-                            .foregroundColor(.white)
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 56)
-                            .background(agreeTerms ? Color.greenPrimary : Color.greenPrimary.opacity(0.4))
-                            .clipShape(Capsule())
-                            .shadow(
-                                color: agreeTerms ? Color.greenPrimary.opacity(0.4) : .clear,
-                                radius: 8, x: 0, y: 4
-                            )
+                    if let error = viewModel.errorMessage {
+                        Text(error)
+                            .font(.system(size: 13))
+                            .foregroundColor(.red)
+                            .multilineTextAlignment(.center)
+                            .padding(.bottom, 8)
                     }
-                    .disabled(!agreeTerms)
-                    .animation(.easeInOut(duration: 0.2), value: agreeTerms)
+
+                    Button(action: {
+                        viewModel.signUp(
+                            onVerifyRequired: onVerifyRequired,
+                            onSuccess:        onSignUp
+                        )
+                    }) {
+                        Group {
+                            if viewModel.isLoading {
+                                ProgressView().tint(.white)
+                            } else {
+                                Text(NSLocalizedString("sign_up", comment: ""))
+                                    .font(.system(size: 15, weight: .semibold))
+                                    .foregroundColor(.white)
+                            }
+                        }
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 56)
+                        .background(
+                            viewModel.agreeTerms ? Color.greenPrimary : Color.greenPrimary.opacity(0.4)
+                        )
+                        .clipShape(Capsule())
+                        .shadow(
+                            color: viewModel.agreeTerms ? Color.greenPrimary.opacity(0.4) : .clear,
+                            radius: 8, x: 0, y: 4
+                        )
+                    }
+                    .disabled(!viewModel.agreeTerms || viewModel.isLoading)
+                    .animation(.easeInOut(duration: 0.2), value: viewModel.agreeTerms)
 
                     Spacer().frame(height: 24)
 
@@ -155,13 +176,19 @@ struct SignUpView: View {
 
                     Spacer().frame(height: 20)
 
-                    SocialButton(label: NSLocalizedString("continue_google", comment: ""),   emoji: "G")
-                    Spacer().frame(height: 12)
-                    SocialButton(label: NSLocalizedString("continue_facebook", comment: ""), emoji: "f")
+                    Button {
+                        Task {
+                            let token = await GoogleAuthHelper.signInWithGoogle(context: UIApplication.shared)
+                            if let token {
+                                viewModel.googleSignIn(idToken: token, onSuccess: onSignUp)
+                            }
+                        }
+                    } label: {
+                        SocialButton(label: NSLocalizedString("continue_google", comment: ""), emoji: "G")
+                    }
 
                     Spacer().frame(height: 24)
 
-                    // sign-in link
                     HStack(spacing: 0) {
                         Text(NSLocalizedString("already_have_account", comment: ""))
                             .font(.system(size: 14))

@@ -7,14 +7,19 @@
 import SwiftUI
 
 enum AuthDestination: Int {
-    case signIn, signUp, welcome
+    case welcome, signUp, signIn, verify
 }
 
 struct AuthView: View {
     var onAuthSuccess: () -> Void = {}
 
-    @State private var current: AuthDestination = .welcome
-    @State private var previous: AuthDestination = .welcome
+    @State private var current:       AuthDestination = .welcome
+    @State private var previous:      AuthDestination = .welcome
+    @State private var emailToVerify: String          = ""
+
+    @StateObject private var signInVM  = SignInViewModel()
+    @StateObject private var signUpVM  = SignUpViewModel()
+    @StateObject private var verifyVM  = VerificationViewModel()
 
     var body: some View {
         ZStack {
@@ -25,22 +30,41 @@ struct AuthView: View {
                     onSignIn:     { navigate(to: .signIn) }
                 )
                 .transition(transition(to: .welcome, from: previous))
-                
+
             case .signIn:
                 SignInView(
+                    viewModel: signInVM,
                     onBack:   { navigate(to: .welcome) },
                     onSignIn: { onAuthSuccess() },
-                    onSignUp: { navigate(to: .signUp) }
+                    onSignUp: { navigate(to: .signUp) },
+                    onVerifyRequired: { email in
+                        emailToVerify = email
+                        navigate(to: .verify)
+                    }
                 )
                 .transition(transition(to: .signIn, from: previous))
 
             case .signUp:
                 SignUpView(
+                    viewModel: signUpVM,
                     onBack:   { navigate(to: .welcome) },
                     onSignUp: { onAuthSuccess() },
-                    onSignIn: { navigate(to: .signIn) }
+                    onSignIn: { navigate(to: .signIn) },
+                    onVerifyRequired: { email in
+                        emailToVerify = email
+                        navigate(to: .verify)
+                    }
                 )
                 .transition(transition(to: .signUp, from: previous))
+
+            case .verify:
+                VerificationView(
+                    viewModel: verifyVM,
+                    email:     emailToVerify,
+                    onBack:    { navigate(to: .signUp) },
+                    onSuccess: { onAuthSuccess() }
+                )
+                .transition(transition(to: .verify, from: previous))
             }
         }
         .animation(.easeInOut(duration: 0.35), value: current)
@@ -50,12 +74,12 @@ struct AuthView: View {
         previous = current
         current  = destination
     }
-    
+
     private func transition(to: AuthDestination, from: AuthDestination) -> AnyTransition {
         let forward = to.rawValue > from.rawValue
         return .asymmetric(
-            insertion:  .move(edge: forward ? .trailing : .leading).combined(with: .opacity),
-            removal:    .move(edge: forward ? .leading  : .trailing).combined(with: .opacity)
+            insertion: .move(edge: forward ? .trailing : .leading).combined(with: .opacity),
+            removal:   .move(edge: forward ? .leading  : .trailing).combined(with: .opacity)
         )
     }
 }
