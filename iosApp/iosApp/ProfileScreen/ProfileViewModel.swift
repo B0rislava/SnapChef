@@ -24,16 +24,7 @@ final class ProfileViewModel: ObservableObject {
     @Published var userEmail:       String = ""
     @Published var profileImageUri: URL?   = nil
 
-    @Published var inventoryItems: [ProfileInventoryItem] = [
-        ProfileInventoryItem(name: "Eggs",           category: "Protein", quantity: "6"),
-        ProfileInventoryItem(name: "Cheddar Cheese", category: "Dairy",   quantity: "200 g"),
-        ProfileInventoryItem(name: "Tomatoes",       category: "Produce", quantity: "3"),
-        ProfileInventoryItem(name: "Chicken Breast", category: "Protein", quantity: "400 g"),
-        ProfileInventoryItem(name: "Pasta",          category: "Pantry",  quantity: "500 g"),
-        ProfileInventoryItem(name: "Spinach",        category: "Produce", quantity: "100 g"),
-        ProfileInventoryItem(name: "Milk",           category: "Dairy",   quantity: "1 L"),
-        ProfileInventoryItem(name: "Olive Oil",      category: "Pantry",  quantity: "1 bottle"),
-    ]
+    @Published var inventoryItems: [ProfileInventoryItem] = []
 
     @Published var isLoading:    Bool    = false
     @Published var errorMessage: String? = nil
@@ -43,6 +34,7 @@ final class ProfileViewModel: ObservableObject {
 
     init() {
         loadUserFromAuthManager()
+        loadInventory()
     }
 
 
@@ -52,10 +44,37 @@ final class ProfileViewModel: ObservableObject {
         userEmail = user.email
     }
 
+    /// Fetches the user's pantry (inventory) from the shared /pantry endpoint.
+    func loadInventory() {
+        isLoading    = true
+        errorMessage = nil
+        Task {
+            do {
+                let items = try await authApiService.fetchPantryItems()
+                inventoryItems = items.map { item in
+                    let qty: String
+                    if let unit = item.unit, !unit.isEmpty {
+                        qty = "\(item.quantity) \(unit)"
+                    } else {
+                        qty = "\(item.quantity)"
+                    }
+                    return ProfileInventoryItem(
+                        name:     item.name,
+                        category: categoryFromSource(item.source),
+                        quantity: qty
+                    )
+                }
+            } catch {
+                errorMessage = "Could not load inventory: \(error.localizedDescription)"
+            }
+            isLoading = false
+        }
+    }
+
     func updateUser(name: String, email: String) {
         userName  = name
         userEmail = email
-        if var user = AuthManager.shared.currentUser {
+        if let user = AuthManager.shared.currentUser {
             AuthManager.shared.currentUser = UserOut(
                 id:    user.id,
                 email: email,
@@ -79,6 +98,17 @@ final class ProfileViewModel: ObservableObject {
                 errorMessage = error.localizedDescription
             }
             isLoading = false
+        }
+    }
+
+    // MARK: - Helpers
+
+    /// Maps the backend `source` field to a display category.
+    private func categoryFromSource(_ source: String) -> String {
+        switch source.lowercased() {
+        case "scan":   return "Scanned"
+        case "manual": return "Manual"
+        default:       return source.capitalized
         }
     }
 }
