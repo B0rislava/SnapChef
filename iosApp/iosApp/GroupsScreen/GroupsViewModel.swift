@@ -7,8 +7,6 @@
 import Foundation
 import Shared
 
-// MARK: - Local models
-
 struct GroupMember: Identifiable {
     let id   = UUID()
     let name: String
@@ -19,12 +17,10 @@ struct AppGroup: Identifiable {
     let id:          Int
     var name:        String
     var code:        String?
-    var ownerName:   String?   // "You" if current user created it
+    var ownerName:   String?
     var members:     [GroupMember]
-    var isAdmin:     Bool      // true when ownerName == "You"
+    var isAdmin:     Bool
 }
-
-// MARK: - Dialog mode
 
 enum GroupDialogMode: Identifiable {
     case choice, join, create
@@ -33,12 +29,9 @@ enum GroupDialogMode: Identifiable {
     }
 }
 
-// MARK: - ViewModel
-
 @MainActor
 final class GroupsViewModel: ObservableObject {
 
-    // Published state
     @Published private(set) var groups:        [AppGroup]        = []
     @Published              var selectedId:    Int?              = nil
     @Published              var dialogMode:    GroupDialogMode?  = nil
@@ -48,7 +41,6 @@ final class GroupsViewModel: ObservableObject {
     @Published              var infoMessage:   String?           = nil
     @Published              var isError:       Bool              = false
 
-    // Derived
     var selectedGroup: AppGroup? {
         guard let id = selectedId else { return groups.first }
         return groups.first { $0.id == id } ?? groups.first
@@ -60,8 +52,6 @@ final class GroupsViewModel: ObservableObject {
     init() {
         Task { await loadGroups() }
     }
-
-    // MARK: - Load
 
     func loadGroups() async {
         isLoading = true
@@ -79,11 +69,9 @@ final class GroupsViewModel: ObservableObject {
                     isAdmin:   isAdmin
                 )
             }
-            // Auto-select first group
             if selectedId == nil, let first = groups.first {
                 selectedId = first.id
             }
-            // Fetch detail for selected group
             if let id = selectedId {
                 await loadGroupDetail(id: id)
             }
@@ -111,23 +99,18 @@ final class GroupsViewModel: ObservableObject {
                 return updated
             }
         } catch {
-            // silently ignore detail fetch errors
         }
     }
 
-    // MARK: - Selection
 
     func selectGroup(_ id: Int) {
         selectedId = id
         Task { await loadGroupDetail(id: id) }
     }
 
-    // MARK: - Dialogs
 
     func openDialog(_ mode: GroupDialogMode) { dialogMode = mode }
     func closeDialog() { dialogMode = nil }
-
-    // MARK: - Join
 
     func joinGroup() {
         let code = joinCodeInput.trimmingCharacters(in: .whitespaces).uppercased()
@@ -161,9 +144,7 @@ final class GroupsViewModel: ObservableObject {
             isLoading = false
         }
     }
-
-    // MARK: - Create
-
+    
     func createGroup() {
         let name = createNameInput.trimmingCharacters(in: .whitespaces)
         guard !name.isEmpty else {
@@ -190,8 +171,6 @@ final class GroupsViewModel: ObservableObject {
         }
     }
 
-    // MARK: - Leave
-
     func leaveGroup() {
         guard let group = selectedGroup else { return }
         if group.isAdmin {
@@ -212,8 +191,6 @@ final class GroupsViewModel: ObservableObject {
         }
     }
 
-    // MARK: - Delete
-
     func deleteGroup() {
         guard let group = selectedGroup else { return }
         guard group.isAdmin else {
@@ -233,9 +210,7 @@ final class GroupsViewModel: ObservableObject {
             isLoading = false
         }
     }
-
-    // MARK: - Helpers
-
+    
     func clearInfoMessage() {
         infoMessage = nil
         isError     = false
