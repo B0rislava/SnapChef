@@ -70,7 +70,9 @@ struct ProfileView: View {
         .alert("Log out", isPresented: $showLogoutDialog) {
             Button("Yes", role: .destructive) {
                 viewModel.logout()
-                onLogout()
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                    onLogout()
+                }
             }
             Button("Cancel", role: .cancel) {}
         } message: {
@@ -78,8 +80,11 @@ struct ProfileView: View {
         }
         .alert("Delete account", isPresented: $showDeleteDialog) {
             Button("Delete", role: .destructive) {
-                viewModel.deleteAccount()
-                onDeleteAccount()
+                viewModel.deleteAccount(onSuccess: {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                        onDeleteAccount()
+                    }
+                })
             }
             Button("Cancel", role: .cancel) {}
         } message: {

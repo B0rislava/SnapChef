@@ -26,8 +26,8 @@ struct ScreenWrapper: View {
 
                 ProfileView(
                     onBack: { currentTab = .home },
-                    onLogout: { print("Logging out...") },
-                    onDeleteAccount: { print("Deleting account...") }
+                    onLogout: { SessionManager.shared.logout() },
+                    onDeleteAccount: { SessionManager.shared.logout() }
                 )
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .opacity(currentTab == .profile ? 1 : 0)

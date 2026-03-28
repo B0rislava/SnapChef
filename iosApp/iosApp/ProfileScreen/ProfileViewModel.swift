@@ -44,7 +44,7 @@ final class ProfileViewModel: ObservableObject {
         userEmail = user.email
     }
 
-    /// Fetches the user's pantry (inventory) from the shared /pantry endpoint.
+    /// Fetches the user's pantry  from the shared /pantry endpoint.
     func loadInventory() {
         isLoading    = true
         errorMessage = nil
@@ -87,13 +87,14 @@ final class ProfileViewModel: ObservableObject {
         AuthManager.shared.logout()
     }
 
-    func deleteAccount() {
+    func deleteAccount(onSuccess: @escaping () -> Void) {
         isLoading    = true
         errorMessage = nil
         Task {
             do {
                 try await authApiService.deleteAccount()
                 AuthManager.shared.logout()
+                await MainActor.run { onSuccess() }
             } catch {
                 errorMessage = error.localizedDescription
             }
@@ -101,9 +102,6 @@ final class ProfileViewModel: ObservableObject {
         }
     }
 
-    // MARK: - Helpers
-
-    /// Maps the backend `source` field to a display category.
     private func categoryFromSource(_ source: String) -> String {
         switch source.lowercased() {
         case "scan":   return "Scanned"
