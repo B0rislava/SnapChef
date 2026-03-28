@@ -1,5 +1,6 @@
 package com.snapchef.app.features.groups.presentation
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -29,6 +30,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -38,6 +40,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -286,8 +289,11 @@ private fun GroupRecipeDetailsScreen(
     recipe: SharedRecipe,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
+    viewModel: GroupsViewModel = viewModel(),
 ) {
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var inviteMessage by remember { mutableStateOf<String?>(null) }
+    var showGroupSelection by remember { mutableStateOf(false) }
     Box(
         modifier = modifier
             .fillMaxSize()
@@ -390,26 +396,24 @@ private fun GroupRecipeDetailsScreen(
                         )
                     }
 
-                    if (recipe.ownerName != "You") {
-                        Spacer(modifier = Modifier.height(24.dp))
-                        Button(
-                            onClick = { inviteMessage = "Invitation sent to ${recipe.ownerName}." },
-                            colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = GreenPrimary),
-                            shape = RoundedCornerShape(16.dp),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text("Invite to cook together", color = Color.White, fontWeight = FontWeight.Bold)
-                        }
-                        inviteMessage?.let {
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Text(
-                                text = it, 
-                                style = MaterialTheme.typography.labelMedium, 
-                                color = GreenPrimary, 
-                                modifier = Modifier.fillMaxWidth(), 
-                                textAlign = TextAlign.Center
-                            )
-                        }
+                    Spacer(modifier = Modifier.height(24.dp))
+                    Button(
+                        onClick = { showGroupSelection = true },
+                        colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = GreenPrimary),
+                        shape = RoundedCornerShape(16.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Invite to cook together", color = Color.White, fontWeight = FontWeight.Bold)
+                    }
+                    inviteMessage?.let {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = it, 
+                            style = MaterialTheme.typography.labelMedium, 
+                            color = GreenPrimary, 
+                            modifier = Modifier.fillMaxWidth(), 
+                            textAlign = TextAlign.Center
+                        )
                     }
                 }
             }
@@ -521,6 +525,80 @@ private fun GroupRecipeDetailsScreen(
                 }
             }
         }
+    }
+
+    if (showGroupSelection) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { showGroupSelection = false },
+            title = { 
+                Text(
+                    "Select Group", 
+                    style = MaterialTheme.typography.titleLarge,
+                    color = GreenPrimary,
+                    fontWeight = FontWeight.Bold
+                ) 
+            },
+            text = {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(
+                        "Which group would you like to invite to cook this recipe?",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = GreenOnBackground.copy(alpha = 0.7f),
+                        modifier = Modifier.padding(bottom = 8.dp)
+                    )
+                    
+                    val groups = uiState.groups.filter { !it.isPersonal }
+                    if (groups.isEmpty()) {
+                        Text(
+                            "You are not in any groups yet. Create or join a group first!",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Color.Gray,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.fillMaxWidth().padding(16.dp)
+                        )
+                    } else {
+                        groups.forEach { group ->
+                            Card(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        inviteMessage = "Invitation shared with ${group.name}!"
+                                        showGroupSelection = false
+                                    },
+                                shape = RoundedCornerShape(12.dp),
+                                colors = CardDefaults.cardColors(containerColor = GreenPrimary.copy(alpha = 0.05f)),
+                                border = BorderStroke(1.dp, GreenPrimary.copy(alpha = 0.1f))
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(16.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(Icons.Default.Group, null, tint = GreenPrimary, modifier = Modifier.size(20.dp))
+                                    Spacer(Modifier.width(12.dp))
+                                    Text(
+                                        text = group.name,
+                                        style = MaterialTheme.typography.bodyLarge,
+                                        color = GreenOnBackground,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {},
+            dismissButton = {
+                TextButton(onClick = { showGroupSelection = false }) {
+                    Text("Cancel", color = GreenPrimary)
+                }
+            },
+            containerColor = Color.White,
+            shape = RoundedCornerShape(28.dp)
+        )
     }
 }
 

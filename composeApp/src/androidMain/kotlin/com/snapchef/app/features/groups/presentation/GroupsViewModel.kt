@@ -2,6 +2,8 @@ package com.snapchef.app.features.groups.presentation
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.snapchef.app.core.auth.AuthManager
+import com.snapchef.app.core.di.SnapChefServiceLocator
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -20,13 +22,19 @@ data class GroupsUiState(
     val createNameInput: String = "",
     val selectedRecipe: SharedRecipe? = null,
     val infoMessage: String? = null,
+    val isError: Boolean = false,
+    val isLoading: Boolean = false,
 )
 
 class GroupsViewModel : ViewModel() {
+    private val apiService = SnapChefServiceLocator.authApiService
+
     private val _uiState = MutableStateFlow(defaultState())
     val uiState: StateFlow<GroupsUiState> = _uiState.asStateFlow()
 
     init {
+        refreshGroups()
+
         viewModelScope.launch {
             RecipeStore.personalRecipes.collect { savedRecipes ->
                 _uiState.update { state ->
@@ -57,15 +65,82 @@ class GroupsViewModel : ViewModel() {
         }
     }
 
-    fun selectGroup(id: String) = _uiState.update { it.copy(selectedGroupId = id, expanded = false) }
+    private fun refreshGroups() {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true) }
+            try {
+                val backendGroups = apiService.fetchGroups()
+                _uiState.update { state ->
+                    val mapped = backendGroups.map { g ->
+                        val existing = state.groups.find { it.id == g.id.toString() }
+                        RecipeGroup(
+                            id = g.id.toString(),
+                            name = g.name,
+                            code = g.code ?: existing?.code, // Preserve old code if backend doesn't return it
+                            recipes = existing?.recipes ?: emptyList(),
+                            ownerUsername = if (g.createdByUserId == AuthManager.currentUser?.id) "You" else "Admin",
+                            members = existing?.members ?: emptyList(),
+                            isPersonal = false
+                        )
+                    }
+                    state.copy(
+                        groups = listOf(state.groups.first { it.isPersonal }) + mapped,
+                        isLoading = false
+                    )
+                }
+                refreshSelectedGroupDetail()
+            } catch (e: Exception) {
+                _uiState.update { it.copy(isLoading = false) }
+                e.printStackTrace()
+            }
+        }
+    }
+
+    private fun refreshSelectedGroupDetail() {
+        val selectedId = _uiState.value.selectedGroupId
+        if (selectedId == "personal") return
+        val idInt = selectedId.toIntOrNull() ?: return
+
+        viewModelScope.launch {
+            try {
+                val detail = apiService.fetchGroupDetail(idInt)
+                _uiState.update { state ->
+                    val updatedGroups = state.groups.map { group ->
+                        if (group.id == selectedId) {
+                            group.copy(
+                                code = detail.code,
+                                members = detail.members.map { m ->
+                                    GroupMember(
+                                        username = if (m.user.id == AuthManager.currentUser?.id) "You" else m.user.name,
+                                        avatarSeed = m.user.name
+                                    )
+                                }
+                            )
+                        } else {
+                            group
+                        }
+                    }
+                    state.copy(groups = updatedGroups)
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+    }
+
+    fun selectGroup(id: String) {
+        _uiState.update { it.copy(selectedGroupId = id, expanded = false) }
+        refreshSelectedGroupDetail()
+    }
     fun openDialog(mode: GroupDialogMode) = _uiState.update { it.copy(dialogMode = mode) }
     fun closeDialog() = _uiState.update { it.copy(dialogMode = null) }
     fun setJoinCodeInput(value: String) = _uiState.update { it.copy(joinCodeInput = value) }
     fun setCreateNameInput(value: String) = _uiState.update { it.copy(createNameInput = value) }
     fun openRecipe(recipe: SharedRecipe) = _uiState.update { it.copy(selectedRecipe = recipe) }
     fun closeRecipeDetails() = _uiState.update { it.copy(selectedRecipe = null) }
-    fun clearInfoMessage() = _uiState.update { it.copy(infoMessage = null) }
-
+    fun clearInfoMessage() {
+        _uiState.update { it.copy(infoMessage = null, isError = false) }
+    }
     fun joinGroup() {
         val state = _uiState.value
         val code = state.joinCodeInput.trim().uppercase()
@@ -86,14 +161,31 @@ class GroupsViewModel : ViewModel() {
             return
         }
 
-        // In a real app we'd call the backend here. For now, we'll just show an informative message since
-        // we removed the hardcoded mock groups.
-        _uiState.update {
-            it.copy(
-                infoMessage = "Group discovery is currently restricted to backend-synced groups.",
-                dialogMode = null,
-                joinCodeInput = ""
-            )
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true) }
+            try {
+                val joined = apiService.joinGroup(code)
+                _uiState.update {
+                    it.copy(
+                        selectedGroupId = joined.id.toString(),
+                        infoMessage = "Joined group ${joined.name}.",
+                        dialogMode = null,
+                        joinCodeInput = "",
+                        isLoading = false
+                    )
+                }
+                refreshGroups()
+            } catch (e: Exception) {
+                _uiState.update { 
+                    it.copy(
+                        infoMessage = "Please enter a valid code.",
+                        isError = true,
+                        dialogMode = null,
+                        joinCodeInput = "",
+                        isLoading = false
+                    )
+                }
+            }
         }
     }
 
@@ -104,23 +196,30 @@ class GroupsViewModel : ViewModel() {
             _uiState.update { it.copy(infoMessage = "Group name cannot be empty.", dialogMode = null, createNameInput = "") }
             return
         }
-        val code = generateGroupCode()
-        val created = RecipeGroup(
-            id = "created_${Random.nextInt(1000, 9999)}",
-            name = groupName,
-            code = code,
-            recipes = emptyList(),
-            ownerUsername = "You",
-            members = listOf(GroupMember("You")),
-        )
-        _uiState.update {
-            it.copy(
-                groups = it.groups + created,
-                selectedGroupId = created.id,
-                infoMessage = "Group created. Code: $code",
-                dialogMode = null,
-                createNameInput = "",
-            )
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true) }
+            try {
+                val created = apiService.createGroup(groupName)
+                _uiState.update {
+                    it.copy(
+                        selectedGroupId = created.id.toString(),
+                        infoMessage = "Group '${created.name}' created! Code: ${created.code ?: "N/A"}",
+                        dialogMode = null,
+                        createNameInput = "",
+                        isLoading = false
+                    )
+                }
+                refreshGroups()
+            } catch (e: Exception) {
+                _uiState.update { 
+                    it.copy(
+                        infoMessage = "Failed to create group. Try again.",
+                        dialogMode = null,
+                        createNameInput = "",
+                        isLoading = false
+                    )
+                }
+            }
         }
     }
 
@@ -280,13 +379,21 @@ class GroupsViewModel : ViewModel() {
             return
         }
 
-        val updatedGroups = state.groups.filterNot { it.id == selected.id }
-        _uiState.update {
-            it.copy(
-                groups = updatedGroups,
-                selectedGroupId = "g1",
-                infoMessage = "You left ${selected.name}.",
-            )
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true) }
+            try {
+                apiService.leaveGroup(selected.id.toInt())
+                _uiState.update {
+                    it.copy(
+                        selectedGroupId = "personal",
+                        infoMessage = "You left ${selected.name}.",
+                        isLoading = false
+                    )
+                }
+                refreshGroups()
+            } catch (e: Exception) {
+                _uiState.update { it.copy(infoMessage = "Failed to leave group.", isLoading = false) }
+            }
         }
     }
 
@@ -304,13 +411,21 @@ class GroupsViewModel : ViewModel() {
             return
         }
 
-        val updatedGroups = state.groups.filterNot { it.id == selected.id }
-        _uiState.update {
-            it.copy(
-                groups = updatedGroups,
-                selectedGroupId = "g1",
-                infoMessage = "Group ${selected.name} deleted.",
-            )
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true) }
+            try {
+                apiService.deleteGroup(selected.id.toInt())
+                _uiState.update {
+                    it.copy(
+                        selectedGroupId = "personal",
+                        infoMessage = "Group ${selected.name} deleted.",
+                        isLoading = false
+                    )
+                }
+                refreshGroups()
+            } catch (e: Exception) {
+                _uiState.update { it.copy(infoMessage = "Failed to delete group.", isLoading = false) }
+            }
         }
     }
 

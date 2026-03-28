@@ -2,6 +2,8 @@ package com.snapchef.app.features.groups.presentation
 
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.*
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -33,11 +35,13 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Group
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -56,14 +60,17 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.zIndex
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.snapchef.app.core.auth.AuthManager
 import com.snapchef.app.core.theme.GreenBackground
 import com.snapchef.app.core.theme.GreenOnBackground
 import com.snapchef.app.core.theme.GreenPrimary
@@ -79,8 +86,11 @@ fun GroupsScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val visibleGroups = uiState.groups.filterNot { it.isPersonal }
-    val selectedGroup = visibleGroups.firstOrNull { it.id == uiState.selectedGroupId } ?: visibleGroups.firstOrNull()
-    val isAdmin = selectedGroup?.ownerUsername.equals("You", ignoreCase = true)
+    val selectedGroup = visibleGroups.find { it.id == uiState.selectedGroupId } ?: visibleGroups.firstOrNull()
+    val isAdmin = selectedGroup?.ownerUsername.equals("You", ignoreCase = true) || 
+                  (selectedGroup != null && AuthManager.currentUser?.id != null &&
+                   selectedGroup.id.toIntOrNull() == AuthManager.currentUser?.id) // Fallback for ID match
+    val isCodeLoading = selectedGroup != null && !selectedGroup.isPersonal && isAdmin && selectedGroup.code == null
     var groupNameInput by remember(selectedGroup?.id) { mutableStateOf(selectedGroup?.name.orEmpty()) }
     var isEditingGroupName by remember(selectedGroup?.id) { mutableStateOf(false) }
     var showLeaveConfirmation by remember { mutableStateOf(false) }
@@ -115,6 +125,46 @@ fun GroupsScreen(
                 .clip(CircleShape)
                 .background(GreenPrimary.copy(alpha = 0.10f))
         )
+
+        AnimatedVisibility(
+            visible = uiState.infoMessage != null,
+            enter = slideInVertically(initialOffsetY = { -it }) + fadeIn(),
+            exit = slideOutVertically(targetOffsetY = { -it }) + fadeOut(),
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .padding(top = 24.dp)
+                .zIndex(100f)
+        ) {
+            uiState.infoMessage?.let { msg ->
+                Card(
+                    shape = RoundedCornerShape(20.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = if (uiState.isError) Color(0xFFC62828) else GreenPrimary
+                    ),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
+                    modifier = Modifier.padding(horizontal = 32.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Icon(
+                            imageVector = if (uiState.isError) Icons.Filled.Warning else Icons.Filled.Check,
+                            contentDescription = null,
+                            tint = Color.White,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Text(
+                            text = msg,
+                            color = Color.White,
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+            }
+        }
 
         Column(
             modifier = Modifier
@@ -197,163 +247,216 @@ fun GroupsScreen(
                     colors = CardDefaults.cardColors(containerColor = Color.White),
                     elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
                 ) {
-                    Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        if (isAdmin && isEditingGroupName) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(10.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                            ) {
-                                OutlinedTextField(
-                                    value = groupNameInput,
-                                    onValueChange = { groupNameInput = it },
-                                    modifier = Modifier.weight(1f),
-                                    label = { Text("Group name") },
-                                    singleLine = true,
-                                    shape = RoundedCornerShape(14.dp),
-                                    colors = OutlinedTextFieldDefaults.colors(
-                                        focusedBorderColor = GreenPrimary,
-                                        focusedLabelColor = GreenPrimary,
-                                        unfocusedBorderColor = GreenSecondary,
-                                    ),
-                                )
-                                IconButton(
-                                    onClick = {
-                                        viewModel.renameSelectedGroup(groupNameInput)
-                                        isEditingGroupName = false
-                                    },
-                                    modifier = Modifier
-                                        .size(42.dp)
-                                        .clip(CircleShape)
-                                        .background(GreenPrimary.copy(alpha = 0.12f)),
+                    Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(20.dp)) {
+                        // Group Header Section
+                        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                            if (isAdmin && isEditingGroupName) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
                                 ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Check,
-                                        contentDescription = "Save group name",
-                                        tint = GreenPrimary,
+                                    OutlinedTextField(
+                                        value = groupNameInput,
+                                        onValueChange = { groupNameInput = it },
+                                        modifier = Modifier.weight(1f),
+                                        label = { Text("Group name") },
+                                        singleLine = true,
+                                        shape = RoundedCornerShape(14.dp),
+                                        colors = OutlinedTextFieldDefaults.colors(
+                                            focusedBorderColor = GreenPrimary,
+                                            focusedLabelColor = GreenPrimary,
+                                            unfocusedBorderColor = GreenSecondary,
+                                        ),
                                     )
-                                }
-                            }
-                        } else {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                            ) {
-                                Text(
-                                    text = selectedGroup.name,
-                                    style = MaterialTheme.typography.titleLarge,
-                                    color = GreenPrimary,
-                                    fontWeight = FontWeight.ExtraBold,
-                                )
-                                if (isAdmin) {
                                     IconButton(
                                         onClick = {
-                                            groupNameInput = selectedGroup.name
-                                            isEditingGroupName = true
+                                            viewModel.renameSelectedGroup(groupNameInput)
+                                            isEditingGroupName = false
                                         },
                                         modifier = Modifier
-                                            .size(40.dp)
+                                            .size(42.dp)
                                             .clip(CircleShape)
                                             .background(GreenPrimary.copy(alpha = 0.12f)),
                                     ) {
                                         Icon(
-                                            imageVector = Icons.Default.Edit,
-                                            contentDescription = "Edit group name",
+                                            imageVector = Icons.Default.Check,
+                                            contentDescription = "Save group name",
                                             tint = GreenPrimary,
+                                        )
+                                    }
+                                }
+                            } else {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                ) {
+                                    Text(
+                                        text = selectedGroup.name,
+                                        style = MaterialTheme.typography.headlineSmall,
+                                        color = GreenPrimary,
+                                        fontWeight = FontWeight.ExtraBold,
+                                    )
+                                    if (isAdmin) {
+                                        IconButton(
+                                            onClick = {
+                                                groupNameInput = selectedGroup.name
+                                                isEditingGroupName = true
+                                            },
+                                            modifier = Modifier
+                                                .size(40.dp)
+                                                .clip(CircleShape)
+                                                .background(GreenPrimary.copy(alpha = 0.12f)),
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.Edit,
+                                                contentDescription = "Edit group name",
+                                                tint = GreenPrimary,
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                            ) {
+                                InfoBadge(
+                                    label = "Admin: ${selectedGroup.ownerUsername ?: "Unknown"}",
+                                    isPrimary = true,
+                                )
+                                InfoBadge(
+                                    label = "${selectedGroup.members.size} member${if (selectedGroup.members.size != 1) "s" else ""}",
+                                    isPrimary = false,
+                                )
+                            }
+                        }
+
+                        Divider(color = GreenSecondary.copy(alpha = 0.2f), thickness = 1.dp)
+
+                        // Members Section
+                        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    imageVector = Icons.Default.Group,
+                                    contentDescription = null,
+                                    tint = GreenPrimary,
+                                    modifier = Modifier.size(20.dp),
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = "Members",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    color = GreenPrimary,
+                                    fontWeight = FontWeight.Bold,
+                                )
+                            }
+
+                            if (selectedGroup.members.isEmpty()) {
+                                Text(
+                                    text = "No members yet.",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = GreenOnBackground.copy(alpha = 0.6f),
+                                )
+                            } else {
+                                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                                    selectedGroup.members.forEach { member ->
+                                        GroupMemberRow(
+                                            member = member,
+                                            isOwner = member.username.equals(selectedGroup.ownerUsername, ignoreCase = true),
+                                            onKickRequested = if (
+                                                isAdmin &&
+                                                !member.username.equals(selectedGroup.ownerUsername, ignoreCase = true)
+                                            ) {
+                                                { memberToKick = member }
+                                            } else {
+                                                null
+                                            },
                                         )
                                     }
                                 }
                             }
                         }
 
-                        selectedGroup.code?.let { InfoBadge(label = "Code: $it", isPrimary = false) }
+                        Divider(color = GreenSecondary.copy(alpha = 0.2f), thickness = 1.dp)
 
-                        Text(
-                            text = "Admin: ${selectedGroup.ownerUsername ?: "Unknown"}",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = GreenPrimary,
-                            fontWeight = FontWeight.SemiBold,
-                        )
-                        Text(
-                            text = "Members: ${selectedGroup.members.size}",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = GreenOnBackground.copy(alpha = 0.8f),
-                        )
-
+                        // Actions Section
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(12.dp),
                         ) {
                             BouncyAction(
                                 text = "Leave",
-                                container = GreenSecondary.copy(alpha = 0.55f),
+                                container = GreenSecondary.copy(alpha = 0.12f),
                                 content = GreenPrimary,
                                 icon = Icons.AutoMirrored.Filled.ExitToApp,
                                 modifier = Modifier.weight(1f),
                                 onClick = { showLeaveConfirmation = true },
                             )
-                            BouncyAction(
-                                text = "Delete",
-                                container = Color(0xFFFFEBEE),
-                                content = Color(0xFFC62828),
-                                icon = Icons.Default.Delete,
-                                modifier = Modifier.weight(1f),
-                                onClick = { showDeleteConfirmation = true },
-                            )
+                            if (isAdmin) {
+                                BouncyAction(
+                                    text = "Delete",
+                                    container = Color(0xFFFFEBEE),
+                                    content = Color(0xFFC62828),
+                                    icon = Icons.Default.Delete,
+                                    modifier = Modifier.weight(1f),
+                                    onClick = { showDeleteConfirmation = true },
+                                )
+                            }
                         }
                     }
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
+                if (!selectedGroup.isPersonal && isAdmin) {
+                    Spacer(modifier = Modifier.height(16.dp))
 
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(24.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color.White),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-                ) {
-                    Column(modifier = Modifier.padding(20.dp)) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                imageVector = Icons.Default.Group,
-                                contentDescription = null,
-                                tint = GreenPrimary,
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(24.dp),
+                        colors = CardDefaults.cardColors(containerColor = Color.White),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(20.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(10.dp),
+                        ) {
                             Text(
-                                text = "Members",
-                                style = MaterialTheme.typography.titleLarge,
+                                text = "Group Join Code",
+                                style = MaterialTheme.typography.titleMedium,
                                 color = GreenPrimary,
-                                fontWeight = FontWeight.Bold,
+                                fontWeight = FontWeight.Bold
                             )
-                        }
-
-                        Spacer(modifier = Modifier.height(14.dp))
-
-                        if (selectedGroup.members.isEmpty()) {
-                            Text(
-                                text = "No members yet.",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = GreenOnBackground.copy(alpha = 0.6f),
-                            )
-                        } else {
-                            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                                selectedGroup.members.forEach { member ->
-                                    GroupMemberRow(
-                                        member = member,
-                                        isOwner = member.username.equals(selectedGroup.ownerUsername, ignoreCase = true),
-                                        onKickRequested = if (
-                                            isAdmin &&
-                                            !member.username.equals(selectedGroup.ownerUsername, ignoreCase = true)
-                                        ) {
-                                            { memberToKick = member }
-                                        } else {
-                                            null
-                                        },
+                            
+                            Surface(
+                                shape = RoundedCornerShape(16.dp),
+                                color = GreenPrimary.copy(alpha = 0.08f),
+                                border = BorderStroke(1.5.dp, GreenPrimary.copy(alpha = 0.3f)),
+                            ) {
+                                Box(
+                                    modifier = Modifier.padding(horizontal = 28.dp, vertical = 14.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = selectedGroup.code ?: "Loading...",
+                                        style = if (selectedGroup.code != null) MaterialTheme.typography.headlineSmall else MaterialTheme.typography.bodyLarge,
+                                        color = if (selectedGroup.code != null) GreenPrimary else Color.Gray,
+                                        fontWeight = FontWeight.ExtraBold,
+                                        letterSpacing = if (selectedGroup.code != null) 2.sp else 0.sp
                                     )
                                 }
                             }
+
+                            Text(
+                                text = if (selectedGroup.code != null) "Share this code with others to join your cooking journey!" else "Fetching invite code...",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = GreenOnBackground.copy(alpha = 0.6f),
+                                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                            )
                         }
                     }
                 }
@@ -381,18 +484,24 @@ fun GroupsScreen(
                 }
             }
 
-            uiState.infoMessage?.let { message ->
-                Spacer(modifier = Modifier.height(14.dp))
-                Text(
-                    text = message,
-                    style = MaterialTheme.typography.bodyMedium,
+            Spacer(modifier = Modifier.height(96.dp))
+        }
+
+        // Loading Overlay
+        if (uiState.isLoading) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.15f))
+                    .clickable(enabled = false) {},
+                contentAlignment = Alignment.Center
+            ) {
+                androidx.compose.material3.CircularProgressIndicator(
+                    modifier = Modifier.size(44.dp),
                     color = GreenPrimary,
-                    fontWeight = FontWeight.SemiBold,
-                    modifier = Modifier.fillMaxWidth(),
+                    strokeWidth = 3.dp
                 )
             }
-
-            Spacer(modifier = Modifier.height(96.dp))
         }
     }
 

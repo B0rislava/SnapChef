@@ -57,4 +57,56 @@ class AuthApiService(private val client: HttpClient) {
             }
         }.body()
     }
+
+    suspend fun fetchGroups(): List<GroupOut> {
+        return client.get("${AppConfig.BASE_URL}/groups") {
+            AuthManager.accessToken?.let { token ->
+                header("Authorization", "Bearer $token")
+            }
+        }.body()
+    }
+
+    suspend fun createGroup(name: String): GroupOut {
+        return client.post("${AppConfig.BASE_URL}/groups") {
+            contentType(ContentType.Application.Json)
+            AuthManager.accessToken?.let { token ->
+                header("Authorization", "Bearer $token")
+            }
+            setBody(GroupCreateRequest(name = name))
+        }.body()
+    }
+
+    suspend fun joinGroup(code: String): GroupOut {
+        return client.post("${AppConfig.BASE_URL}/groups/join") {
+            contentType(ContentType.Application.Json)
+            AuthManager.accessToken?.let { token ->
+                header("Authorization", "Bearer $token")
+            }
+            setBody(JoinGroupRequest(code = code))
+        }.body()
+    }
+
+    suspend fun deleteGroup(id: Int) {
+        client.delete("${AppConfig.BASE_URL}/groups/$id") {
+            AuthManager.accessToken?.let { token ->
+                header("Authorization", "Bearer $token")
+            }
+        }
+    }
+
+    suspend fun leaveGroup(id: Int) {
+        client.post("${AppConfig.BASE_URL}/groups/$id/leave") {
+            AuthManager.accessToken?.let { token ->
+                header("Authorization", "Bearer $token")
+            }
+        }
+    }
+    
+    suspend fun fetchGroupDetail(id: Int): GroupDetailOut {
+        return client.get("${AppConfig.BASE_URL}/groups/$id") {
+            AuthManager.accessToken?.let { token ->
+                header("Authorization", "Bearer $token")
+            }
+        }.body()
+    }
 }
