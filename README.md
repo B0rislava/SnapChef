@@ -1,51 +1,116 @@
 # SnapChef
 
-SnapChef is a mobile application designed to simplify the cooking experience through artificial intelligence and social collaboration. The application allows users to scan ingredients using their camera, manage shared cooking groups, and receive personalized recipe suggestions based on available inventory.
+> **Reduce food waste. Cook better together.** AI-powered ingredient recognition and collaborative recipe generation for the modern kitchen.
 
-## Core Features
-
-### AI Ingredient Recognition
-Users can take photos of their kitchen inventory. The integrated AI identifies ingredients and automatically populates the user's digital pantry, reducing manual entry time and improving accuracy.
-
-### Collaborative Groups
-The platform supports social cooking through the creation of shared groups. Members of a group can combine their individual pantries to receive collective recipe suggestions. This feature is designed to facilitate communal meal planning and reduce food waste.
-
-### Intelligent Recipe Generation
-By leveraging advanced large language models, SnapChef generates recipes that prioritize ingredients nearing their expiration. The system provides step-by-step instructions, nutritional information, and highlights which group member provides each ingredient.
-
-### Personalized Recommendations
-The application learns from user interactions and saved recipes to provide a personalized feed of culinary suggestions tailored to individual preferences and dietary needs.
-
-### Secure Authentication
-SnapChef supports multiple authentication methods including Google Sign-In and traditional email-based registration with secure verification processes.
-
-## Technical Architecture
-
-### Frontend
-The mobile client is built using Kotlin Multiplatform and Compose Multiplatform. This architecture allows for shared business logic while maintaining high-performance, platform-specific user experiences for both Android and iOS devices.
-
-### Backend
-The backend infrastructure is powered by a Python-based FastAPI server. It manages the database, handles AI processing requests, and provides secure RESTful APIs for the mobile client.
-
-### Data Management
-The project uses a structured data model to track user profiles, group memberships, and recipe history. Real-time synchronisation ensures that group inventories are always up-to-date across all member devices.
-
-## Requirements
-
-- Android API level 24 or higher
-- iOS 15.0 or higher
-- Internet connectivity for AI processing and synchronization
-
-## Build Instructions
-
-### Android
-To build the Android application, use the Gradle wrapper:
-- Windows: .\gradlew.bat :composeApp:assembleDebug
-- macOS/Linux: ./gradlew :composeApp:assembleDebug
-
-### iOS
-The iOS application can be built by opening the /iosApp directory in Xcode or using the Gradle task :composeApp:iosDeploy.
+SnapChef is a mobile application that combines artificial intelligence with social collaboration to transform how people plan meals. Snap a photo of your fridge, share your pantry with friends, and let AI suggest recipes that prioritize ingredients nearing expiration.
 
 ---
 
-SnapChef is developed for the HackTues competition, focusing on sustainable living and social technology.
+## 1. Key Features
+
+### 1.1 AI Ingredient Recognition
+Snap a photo of your kitchen inventory and let our computer vision model instantly identify ingredients. No more manual pantry updates—just point, shoot, and cook.
+
+### 1.2 **Collaborative Groups**
+Create shared cooking groups with friends, family, or roommates. Combine individual pantries to unlock group recipes and eliminate duplicate groceries.
+
+### 1.3 **Intelligent Recipe Generation**
+Advanced LLMs generate recipes that prioritize ingredients nearing expiration. Each recipe includes:
+- Step-by-step cooking instructions
+- Nutritional information
+- Attribution of which group member provides each ingredient
+- Customization based on dietary preferences
+
+### 1.4 **Personalized Recommendations**
+Your app learns from saved recipes and interactions to build a personalized feed tailored to your taste, dietary needs, and cooking style.
+
+### 1.5 **Secure Authentication**
+Multiple sign-in options including Google Sign-In and email-based registration with secure verification.
+
+---
+
+## 2. Architecture
+
+### 2.1 Frontend
+Built with **Kotlin Multiplatform** and **Compose Multiplatform**, enabling:
+- Shared business logic across platforms
+- Native performance on Android and iOS
+- Consistent, modern UI powered by Jetpack Compose
+
+### 2.2 Backend
+**Python FastAPI** server handles:
+- User and group management
+- AI processing and recipe generation
+- Real-time inventory synchronization
+- Secure RESTful APIs
+
+### 2.3 Data Management
+Structured data model tracking:
+- User profiles and preferences
+- Group memberships and pantries
+- Recipe history and ratings
+- Real-time synchronization across all devices
+
+---
+
+## 3. System Requirements
+
+| Platform | Minimum Version |
+|----------|-----------------|
+| Android  | API 24+         |
+| iOS      | 15.0+           |
+| General  | Internet connection required |
+
+---
+
+## 4. Quick Start
+
+### 4.1 Android
+```bash
+# Build debug APK
+./gradlew :composeApp:assembleDebug
+
+# Or on Windows
+.\gradlew.bat :composeApp:assembleDebug
+```
+
+### 4.2 iOS
+```bash
+# Option 1: Open in Xcode
+open iosApp
+
+# Option 2: Build via Gradle
+./gradlew :composeApp:iosDeploy
+```
+
+---
+
+## 5. How It Works
+
+1. **Capture** → Take a photo of your ingredients
+2. **Identify** → AI recognizes and catalogs items
+3. **Share** → Invite friends to your cooking group
+4. **Generate** → Get recipes optimized for your group's combined pantry
+5. **Cook** → Follow step-by-step instructions and track progress
+6. **Discover** → Get personalized recipe recommendations over time
+
+---
+
+## 6. Sustainability Impact
+
+SnapChef addresses food waste in two ways:
+- **Ingredient Prioritization**: Recipes suggest using ingredients that expire soon
+- **Smart Sharing**: Group planning reduces duplicate purchases and grocery waste
+- **Real-time Tracking**: Know exactly what you have to avoid buying duplicates
+
+---
+
+## 7. HackTUES 12 Submission
+
+**Theme**: Code to Care  
+**Focus**: Zero Left
+
+SnapChef tackles food waste reduction through intelligent inventory management and community-driven meal planning. By leveraging AI and social features, we empower users to cook smarter, waste less, and enjoy better meals together.
+
+---
+
