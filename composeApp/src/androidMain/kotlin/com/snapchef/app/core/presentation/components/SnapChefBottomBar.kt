@@ -7,12 +7,12 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
-import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.DinnerDining
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.People
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.outlined.AccountCircle
-import androidx.compose.material.icons.outlined.FavoriteBorder
+import androidx.compose.material.icons.outlined.DinnerDining
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.People
 import androidx.compose.material.icons.outlined.StarBorder
@@ -57,8 +57,8 @@ fun SnapChefBottomBar(
             verticalAlignment = Alignment.CenterVertically
         ) {
             BottomBarItem(
-                icon = Icons.Outlined.FavoriteBorder,
-                selectedIcon = Icons.Filled.Favorite,
+                icon = Icons.Outlined.DinnerDining,
+                selectedIcon = Icons.Filled.DinnerDining,
                 contentDescription = "Recipes",
                 isSelected = currentTab == MainTab.RECIPES,
                 onClick = { onTabSelected(MainTab.RECIPES) }

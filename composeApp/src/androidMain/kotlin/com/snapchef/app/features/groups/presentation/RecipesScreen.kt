@@ -39,6 +39,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -153,29 +154,7 @@ fun RecipesScreen(
                 }
             }
 
-            if (!selectedGroup.isPersonal && selectedGroup.code != null) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        text = "Group Code: ",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = GreenOnBackground.copy(alpha = 0.7f)
-                    )
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(GreenPrimary.copy(alpha = 0.15f))
-                            .padding(horizontal = 8.dp, vertical = 4.dp)
-                    ) {
-                        Text(
-                            text = selectedGroup.code,
-                            style = MaterialTheme.typography.labelMedium,
-                            color = GreenPrimary,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-                }
-                Spacer(modifier = Modifier.height(8.dp))
-            }
+
             if (infoMessage != null) {
                 Text(
                     text = infoMessage,
@@ -252,9 +231,14 @@ fun RecipesScreen(
                                     )
                                     Spacer(modifier = Modifier.width(6.dp))
                                     Text(
-                                        text = if (recipe.ownerName == "You") "Saved by you" else "Shared by ${recipe.ownerName}",
+                                        text = when {
+                                            recipe.ownerName == "AI Suggestion" -> "AI suggested for your group"
+                                            recipe.ownerName == "You" -> "Saved by you"
+                                            else -> "Shared by ${recipe.ownerName}"
+                                        },
                                         style = MaterialTheme.typography.bodySmall,
-                                        color = GreenOnBackground.copy(alpha = 0.7f),
+                                        color = if (recipe.ownerName == "AI Suggestion") GreenPrimary else GreenOnBackground.copy(alpha = 0.7f),
+                                        fontWeight = if (recipe.ownerName == "AI Suggestion") FontWeight.Bold else FontWeight.Normal
                                     )
                                 }
                                 
@@ -374,11 +358,15 @@ private fun GroupRecipeDetailsScreen(
                         Box(
                             modifier = Modifier
                                 .clip(RoundedCornerShape(12.dp))
-                                .background(GreenSecondary.copy(alpha=0.3f))
+                                .background(if (recipe.ownerName == "AI Suggestion") GreenPrimary.copy(alpha=0.15f) else GreenSecondary.copy(alpha=0.3f))
                                 .padding(horizontal = 12.dp, vertical = 6.dp)
                         ) {
                             Text(
-                                text = if (recipe.ownerName == "You") "Saved" else "Shared",
+                                text = when {
+                                    recipe.ownerName == "AI Suggestion" -> "AI Group Suggestion"
+                                    recipe.ownerName == "You" -> "Saved"
+                                    else -> "Shared"
+                                },
                                 style = MaterialTheme.typography.labelMedium,
                                 color = GreenPrimary,
                                 fontWeight = FontWeight.Bold
@@ -441,6 +429,10 @@ private fun GroupRecipeDetailsScreen(
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         recipe.availableItems.forEach { item ->
+                            val parts = item.split(" (from ")
+                            val itemName = parts[0]
+                            val contributor = if (parts.size > 1) parts[1].removeSuffix(")") else null
+                            
                             Box(
                                 modifier = Modifier
                                     .clip(RoundedCornerShape(16.dp))
@@ -448,12 +440,30 @@ private fun GroupRecipeDetailsScreen(
                                     .border(1.dp, GreenPrimary.copy(alpha = 0.8f), RoundedCornerShape(16.dp))
                                     .padding(horizontal = 12.dp, vertical = 6.dp)
                             ) {
-                                Text(
-                                    text = item,
-                                    style = MaterialTheme.typography.labelMedium,
-                                    color = GreenPrimary,
-                                    fontWeight = FontWeight.Bold
-                                )
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Text(
+                                        text = itemName,
+                                        style = MaterialTheme.typography.labelMedium,
+                                        color = GreenPrimary,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                    if (contributor != null) {
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Surface(
+                                            color = GreenPrimary,
+                                            shape = RoundedCornerShape(8.dp),
+                                            modifier = Modifier.height(16.dp)
+                                        ) {
+                                            Text(
+                                                text = contributor,
+                                                style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
+                                                color = Color.White,
+                                                modifier = Modifier.padding(horizontal = 4.dp),
+                                                fontWeight = FontWeight.Black
+                                            )
+                                        }
+                                    }
+                                }
                             }
                         }
 
