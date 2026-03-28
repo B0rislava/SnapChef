@@ -12,7 +12,7 @@ enum MainTab {
 
     var icon: String {
         switch self {
-        case .recipes: return "heart"
+        case .recipes: return "person.3"
         case .home: return "house"
         case .profile: return "person.circle"
         }
@@ -20,7 +20,7 @@ enum MainTab {
 
     var selectedIcon: String {
         switch self {
-        case .recipes: return "heart.fill"
+        case .recipes: return "person.3.fill"
         case .home: return "house.fill"
         case .profile: return "person.circle.fill"
         }
@@ -28,7 +28,7 @@ enum MainTab {
 
     var label: String {
         switch self {
-        case .recipes: return "Recipes"
+        case .recipes: return "Groups"
         case .home: return "Home"
         case .profile: return "Profile"
         }

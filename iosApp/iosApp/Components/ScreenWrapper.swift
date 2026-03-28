@@ -20,14 +20,14 @@ struct ScreenWrapper: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .opacity(currentTab == .home ? 1 : 0)
                 
-                RecipesView()
+                GroupsView()
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .opacity(currentTab == .recipes ? 1 : 0)
 
                 ProfileView(
                     onBack: { currentTab = .home },
-                    onLogout: { print("Logging out...") },
-                    onDeleteAccount: { print("Deleting account...") }
+                    onLogout: { SessionManager.shared.logout() },
+                    onDeleteAccount: { SessionManager.shared.logout() }
                 )
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .opacity(currentTab == .profile ? 1 : 0)

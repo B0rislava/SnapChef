@@ -11,15 +11,15 @@ struct HomeView: View {
     var onGenerateRecipes: ([String]) -> Void = { _ in }
 
     @StateObject private var permissions = CameraPermissionHandler()
+    @StateObject private var viewModel   = HomeViewModel()
 
     @State private var showModal     = false
-    @State private var isAnalyzing   = false
-    @State private var ingredients:  [String] = []
     @State private var newIngredient = ""
 
-    // Photo picker
+    // Photo pickers
     @State private var selectedPhotoItem: PhotosPickerItem? = nil
-    @State private var showPhotoPicker = false
+    @State private var showPhotoPicker  = false
+    @State private var showCameraPicker = false
 
     var body: some View {
         ZStack {
@@ -117,35 +117,57 @@ struct HomeView: View {
         )
         .onChange(of: selectedPhotoItem) { _, newItem in
             guard let newItem else { return }
-            ingredients  = []
-            isAnalyzing  = true
-            showModal    = true
+            showPhotoPicker = false
+            showModal       = true
 
             Task {
-                // Simulate AI recognition from picked image
-                try? await Task.sleep(nanoseconds: 1_500_000_000)
-                await MainActor.run {
-                    withAnimation(.easeInOut(duration: 0.3)) {
-                        ingredients = ["Tomatoes", "Eggs", "Cheese", "Onion"]
-                        isAnalyzing = false
+                if let data = try? await newItem.loadTransferable(type: Data.self),
+                   let image = UIImage(data: data) {
+                    await MainActor.run {
+                        viewModel.analyzeImage(image: image)
+                    }
+                } else {
+                    await MainActor.run {
+                        viewModel.errorMessage = "Failed to load the selected image."
                     }
                 }
+                // Clear selection so the same image can be picked again if needed
+                selectedPhotoItem = nil
             }
         }
 
         // Ingredients sheet
         .sheet(isPresented: $showModal) {
             IngredientsSheet(
-                isAnalyzing:   $isAnalyzing,
-                ingredients:   $ingredients,
+                isAnalyzing:   $viewModel.isAnalyzing,
+                ingredients:   $viewModel.ingredients,
                 newIngredient: $newIngredient,
                 onGenerate: {
                     showModal = false
-                    onGenerateRecipes(ingredients)
+                    onGenerateRecipes(viewModel.ingredients)
                 }
             )
             .presentationDetents([.medium, .large])
             .presentationDragIndicator(.visible)
+        }
+        
+        // Camera sheet
+        .fullScreenCover(isPresented: $showCameraPicker) {
+            ImagePicker(sourceType: .camera) { image in
+                showModal = true
+                viewModel.analyzeImage(image: image)
+            }
+            .ignoresSafeArea()
+        }
+        
+        // Error alert
+        .alert("Error", isPresented: Binding(
+            get: { viewModel.errorMessage != nil },
+            set: { if !$0 { viewModel.errorMessage = nil } }
+        )) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(viewModel.errorMessage ?? "An unknown error occurred.")
         }
 
         // Camera denied alert
@@ -167,17 +189,7 @@ struct HomeView: View {
 
     private func onCameraSnap() {
         permissions.requestCameraPermission {
-            ingredients  = []
-            isAnalyzing  = true
-            showModal    = true
-
-            // Simulate AI recognition
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
-                withAnimation(.easeInOut(duration: 0.3)) {
-                    ingredients = ["Tomatoes", "Eggs", "Cheese", "Onion"]
-                    isAnalyzing = false
-                }
-            }
+            showCameraPicker = true
         }
     }
 

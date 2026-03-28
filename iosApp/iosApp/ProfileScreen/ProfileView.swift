@@ -70,7 +70,9 @@ struct ProfileView: View {
         .alert("Log out", isPresented: $showLogoutDialog) {
             Button("Yes", role: .destructive) {
                 viewModel.logout()
-                onLogout()
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                    onLogout()
+                }
             }
             Button("Cancel", role: .cancel) {}
         } message: {
@@ -78,8 +80,11 @@ struct ProfileView: View {
         }
         .alert("Delete account", isPresented: $showDeleteDialog) {
             Button("Delete", role: .destructive) {
-                viewModel.deleteAccount()
-                onDeleteAccount()
+                viewModel.deleteAccount(onSuccess: {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                        onDeleteAccount()
+                    }
+                })
             }
             Button("Cancel", role: .cancel) {}
         } message: {
@@ -158,9 +163,31 @@ struct ProfileView: View {
                             .transition(.opacity)
                     }
 
+                    if let errMsg = viewModel.errorMessage {
+                        Spacer().frame(height: 12)
+                        Text(errMsg)
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundColor(.red)
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 10)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .background(Color.red.opacity(0.08))
+                            .clipShape(RoundedRectangle(cornerRadius: 14))
+                            .transition(.opacity)
+                    }
+
                     Spacer().frame(height: 24)
 
-                    IngredientInventoryCard(items: viewModel.inventoryItems)
+                    ZStack {
+                        IngredientInventoryCard(items: viewModel.inventoryItems)
+                        if viewModel.isLoading {
+                            RoundedRectangle(cornerRadius: 24)
+                                .fill(Color.white.opacity(0.6))
+                            ProgressView()
+                                .progressViewStyle(CircularProgressViewStyle(tint: Color.greenPrimary))
+                                .scaleEffect(1.2)
+                        }
+                    }
 
                     Spacer().frame(height: 32)
                     HStack(spacing: 16) {
@@ -191,6 +218,9 @@ struct ProfileView: View {
                 }
                 .padding(.horizontal, 24)
                 .safeAreaInset(edge: .bottom) { Color.clear.frame(height: 76) }
+            }
+            .refreshable {
+                viewModel.loadInventory()
             }
         }
         .navigationBarHidden(true)
