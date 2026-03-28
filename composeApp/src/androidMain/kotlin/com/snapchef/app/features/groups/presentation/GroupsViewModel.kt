@@ -53,7 +53,7 @@ class GroupsViewModel : ViewModel() {
             RecipeStore.sharedRecipes.collect { shared ->
                 _uiState.update { state ->
                     val updatedGroups = state.groups.map { group ->
-                        if (group.id != "personal") {
+                        if (group.id != "personal" && !group.id.startsWith("group_")) {
                             group.copy(recipes = shared)
                         } else {
                             group
@@ -83,8 +83,10 @@ class GroupsViewModel : ViewModel() {
                             isPersonal = false
                         )
                     }
+                    val mockGroups = state.groups.filter { it.id.startsWith("group_") }
+                    val personalGroup = state.groups.first { it.isPersonal }
                     state.copy(
-                        groups = listOf(state.groups.first { it.isPersonal }) + mapped,
+                        groups = (listOf(personalGroup) + mockGroups) + mapped.filter { m -> !m.id.startsWith("group_") },
                         isLoading = false
                     )
                 }
@@ -285,7 +287,8 @@ class GroupsViewModel : ViewModel() {
             val root = JSONObject(json)
             val array = root.optJSONArray("groups") ?: JSONArray()
             val mappedGroups = buildList {
-                add(defaultState().groups.first())
+                val defaults = defaultState().groups
+                addAll(defaults.filter { it.isPersonal || it.id.startsWith("group_") })
                 for (i in 0 until array.length()) {
                     val g = array.optJSONObject(i) ?: continue
                     val recipesArray = g.optJSONArray("recipes") ?: JSONArray()
@@ -439,6 +442,74 @@ class GroupsViewModel : ViewModel() {
                 ownerUsername = "You",
                 members = listOf(GroupMember("You")),
                 isPersonal = true,
+            ),
+            RecipeGroup(
+                id = "group_1",
+                name = "Family & Friends",
+                code = "FOOD12",
+                ownerUsername = "You",
+                members = listOf(
+                    GroupMember("You"),
+                    GroupMember("Elena"),
+                    GroupMember("Ivan"),
+                ),
+                isPersonal = false,
+                recipes = listOf(
+                    SharedRecipe(
+                        title = "Morning Cloud Eggs",
+                        description = "A light and fluffy breakfast suggested by AI based on your group's shared ingredients!",
+                        ownerName = "AI Suggestion",
+                        availableItems = listOf("Eggs (from You)", "Spinach (from Elena)", "Whole Wheat Bread (from Ivan)"),
+                        missingItems = listOf("Black Pepper", "Olive Oil"),
+                        instructions = listOf(
+                            "Separate the egg whites from yolks.",
+                            "Whip the whites with a pinch of salt until stiff peaks form.",
+                            "Gently fold in the chopped spinach provided by Elena.",
+                            "Spoon the whites onto the bread provided by Ivan and create a small well in the center.",
+                            "Bake at 200°C for 3 minutes, then add the yolk to the well and bake for another 3 minutes.",
+                            "Garnish with black pepper if available."
+                        ),
+                        perishableProducts = listOf(
+                            PerishableProduct("Eggs", 7, 0.8f),
+                            PerishableProduct("Spinach", 3, 0.4f),
+                            PerishableProduct("Bread", 5, 0.6f)
+                        )
+                    )
+                )
+            ),
+            RecipeGroup(
+                id = "group_2",
+                name = "Chef Squad",
+                code = "CHEF01",
+                ownerUsername = "Elena",
+                members = listOf(
+                    GroupMember("You"),
+                    GroupMember("Elena"),
+                    GroupMember("Ivan"),
+                    GroupMember("Sofia"),
+                ),
+                isPersonal = false,
+                recipes = listOf(
+                    SharedRecipe(
+                        title = "Collaborative Veggie Stir-fry",
+                        description = "A perfectly balanced stir-fry made entirely from ingredients your group already has! No shopping needed.",
+                        ownerName = "AI Suggestion",
+                        availableItems = listOf("Broccoli (from You)", "Carrots (from Elena)", "Tofu (from Ivan)", "Soy Sauce (from Sofia)"),
+                        missingItems = emptyList(),
+                        instructions = listOf(
+                            "Press and cube the tofu provided by Ivan, then sauté until golden.",
+                            "Add the sliced carrots from Elena and broccoli from You to the pan.",
+                            "Stir-fry on high heat for 5-7 minutes until vegetables are tender-crisp.",
+                            "Pour in the soy sauce from Sofia and toss well to coat everything.",
+                            "Serve hot and enjoy the result of your team effort!"
+                        ),
+                        perishableProducts = listOf(
+                            PerishableProduct("Broccoli", 4, 0.7f),
+                            PerishableProduct("Carrots", 10, 0.9f),
+                            PerishableProduct("Tofu", 6, 0.5f)
+                        )
+                    )
+                )
             )
         )
         return GroupsUiState(groups = groups, selectedGroupId = "personal")
