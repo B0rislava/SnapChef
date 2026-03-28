@@ -46,3 +46,52 @@ data class AuthResponse(
     @SerialName("token_type") val tokenType: String,
     val user: UserOut
 )
+
+@Serializable
+data class PantryItemOut(
+    val id: Int,
+    val name: String,
+    val quantity: Int,
+    val unit: String? = null,
+    val source: String = "manual",
+    @SerialName("session_id") val sessionId: Int? = null,
+    @SerialName("image_id") val imageId: String? = null,
+    @SerialName("created_at") val createdAt: String? = null,
+    @SerialName("expires_at") val expiresAt: String? = null
+)
+
+@Serializable
+data class GroupOut(
+    val id: Int,
+    val name: String,
+    @SerialName("created_by_user_id") val createdByUserId: Int,
+    @SerialName("created_at") val createdAt: String,
+    val code: String? = null
+)
+
+@Serializable
+data class GroupMemberOut(
+    val user: UserOut,
+    val role: String,
+    @SerialName("joined_at") val joinedAt: String
+)
+
+@Serializable
+data class GroupDetailOut(
+    val id: Int,
+    val name: String,
+    @SerialName("created_by_user_id") val createdByUserId: Int,
+    @SerialName("created_at") val createdAt: String,
+    val members: List<GroupMemberOut> = emptyList(),
+    val code: String? = null
+)
+
+@Serializable
+data class GroupCreateRequest(
+    val name: String
+)
+
+@Serializable
+data class JoinGroupRequest(
+    val code: String
+)

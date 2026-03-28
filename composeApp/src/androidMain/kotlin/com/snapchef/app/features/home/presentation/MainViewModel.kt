@@ -31,7 +31,7 @@ data class MainUiState(
     val activeRecipeSession: ActiveRecipeSessionSession? = null,
     val shouldNavigateToAuth: Boolean = false,
     val isCameraActive: Boolean = false,
-    val inventoryItems: List<ProfileInventoryItem> = defaultInventoryItems(),
+    val inventoryItems: List<ProfileInventoryItem> = emptyList(),
 )
 
 class MainViewModel : ViewModel() {
@@ -51,6 +51,39 @@ class MainViewModel : ViewModel() {
                 currentTab = tab,
                 isEditingProfile = if (tab == MainTab.PROFILE) it.isEditingProfile else false,
             )
+        }
+        if (tab == MainTab.PROFILE) {
+            refreshPantryItems()
+        }
+    }
+
+    private fun refreshPantryItems() {
+        viewModelScope.launch {
+            try {
+                val items = apiService.fetchPantryItems()
+                _uiState.update { state ->
+                    // Group by normalized name (lowercase) to unify "Egg" and "egg"
+                    val unifiedItems = items.groupBy { it.name.trim().lowercase() }
+                        .map { (lowerName, group) ->
+                            val firstName = group.first().name.trim().replaceFirstChar { it.uppercase() }
+                            val totalQty = group.sumOf { it.quantity }
+                            // If they have different units, we'll use the unit of the first item for simplicity, 
+                            // or just the quantity if units are missing.
+                            val firstUnit = group.firstOrNull { it.unit != null }?.unit
+                            val quantityStr = if (firstUnit != null) "$totalQty $firstUnit" else "$totalQty"
+                            
+                            ProfileInventoryItem(
+                                name = firstName,
+                                category = if (group.any { it.source == "scan" }) "Scanned" else "Manual",
+                                quantity = quantityStr
+                            )
+                        }
+
+                    state.copy(inventoryItems = unifiedItems)
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
         }
     }
 
@@ -149,15 +182,3 @@ class MainViewModel : ViewModel() {
 
 }
 
-private fun defaultInventoryItems(): List<ProfileInventoryItem> {
-    return listOf(
-        ProfileInventoryItem("Eggs", "Protein", "6"),
-        ProfileInventoryItem("Cheddar Cheese", "Dairy", "200 g"),
-        ProfileInventoryItem("Tomatoes", "Produce", "3"),
-        ProfileInventoryItem("Chicken Breast", "Protein", "400 g"),
-        ProfileInventoryItem("Pasta", "Pantry", "500 g"),
-        ProfileInventoryItem("Spinach", "Produce", "100 g"),
-        ProfileInventoryItem("Milk", "Dairy", "1 L"),
-        ProfileInventoryItem("Olive Oil", "Pantry", "1 bottle"),
-    )
-}
