@@ -28,11 +28,17 @@ struct RecommendedRecipesView: View {
                let recipe = viewModel.uiState.recipes[safe: idx] {
                 // Detail view
                 RecipeDetailView(
-                    recipe:             recipe,
+                    recipe: recipe,
                     checkedIngredients: $viewModel.uiState.checkedIngredients,
-                    infoMessage:        viewModel.uiState.infoMessage,
-                    onBack:             { viewModel.closeRecipe() },
-                    onToggle:           { viewModel.toggleIngredient($0, checked: $1) }
+                    infoMessage: viewModel.uiState.infoMessage,
+                    onBack: { viewModel.closeRecipe() },
+                    onToggle: { viewModel.toggleIngredient($0, checked: $1) },
+                    onSave: {
+                        viewModel.setInfoMessage(NSLocalizedString("saved", comment: ""))
+                    },
+                    onShare:            {
+                        viewModel.setInfoMessage(NSLocalizedString("shared_to_your_group", comment: ""))
+                    }
                 )
                 .transition(.move(edge: .trailing).combined(with: .opacity))
             } else {
@@ -50,10 +56,10 @@ struct RecommendedRecipesView: View {
                 Spacer().frame(height: 24)
 
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("Recommended recipes")
+                    Text(NSLocalizedString("recommended_recipes", comment: ""))
                         .font(.system(size: 28, weight: .heavy))
                         .foregroundColor(Color.greenPrimary)
-                    Text("Fresh picks personalized for your kitchen.")
+                    Text(NSLocalizedString("fresh_picks", comment: ""))
                         .font(.system(size: 15))
                         .foregroundColor(Color.greenOnBackground.opacity(0.75))
                 }
@@ -65,7 +71,7 @@ struct RecommendedRecipesView: View {
                     .overlay(
                         HStack {
                             VStack(alignment: .leading, spacing: 2) {
-                                Text("Today's picks")
+                                Text(NSLocalizedString("todays_picks", comment: ""))
                                     .font(.system(size: 13, weight: .semibold))
                                     .foregroundColor(.white.opacity(0.9))
                                 Text("\(viewModel.uiState.recipes.count) curated recipes")
@@ -81,7 +87,7 @@ struct RecommendedRecipesView: View {
                     )
 
                 VStack(alignment: .leading, spacing: 0) {
-                    Text("Choose your next meal")
+                    Text(NSLocalizedString("choose_yours_next_meal", comment: ""))
                         .font(.system(size: 20, weight: .bold))
                         .foregroundColor(Color.greenPrimary)
                         .padding(.bottom, 16)
@@ -177,7 +183,7 @@ struct RecipePill: View {
     }
 }
 
-private struct RecipeBouncyButtonStyle: ButtonStyle {
+struct RecipeBouncyButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .scaleEffect(configuration.isPressed ? 0.98 : 1.0)

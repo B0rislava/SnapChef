@@ -27,3 +27,13 @@
 "snapchef" = "SnapChef";
 "snapchef" = "SnapChef";
 "welcome_text" = "Snap a photo, discover a recipe.\nCook smarter every day.";
+"saved" = "Saved.";
+"shared_to_your_group" = "Shared to your group.";
+"recommended_recipes" = "Recommended recipes";
+"fresh_picks" = "Fresh picks personalized for your kitchen.";
+"todays_picks" = "Today's picks";
+"choose_your_next_meal" = "Choose your next meal";
+"recipe_details" = "Recipe details";
+"description" = "Description";
+"ingredients" = "Ingredients";
+"instructions" = "Instructions";

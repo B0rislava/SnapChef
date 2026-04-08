@@ -12,13 +12,15 @@ struct RecipeDetailView: View {
     let infoMessage:         String?
     let onBack:              () -> Void
     let onToggle:            (String, Bool) -> Void
+    var onSave:              () -> Void = {}
+    var onShare:             () -> Void = {}
 
     var body: some View {
         ScrollView(showsIndicators: false) {
             VStack(alignment: .leading, spacing: 16) {
                 Spacer().frame(height: 24)
 
-                //Back button + title
+                // Back button + title
                 HStack(spacing: 10) {
                     Button(action: onBack) {
                         ZStack {
@@ -32,22 +34,18 @@ struct RecipeDetailView: View {
                     }
                     .buttonStyle(.plain)
 
-                    Text("Recipe details")
+                    Text(NSLocalizedString("recipe_details", comment: ""))
                         .font(.system(size: 17, weight: .bold))
                         .foregroundColor(Color.greenPrimary)
                 }
 
-                Spacer().frame(height: 4)
-
-                //Detail card
+                // Detail card
                 VStack(alignment: .leading, spacing: 14) {
 
-                    // Title
                     Text(recipe.title)
                         .font(.system(size: 24, weight: .heavy))
                         .foregroundColor(Color.greenPrimary)
 
-                    // Pill + ingredient count
                     HStack(spacing: 8) {
                         RecipePill(isQuick: recipe.isQuick)
                         HStack(spacing: 6) {
@@ -64,9 +62,8 @@ struct RecipeDetailView: View {
                         .clipShape(Capsule())
                     }
 
-                    // Description
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("Description")
+                        Text(NSLocalizedString("description", comment: ""))
                             .font(.system(size: 14, weight: .semibold))
                             .foregroundColor(Color.greenPrimary)
                         Text(recipe.description)
@@ -74,12 +71,11 @@ struct RecipeDetailView: View {
                             .foregroundColor(Color.greenOnBackground)
                     }
 
-                    Divider()
-                        .background(Color.greenSecondary.opacity(0.4))
+                    Divider().background(Color.greenSecondary.opacity(0.4))
 
                     // Ingredients
                     VStack(alignment: .leading, spacing: 10) {
-                        Text("Ingredients")
+                        Text(NSLocalizedString("ingredients", comment: ""))
                             .font(.system(size: 14, weight: .semibold))
                             .foregroundColor(Color.greenPrimary)
 
@@ -87,18 +83,15 @@ struct RecipeDetailView: View {
                             ForEach(recipe.ingredients, id: \.self) { ingredient in
                                 HStack(spacing: 10) {
                                     Image(systemName: checkedIngredients[ingredient] == true
-                                          ? "checkmark.square.fill"
-                                          : "square")
+                                          ? "checkmark.square.fill" : "square")
                                         .font(.system(size: 20))
                                         .foregroundColor(Color.greenPrimary)
                                         .onTapGesture {
                                             onToggle(ingredient, !(checkedIngredients[ingredient] ?? false))
                                         }
-
                                     Text(ingredient)
                                         .font(.system(size: 15))
                                         .foregroundColor(Color.greenOnBackground)
-
                                     Spacer()
                                 }
                             }
@@ -112,40 +105,15 @@ struct RecipeDetailView: View {
                         )
                     }
 
-                    Divider()
-                        .background(Color.greenSecondary.opacity(0.4))
+                    Divider().background(Color.greenSecondary.opacity(0.4))
 
                     // Instructions
                     VStack(alignment: .leading, spacing: 10) {
-                        Text("Instructions")
+                        Text(NSLocalizedString("instructions", comment: ""))
                             .font(.system(size: 14, weight: .semibold))
                             .foregroundColor(Color.greenPrimary)
 
-                        VStack(spacing: 10) {
-                            ForEach(Array(recipe.instructions.enumerated()), id: \.offset) { i, step in
-                                HStack(alignment: .top, spacing: 10) {
-                                    ZStack {
-                                        Circle()
-                                            .fill(Color.greenPrimary.opacity(0.14))
-                                            .frame(width: 24, height: 24)
-                                        Text("\(i + 1)")
-                                            .font(.system(size: 12, weight: .bold))
-                                            .foregroundColor(Color.greenPrimary)
-                                    }
-                                    Text(step)
-                                        .font(.system(size: 15))
-                                        .foregroundColor(Color.greenOnBackground)
-                                        .frame(maxWidth: .infinity, alignment: .leading)
-                                }
-                            }
-                        }
-                        .padding(12)
-                        .background(Color.greenBackground)
-                        .clipShape(RoundedRectangle(cornerRadius: 16))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 16)
-                                .stroke(Color.greenSecondary.opacity(0.6), lineWidth: 1)
-                        )
+                        InstructionsList(instructions: recipe.instructions)
                     }
 
                     // Checked count
@@ -159,9 +127,80 @@ struct RecipeDetailView: View {
                 .clipShape(RoundedRectangle(cornerRadius: 24))
                 .shadow(color: .black.opacity(0.07), radius: 8, x: 0, y: 4)
 
+                // Save/Share
+                HStack(spacing: 16) {
+                    Button(action: onSave) {
+                        Text("Save")
+                            .font(.system(size: 15, weight: .semibold))
+                            .foregroundColor(.white)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 52)
+                            .background(Color.greenPrimary)
+                            .clipShape(RoundedRectangle(cornerRadius: 24))
+                    }
+                    .buttonStyle(RecipeBouncyButtonStyle())
+
+                    Button(action: onShare) {
+                        Text("Share")
+                            .font(.system(size: 15, weight: .semibold))
+                            .foregroundColor(Color.greenPrimary)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 52)
+                            .background(Color.greenSecondary.opacity(0.5))
+                            .clipShape(RoundedRectangle(cornerRadius: 24))
+                    }
+                    .buttonStyle(RecipeBouncyButtonStyle())
+                }
+
+                // Info message
+                if let msg = infoMessage {
+                    Text(msg)
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundColor(Color.greenPrimary)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 8)
+                        .frame(maxWidth: .infinity)
+                        .background(Color.greenPrimary.opacity(0.12))
+                        .clipShape(RoundedRectangle(cornerRadius: 14))
+                        .transition(.opacity)
+                        .animation(.easeInOut, value: infoMessage)
+                }
+
                 Spacer().frame(height: 96)
             }
             .padding(.horizontal, 24)
         }
+    }
+}
+
+private struct InstructionsList: View {
+    let instructions: [String]
+
+    var body: some View {
+        VStack(spacing: 10) {
+            ForEach(Array(instructions.enumerated()), id: \.offset) { i, step in
+                HStack(alignment: .top, spacing: 10) {
+                    ZStack {
+                        Circle()
+                            .fill(Color.greenPrimary.opacity(0.14))
+                            .frame(width: 24, height: 24)
+                        Text("\(i + 1)")
+                            .font(.system(size: 12, weight: .bold))
+                            .foregroundColor(Color.greenPrimary)
+                    }
+                    Text(step)
+                        .font(.system(size: 15))
+                        .foregroundColor(Color.greenOnBackground)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+            }
+        }
+        .padding(12)
+        .background(Color.greenBackground)
+        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .overlay(
+            RoundedRectangle(cornerRadius: 16)
+                .stroke(Color.greenSecondary.opacity(0.6), lineWidth: 1)
+        )
     }
 }
