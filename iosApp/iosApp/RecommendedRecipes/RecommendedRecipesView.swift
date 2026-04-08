@@ -24,65 +24,84 @@ struct RecommendedRecipesView: View {
                 .frame(width: 240, height: 240)
                 .offset(x: UIScreen.main.bounds.width - 60, y: -40)
 
-            ScrollView(showsIndicators: false) {
-                VStack(alignment: .leading, spacing: 16) {
-                    Spacer().frame(height: 24)
+            if let idx = viewModel.uiState.openedRecipeIdx,
+               let recipe = viewModel.uiState.recipes[safe: idx] {
+                // Detail view
+                RecipeDetailView(
+                    recipe:             recipe,
+                    checkedIngredients: $viewModel.uiState.checkedIngredients,
+                    infoMessage:        viewModel.uiState.infoMessage,
+                    onBack:             { viewModel.closeRecipe() },
+                    onToggle:           { viewModel.toggleIngredient($0, checked: $1) }
+                )
+                .transition(.move(edge: .trailing).combined(with: .opacity))
+            } else {
+                // List view
+                recipeListContent
+                    .transition(.move(edge: .leading).combined(with: .opacity))
+            }
+        }
+        .animation(.easeInOut(duration: 0.3), value: viewModel.uiState.openedRecipeIdx)
+    }
 
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Recommended recipes")
-                            .font(.system(size: 28, weight: .heavy))
-                            .foregroundColor(Color.greenPrimary)
-                        Text("Fresh picks personalized for your kitchen.")
-                            .font(.system(size: 15))
-                            .foregroundColor(Color.greenOnBackground.opacity(0.75))
-                    }
+    private var recipeListContent: some View {
+        ScrollView(showsIndicators: false) {
+            VStack(alignment: .leading, spacing: 16) {
+                Spacer().frame(height: 24)
 
-                    RoundedRectangle(cornerRadius: 20)
-                        .fill(Color.greenPrimary)
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 72)
-                        .overlay(
-                            HStack {
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text("Today's picks")
-                                        .font(.system(size: 13, weight: .semibold))
-                                        .foregroundColor(.white.opacity(0.9))
-                                    Text("\(viewModel.uiState.recipes.count) curated recipes")
-                                        .font(.system(size: 17, weight: .bold))
-                                        .foregroundColor(.white)
-                                }
-                                Spacer()
-                                Image(systemName: "book.fill")
-                                    .font(.system(size: 24))
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Recommended recipes")
+                        .font(.system(size: 28, weight: .heavy))
+                        .foregroundColor(Color.greenPrimary)
+                    Text("Fresh picks personalized for your kitchen.")
+                        .font(.system(size: 15))
+                        .foregroundColor(Color.greenOnBackground.opacity(0.75))
+                }
+
+                RoundedRectangle(cornerRadius: 20)
+                    .fill(Color.greenPrimary)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 72)
+                    .overlay(
+                        HStack {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Today's picks")
+                                    .font(.system(size: 13, weight: .semibold))
+                                    .foregroundColor(.white.opacity(0.9))
+                                Text("\(viewModel.uiState.recipes.count) curated recipes")
+                                    .font(.system(size: 17, weight: .bold))
                                     .foregroundColor(.white)
                             }
-                            .padding(.horizontal, 20)
-                        )
+                            Spacer()
+                            Image(systemName: "book.fill")
+                                .font(.system(size: 24))
+                                .foregroundColor(.white)
+                        }
+                        .padding(.horizontal, 20)
+                    )
 
-                    //Recipe cards
-                    VStack(alignment: .leading, spacing: 0) {
-                        Text("Choose your next meal")
-                            .font(.system(size: 20, weight: .bold))
-                            .foregroundColor(Color.greenPrimary)
-                            .padding(.bottom, 16)
+                VStack(alignment: .leading, spacing: 0) {
+                    Text("Choose your next meal")
+                        .font(.system(size: 20, weight: .bold))
+                        .foregroundColor(Color.greenPrimary)
+                        .padding(.bottom, 16)
 
-                        VStack(spacing: 12) {
-                            ForEach(Array(viewModel.uiState.recipes.enumerated()), id: \.element.id) { index, recipe in
-                                RecipeCard(recipe: recipe) {
-                                    viewModel.openRecipe(index: index)
-                                }
+                    VStack(spacing: 12) {
+                        ForEach(Array(viewModel.uiState.recipes.enumerated()), id: \.element.id) { index, recipe in
+                            RecipeCard(recipe: recipe) {
+                                viewModel.openRecipe(index: index)
                             }
                         }
                     }
-                    .padding(24)
-                    .background(Color.white)
-                    .clipShape(RoundedRectangle(cornerRadius: 24))
-                    .shadow(color: .black.opacity(0.07), radius: 8, x: 0, y: 4)
-
-                    Spacer().frame(height: 96)
                 }
-                .padding(.horizontal, 24)
+                .padding(24)
+                .background(Color.white)
+                .clipShape(RoundedRectangle(cornerRadius: 24))
+                .shadow(color: .black.opacity(0.07), radius: 8, x: 0, y: 4)
+
+                Spacer().frame(height: 96)
             }
+            .padding(.horizontal, 24)
         }
     }
 }
@@ -144,7 +163,7 @@ private struct RecipeCard: View {
     }
 }
 
-private struct RecipePill: View {
+struct RecipePill: View {
     let isQuick: Bool
 
     var body: some View {
@@ -163,5 +182,11 @@ private struct RecipeBouncyButtonStyle: ButtonStyle {
         configuration.label
             .scaleEffect(configuration.isPressed ? 0.98 : 1.0)
             .animation(.spring(response: 0.25, dampingFraction: 0.65), value: configuration.isPressed)
+    }
+}
+
+private extension Array {
+    subscript(safe index: Int) -> Element? {
+        indices.contains(index) ? self[index] : nil
     }
 }

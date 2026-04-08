@@ -25,7 +25,7 @@ struct RecommendedRecipesUiState {
 
 @MainActor
 final class RecommendedRecipesViewModel: ObservableObject {
-    @Published private(set) var uiState = RecommendedRecipesUiState(
+    @Published var uiState = RecommendedRecipesUiState(
         recipes: sampleRecipes()
     )
 
