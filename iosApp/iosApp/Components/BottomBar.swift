@@ -8,12 +8,13 @@
 import SwiftUI
 
 enum MainTab {
-    case home, recipes, profile
+    case home, recipes, recommended, profile
 
     var icon: String {
         switch self {
         case .recipes: return "person.3"
         case .home: return "house"
+        case .recommended: return "star"
         case .profile: return "person.circle"
         }
     }
@@ -22,6 +23,7 @@ enum MainTab {
         switch self {
         case .recipes: return "person.3.fill"
         case .home: return "house.fill"
+        case .recommended: return "star.fill"
         case .profile: return "person.circle.fill"
         }
     }
@@ -30,6 +32,7 @@ enum MainTab {
         switch self {
         case .recipes: return "Groups"
         case .home: return "Home"
+        case .recommended: return "Recommended Recipes"
         case .profile: return "Profile"
         }
     }
@@ -40,7 +43,7 @@ struct SnapChefBottomBar: View {
 
     var body: some View {
         HStack(spacing: 0) {
-            ForEach([.recipes,MainTab.home, .profile], id: \.label) { tab in
+            ForEach([.recipes,MainTab.home, .recommended, .profile], id: \.label) { tab in
                 BottomBarItem(
                     tab: tab,
                     isSelected: currentTab == tab,
