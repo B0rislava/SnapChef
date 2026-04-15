@@ -31,7 +31,7 @@ struct GroupsView: View {
                 VStack(alignment: .leading, spacing: 16) {
                     Spacer().frame(height: 24)
 
-                    // ── Header ──
+                    // Header
                     HStack {
                         Text("Groups")
                             .font(.system(size: 28, weight: .heavy))
@@ -50,24 +50,24 @@ struct GroupsView: View {
                         .buttonStyle(GroupBouncyButtonStyle())
                     }
 
-                    // ── Your Groups card ──
+                    // Your Groups card
                     GroupCard {
                         VStack(alignment: .leading, spacing: 12) {
                             Text("Your groups")
                                 .font(.system(size: 18, weight: .bold))
                                 .foregroundColor(Color.greenPrimary)
 
-                            if viewModel.groups.isEmpty && !viewModel.isLoading {
+                            if viewModel.visibleGroups.isEmpty && !viewModel.isLoading {
                                 Text("No shared groups yet")
                                     .font(.system(size: 14))
                                     .foregroundColor(Color.greenOnBackground.opacity(0.55))
                             } else {
                                 ScrollView(.horizontal, showsIndicators: false) {
                                     HStack(spacing: 10) {
-                                        ForEach(viewModel.groups) { group in
+                                        ForEach(viewModel.visibleGroups) { group in
                                             GroupPill(
                                                 name:       group.name,
-                                                isSelected: group.id == viewModel.selectedGroup?.id,
+                                                isSelected: group.id == viewModel.selectedSharedGroup?.id,
                                                 onTap:      { viewModel.selectGroup(group.id) }
                                             )
                                         }
@@ -78,8 +78,8 @@ struct GroupsView: View {
                         }
                     }
 
-                    // ── Selected group detail card ──
-                    if let group = viewModel.selectedGroup {
+                    // Selected group detail card
+                    if let group = viewModel.selectedSharedGroup {
                         GroupCard {
                             VStack(alignment: .leading, spacing: 20) {
 
@@ -156,7 +156,7 @@ struct GroupsView: View {
                             }
                         }
 
-                        // ── Join Code card (admin only) ──
+                        // Join Code card
                         if group.isAdmin {
                             GroupCard {
                                 VStack(spacing: 10) {
@@ -198,7 +198,6 @@ struct GroupsView: View {
                 await viewModel.loadGroups()
             }
 
-            // ── Loading overlay ──
             if viewModel.isLoading {
                 Color.black.opacity(0.12)
                     .ignoresSafeArea()
@@ -209,7 +208,6 @@ struct GroupsView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
 
-            // ── Toast ──
             if let msg = viewModel.infoMessage {
                 VStack {
                     HStack(spacing: 8) {
@@ -234,22 +232,22 @@ struct GroupsView: View {
                 .zIndex(100)
             }
         }
-        // ── Dialogs ──
+        // Dialogs
         .sheet(item: $viewModel.dialogMode) { mode in
             dialogSheet(for: mode)
         }
-        // ── Confirmations ──
+        // Confirmations
         .alert("Leave group?", isPresented: $showLeaveConfirm) {
             Button("Leave", role: .destructive) { viewModel.leaveGroup() }
             Button("Cancel", role: .cancel) {}
         } message: {
-            Text("Are you sure you want to leave \(viewModel.selectedGroup?.name ?? "this group")?")
+            Text("Are you sure you want to leave \(viewModel.selectedSharedGroup?.name ?? "this group")?")
         }
         .alert("Delete group?", isPresented: $showDeleteConfirm) {
             Button("Delete", role: .destructive) { viewModel.deleteGroup() }
             Button("Cancel", role: .cancel) {}
         } message: {
-            Text("Are you sure you want to delete \(viewModel.selectedGroup?.name ?? "this group")? This cannot be undone.")
+            Text("Are you sure you want to delete \(viewModel.selectedSharedGroup?.name ?? "this group")? This cannot be undone.")
         }
     }
 
