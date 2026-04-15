@@ -6,17 +6,25 @@
 //
 
 import SwiftUI
+import Combine
 
 struct EditProfileView: View {
 
-    let userName:        String
-    let userEmail:       String
+    let userName: String
+    let userEmail: String
     let profileImageUri: URL?
 
     var onSave: (String, String, String, String) -> Void = { _, _, _, _ in }
     var onCancel: () -> Void = {}
 
     @StateObject private var viewModel = EditProfileViewModel()
+    @StateObject private var keyboardResponder = KeyboardResponder()
+    
+    enum Field: Hashable {
+        case name, email, password, confirmPassword
+    }
+    
+    @FocusState private var focusedField: Field?
 
     var body: some View {
         ZStack(alignment: .topLeading) {
@@ -57,7 +65,7 @@ struct EditProfileView: View {
 
                     Spacer().frame(height: 6)
 
-                    Text("Update your details and photo.")
+                    Text("Update your details.")
                         .font(.system(size: 14))
                         .foregroundColor(Color.greenOnBackground.opacity(0.55))
 
@@ -78,9 +86,11 @@ struct EditProfileView: View {
                                 get: { viewModel.uiState.editedName },
                                 set: { viewModel.updateName($0) }
                             ),
-                            placeholder:  "Full Name",
-                            icon:         "person",
-                            keyboardType: .default
+                            placeholder: "Full Name",
+                            icon: "person",
+                            keyboardType: .default,
+                            field: .name,
+                            focusedField: $focusedField
                         )
 
                         // Email Address
@@ -89,9 +99,11 @@ struct EditProfileView: View {
                                 get: { viewModel.uiState.editedEmail },
                                 set: { viewModel.updateEmail($0) }
                             ),
-                            placeholder:  "Email Address",
-                            icon:         "envelope",
-                            keyboardType: .emailAddress
+                            placeholder: "Email Address",
+                            icon: "envelope",
+                            keyboardType: .emailAddress,
+                            field: .email,
+                            focusedField: $focusedField
                         )
 
                         // New Password
@@ -101,8 +113,10 @@ struct EditProfileView: View {
                                 set: { viewModel.updatePassword($0) }
                             ),
                             placeholder: "New Password (Optional)",
-                            icon:        "lock",
-                            isSecure:    true
+                            icon: "lock",
+                            isSecure: true,
+                            field: .password,
+                            focusedField: $focusedField
                         )
 
                         // Confirm Password
@@ -112,8 +126,10 @@ struct EditProfileView: View {
                                 set: { viewModel.updateConfirmPassword($0) }
                             ),
                             placeholder: "Confirm Password",
-                            icon:        "lock",
-                            isSecure:    true
+                            icon: "lock",
+                            isSecure: true,
+                            field: .confirmPassword,
+                            focusedField: $focusedField
                         )
                     }
                     .padding(24)
@@ -172,14 +188,75 @@ struct EditProfileView: View {
                     Spacer().frame(height: 32)
                 }
                 .padding(.horizontal, 24)
+                .frame(maxWidth: .infinity)
+            }
+            .safeAreaInset(edge: .bottom) { Color.clear.frame(height: 76) }
+            .contentShape(Rectangle())
+            .onTapGesture {
+                focusedField = nil
             }
         }
+        .modifier(AdaptiveKeyboardModifier(focusedField: focusedField))
+        .animation(.easeOut(duration: 0.3), value: keyboardResponder.currentHeight)
         .navigationBarHidden(true)
         .onAppear {
             viewModel.setInitialValues(name: userName, email: userEmail)
         }
-        .onChange(of: userName)  { _, v in viewModel.setInitialValues(name: v,       email: userEmail) }
+        .onChange(of: userName)  { _, v in viewModel.setInitialValues(name: v, email: userEmail) }
         .onChange(of: userEmail) { _, v in viewModel.setInitialValues(name: userName, email: v) }
+    }
+}
+
+class KeyboardResponder: ObservableObject {
+    @Published var currentHeight: CGFloat = 0
+    private var cancellables = Set<AnyCancellable>()
+    
+    init() {
+        let willShow = NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)
+        let willHide = NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)
+        
+        willShow
+            .compactMap { notification -> CGFloat? in
+                guard let keyboardFrame = notification.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect else {
+                    return nil
+                }
+                return keyboardFrame.height
+            }
+            .assign(to: \.currentHeight, on: self)
+            .store(in: &cancellables)
+        
+        willHide
+            .map { _ in CGFloat(0) }
+            .assign(to: \.currentHeight, on: self)
+            .store(in: &cancellables)
+    }
+}
+
+struct AdaptiveKeyboardModifier: ViewModifier {
+    @StateObject private var keyboard = KeyboardResponder()
+    let focusedField: EditProfileView.Field?
+    
+    func body(content: Content) -> some View {
+        content
+            .offset(y: calculateOffset())
+            .animation(.easeOut(duration: 0.25), value: keyboard.currentHeight)
+    }
+    
+    private func calculateOffset() -> CGFloat {
+        guard keyboard.currentHeight > 0 else { return 0 }
+        
+        switch focusedField {
+        case .name:
+            return -keyboard.currentHeight * 0.1
+        case .email:
+            return -keyboard.currentHeight * 0.2
+        case .password:
+            return -keyboard.currentHeight * 0.4
+        case .confirmPassword:
+            return -keyboard.currentHeight * 0.5
+        case .none:
+            return 0
+        }
     }
 }
 
@@ -203,30 +280,60 @@ private struct AvatarPickerView: View {
 
 
 private struct EditProfileTextField: View {
-    @Binding var value:    String
-    let placeholder:       String
-    let icon:              String
-    var keyboardType:      UIKeyboardType = .default
-    var isSecure:          Bool           = false
-
+    @Binding var value: String
+    let placeholder: String
+    let icon: String
+    var keyboardType: UIKeyboardType = .default
+    var isSecure: Bool = false
+    let field: EditProfileView.Field
+    @FocusState.Binding var focusedField: EditProfileView.Field?
+    
+    @State private var isPasswordVisible: Bool = false
+    
     var body: some View {
         HStack(spacing: 12) {
             Image(systemName: icon)
                 .font(.system(size: 18, weight: .medium))
                 .foregroundColor(Color.greenPrimary)
                 .frame(width: 24)
-
-            if isSecure {
-                SecureField(placeholder, text: $value)
-                    .font(.system(size: 16))
-                    .foregroundColor(Color.greenOnBackground)
-            } else {
-                TextField(placeholder, text: $value)
-                    .font(.system(size: 16))
-                    .foregroundColor(Color.greenOnBackground)
+            
+            Group {
+                if isSecure && !isPasswordVisible {
+                    SecureField(
+                        text: $value,
+                        prompt: Text(placeholder).foregroundColor(Color.greenPrimary.opacity(0.6))
+                    ) {
+                        Text(placeholder)
+                    }
+                    .focused($focusedField, equals: field)
+                    .textContentType(.newPassword)
+                } else {
+                    TextField(
+                        text: $value,
+                        prompt: Text(placeholder).foregroundColor(Color.greenPrimary.opacity(0.6))
+                    ) {
+                        Text(placeholder)
+                    }
                     .keyboardType(keyboardType)
                     .autocapitalization(keyboardType == .emailAddress ? .none : .words)
                     .disableAutocorrection(keyboardType == .emailAddress)
+                    .focused($focusedField, equals: field)
+                    .textContentType(keyboardType == .emailAddress ? .emailAddress : .name)
+                }
+            }
+            .font(.system(size: 16, weight: .medium))
+            .foregroundColor(Color.greenPrimary)
+            .submitLabel(getSubmitLabel())
+            .onSubmit {
+                moveToNextField()
+            }
+            
+            if isSecure {
+                Button(action: { isPasswordVisible.toggle() }) {
+                    Image(systemName: isPasswordVisible ? "eye.slash" : "eye")
+                        .font(.system(size: 16))
+                        .foregroundColor(Color.greenPrimary)
+                }
             }
         }
         .padding(.horizontal, 16)
@@ -237,6 +344,28 @@ private struct EditProfileTextField: View {
             RoundedRectangle(cornerRadius: 16)
                 .stroke(Color.greenSecondary.opacity(0.6), lineWidth: 1)
         )
+    }
+    
+    private func getSubmitLabel() -> SubmitLabel {
+        switch field {
+        case .name: return .next
+        case .email: return .next
+        case .password: return .next
+        case .confirmPassword: return .done
+        }
+    }
+    
+    private func moveToNextField() {
+        switch field {
+        case .name:
+            focusedField = .email
+        case .email:
+            focusedField = .password
+        case .password:
+            focusedField = .confirmPassword
+        case .confirmPassword:
+            focusedField = nil
+        }
     }
 }
 
