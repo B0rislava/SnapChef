@@ -193,6 +193,7 @@ final class GroupsViewModel: ObservableObject {
     func closeDialog() { dialogMode = nil }
 
     func joinGroup() {
+        guard !isLoading else { return }
         let code = joinCodeInput.trimmingCharacters(in: .whitespaces).uppercased()
         guard code.count >= 4 else {
             showInfo("Please enter a valid group code.", isError: true)
@@ -226,6 +227,7 @@ final class GroupsViewModel: ObservableObject {
     }
     
     func createGroup() {
+        guard !isLoading else { return }
         let name = createNameInput.trimmingCharacters(in: .whitespaces)
         guard !name.isEmpty else {
             showInfo("Group name cannot be empty.", isError: true)

@@ -105,26 +105,6 @@ struct SignUpView: View {
                             ),
                             isSecure: !viewModel.showPassword
                         )
-
-                        HStack(spacing: 4) {
-                            Toggle("", isOn: Binding(
-                                get: { viewModel.agreeTerms },
-                                set: { viewModel.setAgreeTerms($0) }
-                            ))
-                            .toggleStyle(CheckboxToggleStyle())
-
-                            Text(NSLocalizedString("i_agree", comment: ""))
-                                .font(.system(size: 14))
-                                .foregroundColor(Color.greenOnBackground.opacity(0.65))
-
-                            Button(action: {}) {
-                                Text(NSLocalizedString("terms_privacy", comment: ""))
-                                    .font(.system(size: 14, weight: .semibold))
-                                    .foregroundColor(Color.greenPrimary)
-                            }
-
-                            Spacer()
-                        }
                     }
                     .padding(24)
                     .background(Color.white)

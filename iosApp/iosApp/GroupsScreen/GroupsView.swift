@@ -48,6 +48,7 @@ struct GroupsView: View {
                                 .clipShape(Circle())
                         }
                         .buttonStyle(GroupBouncyButtonStyle())
+                        .disabled(viewModel.isLoading)
                     }
 
                     if !viewModel.visibleGroups.isEmpty {
@@ -144,6 +145,7 @@ struct GroupsView: View {
                                         content:   Color.greenPrimary,
                                         action:    { showLeaveConfirm = true }
                                     )
+                                    .disabled(viewModel.isLoading)
                                     if group.isAdmin {
                                         GroupActionButton(
                                             text:      "Delete",
@@ -152,6 +154,7 @@ struct GroupsView: View {
                                             content:   Color.red,
                                             action:    { showDeleteConfirm = true }
                                         )
+                                        .disabled(viewModel.isLoading)
                                     }
                                 }
                             }
@@ -278,8 +281,10 @@ struct GroupsView: View {
                 HStack(spacing: 12) {
                     Button("Create group") { viewModel.openDialog(.create) }
                         .buttonStyle(GroupSheetButtonStyle(isPrimary: false))
+                        .disabled(viewModel.isLoading)
                     Button("Join group") { viewModel.openDialog(.join) }
                         .buttonStyle(GroupSheetButtonStyle(isPrimary: true))
+                        .disabled(viewModel.isLoading)
                 }
             }
             .padding(32)
@@ -310,6 +315,8 @@ struct GroupsView: View {
                     Spacer()
                     Button("Join") { viewModel.joinGroup() }
                         .buttonStyle(GroupSheetButtonStyle(isPrimary: true))
+                        .disabled(viewModel.isLoading)
+                        .opacity(viewModel.isLoading ? 0.6 : 1.0)
                 }
             }
             .padding(32)
@@ -338,6 +345,8 @@ struct GroupsView: View {
                     Spacer()
                     Button("Create") { viewModel.createGroup() }
                         .buttonStyle(GroupSheetButtonStyle(isPrimary: true))
+                        .disabled(viewModel.isLoading)
+                        .opacity(viewModel.isLoading ? 0.6 : 1.0)
                 }
             }
             .padding(32)
