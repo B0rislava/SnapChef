@@ -189,19 +189,6 @@ fun GroupsScreen(
                 )
 
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    IconButton(
-                        modifier = Modifier
-                            .size(40.dp)
-                            .clip(CircleShape)
-                            .background(GreenPrimary.copy(alpha = 0.10f)),
-                        onClick = { viewModel.refreshGroups() },
-                    ) {
-                        Icon(
-                            imageVector = Icons.Filled.Refresh,
-                            contentDescription = "Refresh groups",
-                            tint = GreenPrimary,
-                        )
-                    }
 
                     IconButton(
                         modifier = Modifier
@@ -337,19 +324,6 @@ fun GroupsScreen(
                                 }
                             }
 
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(16.dp),
-                            ) {
-                                InfoBadge(
-                                    label = "Admin: ${selectedGroup.ownerUsername ?: "Unknown"}",
-                                    isPrimary = true,
-                                )
-                                InfoBadge(
-                                    label = "${selectedGroup.members.size} member${if (selectedGroup.members.size != 1) "s" else ""}",
-                                    isPrimary = false,
-                                )
-                            }
                         }
 
                         Divider(color = GreenSecondary.copy(alpha = 0.2f), thickness = 1.dp)
