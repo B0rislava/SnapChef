@@ -10,6 +10,7 @@ import UIKit
 
 enum GoogleAuthHelper {
     
+    @MainActor
     static func signInWithGoogle(context: AnyObject) async -> String? {
         guard
             let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
@@ -17,10 +18,18 @@ enum GoogleAuthHelper {
         else { return nil }
         
         do {
+            print("Google Sign-In: Attempting to disconnect previous session...")
+            try? await GIDSignIn.sharedInstance.disconnect()
+            
+            print("Google Sign-In: Starting sign-in with root view controller...")
             let result = try await GIDSignIn.sharedInstance.signIn(withPresenting: root)
-            return result.user.idToken?.tokenString
+            
+            let token = result.user.idToken?.tokenString
+            print("Google Sign-In: Successfully obtained token: \(token?.prefix(20) ?? "nil")...")
+            return token
         } catch {
-            print("Google Sign-In error: \(error.localizedDescription)")
+            print("Google Sign-In ERROR details: \(error)")
+            print("Google Sign-In error localized: \(error.localizedDescription)")
             return nil
         }
     }

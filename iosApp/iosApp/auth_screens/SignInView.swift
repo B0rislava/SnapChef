@@ -131,11 +131,11 @@ struct SignInView: View {
                         }
                         .frame(maxWidth: .infinity)
                         .frame(height: 56)
-                        .background(Color.greenPrimary)
+                        .background(viewModel.canSignIn ? Color.greenPrimary : Color.greenPrimary.opacity(0.5))
                         .clipShape(Capsule())
-                        .shadow(color: Color.greenPrimary.opacity(0.4), radius: 8, x: 0, y: 4)
+                        .shadow(color: viewModel.canSignIn ? Color.greenPrimary.opacity(0.4) : Color.clear, radius: 8, x: 0, y: 4)
                     }
-                    .disabled(viewModel.isLoading)
+                    .disabled(viewModel.isLoading || !viewModel.canSignIn)
 
                     Spacer().frame(height: 24)
 
@@ -143,16 +143,18 @@ struct SignInView: View {
 
                     Spacer().frame(height: 20)
 
-                    Button {
-                        Task {
-                            let token = await GoogleAuthHelper.signInWithGoogle(context: UIApplication.shared)
-                            if let token {
-                                viewModel.googleSignIn(idToken: token, onSuccess: onSignIn)
+                    SocialButton(
+                        label: NSLocalizedString("continue_google", comment: ""),
+                        emoji: "G",
+                        action: {
+                            Task { @MainActor in
+                                let token = await GoogleAuthHelper.signInWithGoogle(context: UIApplication.shared)
+                                if let token {
+                                    viewModel.googleSignIn(idToken: token, onSuccess: onSignIn)
+                                }
                             }
                         }
-                    } label: {
-                        SocialButton(label: NSLocalizedString("continue_google", comment: ""), emoji: "G")
-                    }
+                    )
 
                     Spacer().frame(height: 24)
 

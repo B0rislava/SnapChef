@@ -47,7 +47,6 @@ struct ProfileView: View {
                     userName:        viewModel.userName,
                     userEmail:       viewModel.userEmail,
                     profileImageUri: viewModel.profileImageUri,
-                    onPickImage: { viewModel.profileImageUri = $0 },
                     onSave: { name, email, _, _ in
                         viewModel.updateUser(name: name, email: email)
                         withAnimation { isEditingProfile = false }

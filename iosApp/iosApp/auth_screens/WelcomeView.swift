@@ -42,7 +42,7 @@ struct WelcomeView: View {
 
     @StateObject private var viewModel = WelcomeViewModel()
 
-    @State private var currentPage: Int = 0
+    @Binding var currentPage: Int
 
     @State private var floatOffset: CGFloat = -8
 
@@ -58,12 +58,14 @@ struct WelcomeView: View {
             Circle()
                 .fill(Color.greenSecondary.opacity(0.25))
                 .frame(width: 280, height: 280)
-                .offset(x: -140, y: -300)
+                .offset(x: -140 + CGFloat(currentPage) * 15, y: -300 + CGFloat(currentPage) * 5)
+                .animation(.easeInOut(duration: 0.6), value: currentPage)
 
             Circle()
                 .fill(Color.greenPrimary.opacity(0.10))
                 .frame(width: 180, height: 180)
-                .offset(x: 160, y: -320)
+                .offset(x: 160 - CGFloat(currentPage) * 20, y: -320 - CGFloat(currentPage) * 10)
+                .animation(.easeInOut(duration: 0.6), value: currentPage)
 
             VStack(spacing: 0) {
 
@@ -74,7 +76,6 @@ struct WelcomeView: View {
                     }
                 }
                 .tabViewStyle(.page(indexDisplayMode: .never))
-                .animation(.easeInOut, value: currentPage)
 
                 HStack(spacing: 8) {
                     ForEach(pages.indices, id: \.self) { index in
@@ -100,23 +101,23 @@ struct WelcomeView: View {
                         .shadow(color: Color.greenPrimary.opacity(0.4), radius: 8, x: 0, y: 4)
                 }
                 .padding(.horizontal, 32)
-                .animation(.easeInOut(duration: 0.2), value: isLastPage)
+                .animation(.spring(response: 0.4, dampingFraction: 0.8), value: isLastPage)
 
-                if isLastPage {
-                    HStack(spacing: 0) {
-                        Text(NSLocalizedString("already_have_account", comment: ""))
-                            .font(.system(size: 14))
-                            .foregroundColor(Color.greenOnBackground.opacity(0.6))
+                HStack(spacing: 0) {
+                    Text(NSLocalizedString("already_have_account", comment: ""))
+                        .font(.system(size: 14))
+                        .foregroundColor(Color.greenOnBackground.opacity(0.6))
 
-                        Button(action: onSignIn) {
-                            Text(NSLocalizedString("login", comment: ""))
-                                .font(.system(size: 14, weight: .bold))
-                                .foregroundColor(Color.greenPrimary)
-                        }
+                    Button(action: onSignIn) {
+                        Text(NSLocalizedString("login", comment: ""))
+                            .font(.system(size: 14, weight: .bold))
+                            .foregroundColor(Color.greenPrimary)
                     }
-                    .padding(.top, 16)
-                    .transition(.opacity.combined(with: .move(edge: .bottom)))
+                    .disabled(!isLastPage)
                 }
+                .padding(.top, 16)
+                .opacity(isLastPage ? 1 : 0)
+                .animation(.spring(response: 0.4, dampingFraction: 0.8), value: isLastPage)
 
                 Spacer().frame(height: 32)
             }
@@ -157,25 +158,32 @@ struct WelcomeView: View {
                     .foregroundColor(.white)
             }
             .offset(y: floatOffset)
+            .scaleEffect(currentPage == index ? 1 : 0.9)
+            .animation(.spring(response: 0.5, dampingFraction: 0.7), value: currentPage)
 
             Spacer().frame(height: 48)
 
-            Text(index == pages.count - 1 ? viewModel.title : page.title)
+            Text(page.title)
                 .font(.system(size: 34, weight: .heavy))
                 .foregroundColor(Color.greenPrimary)
                 .multilineTextAlignment(.center)
+                .offset(y: currentPage == index ? 0 : 10)
+                .animation(.easeOut(duration: 0.5).delay(0.1), value: currentPage)
 
             Spacer().frame(height: 16)
 
-            Text(index == pages.count - 1 ? viewModel.subtitle : page.subtitle)
+            Text(page.subtitle)
                 .font(.system(size: 17))
                 .foregroundColor(Color.greenOnBackground.opacity(0.68))
                 .multilineTextAlignment(.center)
                 .lineSpacing(6)
+                .offset(y: currentPage == index ? 0 : 10)
+                .animation(.easeOut(duration: 0.5).delay(0.2), value: currentPage)
 
             Spacer()
         }
         .padding(.horizontal, 36)
+        .id("onboarding-page-\(index)")
     }
 
     private var isLastPage: Bool { currentPage == pages.count - 1 }
@@ -184,7 +192,7 @@ struct WelcomeView: View {
         if isLastPage {
             onGetStarted()
         } else {
-            withAnimation(.easeInOut(duration: 0.35)) {
+            withAnimation(.easeInOut(duration: 0.55)) {
                 currentPage += 1
             }
         }

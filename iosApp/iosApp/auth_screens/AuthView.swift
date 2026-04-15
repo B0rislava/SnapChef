@@ -16,6 +16,7 @@ struct AuthView: View {
     @State private var current:       AuthDestination = .welcome
     @State private var previous:      AuthDestination = .welcome
     @State private var emailToVerify: String          = ""
+    @State private var welcomePage:   Int             = 0
 
     @StateObject private var signInVM  = SignInViewModel()
     @StateObject private var signUpVM  = SignUpViewModel()
@@ -27,7 +28,8 @@ struct AuthView: View {
             case .welcome:
                 WelcomeView(
                     onGetStarted: { navigate(to: .signUp) },
-                    onSignIn:     { navigate(to: .signIn) }
+                    onSignIn:     { navigate(to: .signIn) },
+                    currentPage:  $welcomePage
                 )
                 .transition(transition(to: .welcome, from: previous))
 
