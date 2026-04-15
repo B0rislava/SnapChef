@@ -111,7 +111,7 @@ final class GroupsViewModel: ObservableObject {
                 )
             }
             
-            var personalGroup = AppGroup(
+            let personalGroup = AppGroup(
                 id: "personal",
                 name: "Your recipes",
                 code: nil,
@@ -153,11 +153,18 @@ final class GroupsViewModel: ObservableObject {
                     avatarSeed: m.user.name
                 )
             }
+            
+            let owner = detail.members.first { Int($0.user.id) == Int(detail.createdByUserId) }
+            let ownerName = (owner?.user.id == currentUserId) ? "You" : owner?.user.name
+            
             groups = groups.map { g in
                 guard g.id == id else { return g }
                 var updated = g
                 updated.code    = detail.code
                 updated.members = members
+                if let name = ownerName {
+                    updated.ownerName = name
+                }
                 return updated
             }
         } catch {
