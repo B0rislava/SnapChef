@@ -150,7 +150,7 @@ final class GroupsViewModel: ObservableObject {
             let members = detail.members.map { m in
                 GroupMember(
                     name:       m.user.id == currentUserId ? "You" : m.user.name,
-                    avatarSeed: m.user.name
+                    avatarSeed: String(detail.id)
                 )
             }
             
