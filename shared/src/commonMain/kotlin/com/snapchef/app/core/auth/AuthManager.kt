@@ -3,6 +3,8 @@ package com.snapchef.app.core.auth
 import com.russhwolf.settings.Settings
 import com.russhwolf.settings.set
 import com.snapchef.app.features.auth.data.remote.UserOut
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 
 object AuthManager {
 
@@ -15,11 +17,15 @@ object AuthManager {
 
     // Token
 
+    private val _authState = kotlinx.coroutines.flow.MutableStateFlow(isLoggedIn())
+    val authState: StateFlow<Boolean> = _authState.asStateFlow()
+
     var accessToken: String?
         get() = settings.getStringOrNull(KEY_ACCESS_TOKEN)
         set(value) {
             if (value != null) settings[KEY_ACCESS_TOKEN] = value
             else settings.remove(KEY_ACCESS_TOKEN)
+            _authState.value = isLoggedIn()
         }
 
     //  Current user (name + email persisted, no sensitive data)
@@ -50,5 +56,6 @@ object AuthManager {
     fun logout() {
         accessToken = null
         currentUser = null
+        _authState.value = false
     }
 }

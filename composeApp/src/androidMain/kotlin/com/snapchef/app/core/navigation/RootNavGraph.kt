@@ -4,6 +4,10 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.core.tween
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
@@ -26,7 +30,20 @@ object Routes {
 @Composable
 fun RootNavGraph() {
     val navController = rememberNavController()
-    val startDestination = if (AuthManager.isLoggedIn()) Routes.MAIN else Routes.AUTH
+    val isLoggedIn by AuthManager.authState.collectAsStateWithLifecycle()
+    val startDestination = remember { if (AuthManager.isLoggedIn()) Routes.MAIN else Routes.AUTH }
+
+    LaunchedEffect(isLoggedIn) {
+        if (isLoggedIn) {
+            navController.navigate(Routes.MAIN) {
+                popUpTo(Routes.AUTH) { inclusive = true }
+            }
+        } else {
+            navController.navigate(Routes.AUTH) {
+                popUpTo(Routes.MAIN) { inclusive = true }
+            }
+        }
+    }
 
     NavHost(
         navController = navController,
@@ -39,10 +56,7 @@ fun RootNavGraph() {
         composable(Routes.AUTH) {
             AuthNavGraph(
                 onAuthSuccess = {
-                    // Navigate to Main and remove Auth flow from backstack
-                    navController.navigate(Routes.MAIN) {
-                        popUpTo(Routes.AUTH) { inclusive = true }
-                    }
+                    // Auth state change in AuthManager will trigger navigation
                 }
             )
         }
@@ -50,9 +64,7 @@ fun RootNavGraph() {
         composable(Routes.MAIN) {
             MainScreen(
                 onLogout = {
-                    navController.navigate(Routes.AUTH) {
-                        popUpTo(Routes.MAIN) { inclusive = true }
-                    }
+                    // Auth state change in AuthManager will trigger navigation
                 }
             )
         }

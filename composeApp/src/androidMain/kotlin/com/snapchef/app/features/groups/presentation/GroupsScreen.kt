@@ -91,7 +91,6 @@ fun GroupsScreen(
     val isAdmin = selectedGroup?.ownerUsername.equals("You", ignoreCase = true) || 
                   (selectedGroup != null && AuthManager.currentUser?.id != null &&
                    selectedGroup.id.toIntOrNull() == AuthManager.currentUser?.id) // Fallback for ID match
-    val isCodeLoading = selectedGroup != null && !selectedGroup.isPersonal && isAdmin && selectedGroup.code == null
     var groupNameInput by remember(selectedGroup?.id) { mutableStateOf(selectedGroup?.name.orEmpty()) }
     var isEditingGroupName by remember(selectedGroup?.id) { mutableStateOf(false) }
     var showLeaveConfirmation by remember { mutableStateOf(false) }
@@ -222,34 +221,36 @@ fun GroupsScreen(
 
             Spacer(modifier = Modifier.height(18.dp))
 
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(24.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White),
-                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-            ) {
-                Column(modifier = Modifier.padding(20.dp)) {
-                    Text(
-                        text = "Your groups",
-                        style = MaterialTheme.typography.titleLarge,
-                        color = GreenPrimary,
-                        fontWeight = FontWeight.Bold,
-                    )
-                    Spacer(modifier = Modifier.height(12.dp))
+            if (visibleGroups.isNotEmpty()) {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(24.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+                ) {
+                    Column(modifier = Modifier.padding(20.dp)) {
+                        Text(
+                            text = "Your groups",
+                            style = MaterialTheme.typography.titleLarge,
+                            color = GreenPrimary,
+                            fontWeight = FontWeight.Bold,
+                        )
+                        Spacer(modifier = Modifier.height(12.dp))
 
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .horizontalScroll(rememberScrollState()),
-                        horizontalArrangement = Arrangement.spacedBy(10.dp),
-                    ) {
-                        visibleGroups.forEach { group ->
-                            val isSelected = group.id == selectedGroup?.id
-                            GroupPill(
-                                name = group.name,
-                                isSelected = isSelected,
-                                onClick = { viewModel.selectGroup(group.id) },
-                            )
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .horizontalScroll(rememberScrollState()),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        ) {
+                            visibleGroups.forEach { group ->
+                                val isSelected = group.id == selectedGroup?.id
+                                GroupPill(
+                                    name = group.name,
+                                    isSelected = isSelected,
+                                    onClick = { viewModel.selectGroup(group.id) },
+                                )
+                            }
                         }
                     }
                 }
@@ -488,26 +489,42 @@ fun GroupsScreen(
                         }
                     }
                 }
-            } else {
+            } else if (!uiState.isLoading) {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(24.dp),
                     colors = CardDefaults.cardColors(containerColor = Color.White),
                     elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
                 ) {
-                    Column(modifier = Modifier.padding(20.dp)) {
+                    Column(
+                        modifier = Modifier.padding(20.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
                         Text(
-                            text = "No shared groups yet",
+                            text = if (uiState.isError) "Failed to load groups" else "No shared groups yet",
                             style = MaterialTheme.typography.titleLarge,
-                            color = GreenPrimary,
+                            color = if (uiState.isError) Color(0xFFC62828) else GreenPrimary,
                             fontWeight = FontWeight.Bold,
                         )
-                        Spacer(modifier = Modifier.height(8.dp))
                         Text(
-                            text = "Create a new group or join with a code to start collaborating.",
+                            text = if (uiState.isError) "Something went wrong while fetching your groups. Please check your connection and try again." else "Create a new group or join with a code to start collaborating.",
                             style = MaterialTheme.typography.bodyMedium,
                             color = GreenOnBackground.copy(alpha = 0.75f),
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
                         )
+                        
+                        if (uiState.isError) {
+                            Button(
+                                onClick = { viewModel.refreshGroups() },
+                                colors = ButtonDefaults.buttonColors(containerColor = GreenPrimary),
+                                shape = RoundedCornerShape(14.dp)
+                            ) {
+                                Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(18.dp))
+                                Spacer(Modifier.width(8.dp))
+                                Text("Retry")
+                            }
+                        }
                     }
                 }
             }
@@ -716,7 +733,7 @@ private fun GroupPill(
     Surface(
         shape = RoundedCornerShape(18.dp),
         color = if (isSelected) GreenPrimary else Color.White,
-        border = androidx.compose.foundation.BorderStroke(
+        border = BorderStroke(
             width = 1.dp,
             color = if (isSelected) GreenPrimary else GreenPrimary.copy(alpha = 0.25f),
         ),

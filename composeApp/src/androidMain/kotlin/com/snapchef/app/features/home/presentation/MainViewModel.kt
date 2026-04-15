@@ -29,7 +29,6 @@ data class MainUiState(
     val profileImageUri: Uri? = null,
     val isEditingProfile: Boolean = false,
     val activeRecipeSession: ActiveRecipeSessionSession? = null,
-    val shouldNavigateToAuth: Boolean = false,
     val isCameraActive: Boolean = false,
     val inventoryItems: List<ProfileInventoryItem> = emptyList(),
 )
@@ -64,7 +63,7 @@ class MainViewModel : ViewModel() {
                 _uiState.update { state ->
                     // Group by normalized name (lowercase) to unify "Egg" and "egg"
                     val unifiedItems = items.groupBy { it.name.trim().lowercase() }
-                        .map { (lowerName, group) ->
+                        .map { (_, group) ->
                             val firstName = group.first().name.trim().replaceFirstChar { it.uppercase() }
                             val totalQty = group.sumOf { it.quantity }
                             // If they have different units, we'll use the unit of the first item for simplicity, 
@@ -151,7 +150,6 @@ class MainViewModel : ViewModel() {
 
     fun logout() {
         AuthManager.logout()
-        _uiState.update { it.copy(shouldNavigateToAuth = true) }
     }
 
     fun deleteAccount() {
@@ -170,14 +168,9 @@ class MainViewModel : ViewModel() {
                     profileImageUri = null,
                     isEditingProfile = false,
                     activeRecipeSession = null,
-                    shouldNavigateToAuth = true,
                 )
             }
         }
-    }
-
-    fun onAuthNavigationHandled() {
-        _uiState.update { it.copy(shouldNavigateToAuth = false) }
     }
 
 }

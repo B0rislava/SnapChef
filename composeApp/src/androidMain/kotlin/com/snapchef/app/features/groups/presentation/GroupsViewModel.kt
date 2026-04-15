@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.snapchef.app.core.auth.AuthManager
 import com.snapchef.app.core.di.SnapChefServiceLocator
+import io.ktor.client.plugins.ClientRequestException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -66,7 +67,11 @@ class GroupsViewModel : ViewModel() {
 
     fun refreshGroups() {
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true) }
+            if (!AuthManager.isLoggedIn()) {
+                _uiState.update { it.copy(isLoading = false) }
+                return@launch
+            }
+            _uiState.update { it.copy(isLoading = true, infoMessage = null, isError = false) }
             try {
                 val backendGroups = apiService.fetchGroups()
                 _uiState.update { state ->
@@ -90,8 +95,18 @@ class GroupsViewModel : ViewModel() {
                 }
                 refreshSelectedGroupDetail()
             } catch (e: Exception) {
-                _uiState.update { it.copy(isLoading = false) }
                 e.printStackTrace()
+                val isUnauthorized = e is ClientRequestException && e.response.status.value == 401
+                if (isUnauthorized) {
+                    AuthManager.logout()
+                }
+                _uiState.update { 
+                    it.copy(
+                        isLoading = false,
+                        infoMessage = if (isUnauthorized) "Session expired. Please log in again." else "Failed to load groups: ${e.message ?: "Unknown error"}",
+                        isError = true
+                    )
+                }
             }
         }
     }

@@ -36,12 +36,6 @@ fun MainScreen(
         if (uiState.currentTab != MainTab.RECIPES) isViewingGroupRecipeDetails = false
         if (uiState.currentTab != MainTab.RECOMMENDED) isViewingRecommendedRecipeDetails = false
     }
-    LaunchedEffect(uiState.shouldNavigateToAuth) {
-        if (uiState.shouldNavigateToAuth) {
-            onLogout()
-            viewModel.onAuthNavigationHandled()
-        }
-    }
 
     Crossfade(targetState = uiState.activeRecipeSession, label = "recipe_results_crossfade") { session ->
         if (session != null) {
