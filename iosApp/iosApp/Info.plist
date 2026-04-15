@@ -2,8 +2,19 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<key>GIDSignIn</key>
+	<key>GIDClientID</key>
 	<string>681250427058-6ite6j7uusrt468greuk9ldhiql619ke.apps.googleusercontent.com</string>
+	<key>GIDServerClientID</key>
+	<string>681250427058-9826a7duvj4boiqbdiqnd8e5dlakij4a.apps.googleusercontent.com</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>com.googleusercontent.apps.681250427058-6ite6j7uusrt468greuk9ldhiql619ke</string>
+			</array>
+		</dict>
+	</array>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>SnapChef needs photo library access to analyze ingredient photos.</string>
 	<key>NSCameraUsageDescription</key>
