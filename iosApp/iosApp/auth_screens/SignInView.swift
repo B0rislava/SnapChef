@@ -131,11 +131,11 @@ struct SignInView: View {
                         }
                         .frame(maxWidth: .infinity)
                         .frame(height: 56)
-                        .background(Color.greenPrimary)
+                        .background(viewModel.canSignIn ? Color.greenPrimary : Color.greenPrimary.opacity(0.5))
                         .clipShape(Capsule())
-                        .shadow(color: Color.greenPrimary.opacity(0.4), radius: 8, x: 0, y: 4)
+                        .shadow(color: viewModel.canSignIn ? Color.greenPrimary.opacity(0.4) : Color.clear, radius: 8, x: 0, y: 4)
                     }
-                    .disabled(viewModel.isLoading)
+                    .disabled(viewModel.isLoading || !viewModel.canSignIn)
 
                     Spacer().frame(height: 24)
 

@@ -192,7 +192,7 @@ struct GroupsView: View {
                             }
                         }
 
-                    } else {
+                    } else if !viewModel.isLoading {
                         GroupCard {
                             VStack(alignment: .leading, spacing: 12) {
                                 Text("No shared groups yet")
@@ -298,9 +298,8 @@ struct GroupsView: View {
                 Text("Enter an invite code to join an existing group.")
                     .font(.system(size: 14))
                     .foregroundColor(Color.greenOnBackground.opacity(0.7))
-                TextField("e.g. A7K2P1", text: $viewModel.joinCodeInput)
+                TextField("e.g. A7K2P1gg", text: $viewModel.joinCodeInput)
                     .font(.system(size: 16, design: .monospaced))
-                    .textInputAutocapitalization(.characters)
                     .autocorrectionDisabled()
                     .padding(14)
                     .background(Color.greenSecondary.opacity(0.20))

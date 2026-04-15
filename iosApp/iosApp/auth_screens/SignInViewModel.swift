@@ -11,13 +11,17 @@ import Shared
 @MainActor
 final class SignInViewModel: ObservableObject {
 
-    @Published var email:         String  = ""
-    @Published var password:      String  = ""
-    @Published var showPassword:  Bool    = false
-    @Published var isLoading:     Bool    = false
-    @Published var errorMessage:  String? = nil
+    @Published var email: String = ""
+    @Published var password: String = ""
+    @Published var showPassword: Bool = false
+    @Published var isLoading: Bool = false
+    @Published var errorMessage: String? = nil
 
     private let apiService = SnapChefServiceLocator.shared.authApiService
+    
+    var canSignIn: Bool {
+        !email.trimmingCharacters(in: .whitespaces).isEmpty && !password.isEmpty
+    }
 
     func updateEmail(_ value: String) {
         email        = value

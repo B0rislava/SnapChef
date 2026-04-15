@@ -100,13 +100,13 @@ final class GroupsViewModel: ObservableObject {
             let remoteGroups = raw.map { g in
                 let isAdmin = (g.createdByUserId == currentUserId)
                 return AppGroup(
-                    id:        String(g.id),
-                    name:      g.name,
-                    code:      g.code,
+                    id: String(g.id),
+                    name: g.name,
+                    code: g.code,
                     ownerName: isAdmin ? "You" : nil,
-                    members:   [],
-                    isAdmin:   isAdmin,
-                    recipes:   RecipeStore.shared.sharedRecipes,
+                    members: [],
+                    isAdmin: isAdmin,
+                    recipes: RecipeStore.shared.sharedRecipes,
                     isPersonal: false
                 )
             }
