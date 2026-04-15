@@ -9,9 +9,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import org.json.JSONArray
-import org.json.JSONObject
-import kotlin.random.Random
 
 data class GroupsUiState(
     val groups: List<RecipeGroup> = emptyList(),
@@ -282,91 +279,6 @@ class GroupsViewModel : ViewModel() {
         }
     }
 
-    fun applyBackendJson(json: String) {
-        runCatching {
-            val root = JSONObject(json)
-            val array = root.optJSONArray("groups") ?: JSONArray()
-            val mappedGroups = buildList {
-                val defaults = defaultState().groups
-                addAll(defaults.filter { it.isPersonal || it.id.startsWith("group_") })
-                for (i in 0 until array.length()) {
-                    val g = array.optJSONObject(i) ?: continue
-                    val recipesArray = g.optJSONArray("recipes") ?: JSONArray()
-                    val recipes = buildList {
-                        for (r in 0 until recipesArray.length()) {
-                            val item = recipesArray.optJSONObject(r) ?: continue
-                            add(
-                                SharedRecipe(
-                                    title = item.optString("title", "Untitled recipe"),
-                                    description = item.optString("description", ""),
-                                    ownerName = item.optString("ownerName", "Member"),
-                                    missingItems = item.optJSONArray("missingItems")
-                                        ?.let { miss ->
-                                            buildList {
-                                                for (m in 0 until miss.length()) add(miss.optString(m))
-                                            }
-                                        }.orEmpty(),
-                                    availableItems = item.optJSONArray("availableItems")
-                                        ?.let { list ->
-                                            buildList {
-                                                for (idx in 0 until list.length()) add(list.optString(idx))
-                                            }
-                                        }.orEmpty(),
-                                    instructions = item.optJSONArray("instructions")
-                                        ?.let { steps ->
-                                            buildList {
-                                                for (s in 0 until steps.length()) add(steps.optString(s))
-                                            }
-                                        }.orEmpty(),
-                                    perishableProducts = item.optJSONArray("perishableProducts")
-                                        ?.let { products ->
-                                            buildList {
-                                                for (p in 0 until products.length()) {
-                                                    val product = products.optJSONObject(p) ?: continue
-                                                    add(
-                                                        PerishableProduct(
-                                                            name = product.optString("name", "Perishable item"),
-                                                            maxFreshDays = product.optInt("maxFreshDays", 3),
-                                                            freshness = product.optDouble("freshness", 1.0).toFloat(),
-                                                        ),
-                                                    )
-                                                }
-                                            }
-                                        }.orEmpty(),
-                                ),
-                            )
-                        }
-                    }
-                    add(
-                        RecipeGroup(
-                            id = g.optString("id", "g_${i + 1}"),
-                            name = g.optString("name", "Group ${i + 1}"),
-                            code = if (g.has("code") && !g.isNull("code")) g.optString("code") else null,
-                            recipes = recipes,
-                            ownerUsername = g.optString("ownerUsername").takeIf { it.isNotBlank() },
-                            members = g.optJSONArray("members")?.let { membersArray ->
-                                buildList {
-                                    for (m in 0 until membersArray.length()) {
-                                        val item = membersArray.optJSONObject(m) ?: continue
-                                        val username = item.optString("username", "").trim()
-                                        if (username.isNotEmpty()) {
-                                            add(
-                                                GroupMember(
-                                                    username = username,
-                                                    avatarSeed = item.optString("avatarSeed", username),
-                                                )
-                                            )
-                                        }
-                                    }
-                                }
-                            }.orEmpty(),
-                        ),
-                    )
-                }
-            }
-            _uiState.update { it.copy(groups = mappedGroups) }
-        }
-    }
 
     fun leaveSelectedGroup() {
         val state = _uiState.value
@@ -513,12 +425,5 @@ class GroupsViewModel : ViewModel() {
             )
         )
         return GroupsUiState(groups = groups, selectedGroupId = "personal")
-    }
-}
-
-private fun generateGroupCode(): String {
-    val chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
-    return buildString {
-        repeat(6) { append(chars[Random.nextInt(chars.length)]) }
     }
 }
