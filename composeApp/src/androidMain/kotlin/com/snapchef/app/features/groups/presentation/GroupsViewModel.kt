@@ -145,7 +145,7 @@ class GroupsViewModel : ViewModel() {
     }
     fun joinGroup() {
         val state = _uiState.value
-        val code = state.joinCodeInput.trim().uppercase()
+        val code = state.joinCodeInput.trim()
         if (code.length < 4) {
             _uiState.update { it.copy(infoMessage = "Please enter a valid group code.", dialogMode = null, joinCodeInput = "") }
             return
