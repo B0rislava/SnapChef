@@ -6,6 +6,7 @@
 //
 import Foundation
 import Shared
+import Combine
 
 struct GroupMember: Identifiable {
     let id   = UUID()
@@ -14,12 +15,14 @@ struct GroupMember: Identifiable {
 }
 
 struct AppGroup: Identifiable {
-    let id:          Int
-    var name:        String
-    var code:        String?
-    var ownerName:   String?
-    var members:     [GroupMember]
-    var isAdmin:     Bool
+    let id: String
+    var name: String
+    var code: String?
+    var ownerName: String?
+    var members: [GroupMember]
+    var isAdmin: Bool
+    var recipes: [SharedRecipe] = []
+    var isPersonal: Bool = false
 }
 
 enum GroupDialogMode: Identifiable {
@@ -32,19 +35,31 @@ enum GroupDialogMode: Identifiable {
 @MainActor
 final class GroupsViewModel: ObservableObject {
 
-    @Published private(set) var groups:        [AppGroup]        = []
-    @Published              var selectedId:    Int?              = nil
-    @Published              var dialogMode:    GroupDialogMode?  = nil
-    @Published              var joinCodeInput: String            = ""
-    @Published              var createNameInput: String          = ""
-    @Published              var isLoading:     Bool              = false
-    @Published              var infoMessage:   String?           = nil
-    @Published              var isError:       Bool              = false
-    @Published              var isDetailLoading: Bool            = false
+    @Published private(set) var groups: [AppGroup] = []
+    @Published var selectedId: String? = nil
+    @Published var selectedRecipe: SharedRecipe?    = nil
+    @Published var dialogMode: GroupDialogMode?  = nil
+    @Published var joinCodeInput: String = ""
+    @Published var createNameInput: String = ""
+    @Published var isLoading: Bool = false
+    @Published var infoMessage: String? = nil
+    @Published var isError: Bool = false
+
+    private var cancellables = Set<AnyCancellable>()
 
     var selectedGroup: AppGroup? {
         guard let id = selectedId else { return groups.first }
         return groups.first { $0.id == id } ?? groups.first
+    }
+    
+    var visibleGroups: [AppGroup] {
+        return groups.filter { !$0.isPersonal }
+    }
+    
+    var selectedSharedGroup: AppGroup? {
+        let shared = visibleGroups
+        guard let id = selectedId else { return shared.first }
+        return shared.first { $0.id == id } ?? shared.first
     }
 
     private let apiService = SnapChefServiceLocator.shared.authApiService
@@ -52,6 +67,28 @@ final class GroupsViewModel: ObservableObject {
 
     init() {
         Task { await loadGroups() }
+        
+        RecipeStore.shared.$personalRecipes
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] recipes in
+                guard let self = self else { return }
+                if let idx = self.groups.firstIndex(where: { $0.isPersonal }) {
+                    self.groups[idx].recipes = recipes
+                }
+            }
+            .store(in: &cancellables)
+            
+        RecipeStore.shared.$sharedRecipes
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] recipes in
+                guard let self = self else { return }
+                for i in 0..<self.groups.count {
+                    if !self.groups[i].isPersonal && !self.groups[i].id.hasPrefix("group_") {
+                        self.groups[i].recipes = recipes
+                    }
+                }
+            }
+            .store(in: &cancellables)
     }
 
     func loadGroups() async {
@@ -59,22 +96,40 @@ final class GroupsViewModel: ObservableObject {
         do {
             let raw = try await apiService.fetchGroups()
             let currentUserId = AuthManager.shared.currentUser?.id
-            groups = raw.map { g in
+            let remoteGroups = raw.map { g in
                 let isAdmin = (g.createdByUserId == currentUserId)
                 return AppGroup(
-                    id:        Int(g.id),
+                    id:        String(g.id),
                     name:      g.name,
                     code:      g.code,
                     ownerName: isAdmin ? "You" : nil,
                     members:   [],
-                    isAdmin:   isAdmin
+                    isAdmin:   isAdmin,
+                    recipes:   RecipeStore.shared.sharedRecipes,
+                    isPersonal: false
                 )
             }
-            if selectedId == nil, let first = groups.first {
-                selectedId = first.id
+            
+            var personalGroup = AppGroup(
+                id: "personal",
+                name: "Your recipes",
+                code: nil,
+                ownerName: "You",
+                members: [GroupMember(name: "You", avatarSeed: "You")],
+                isAdmin: false,
+                recipes: RecipeStore.shared.personalRecipes,
+                isPersonal: true
+            )
+            
+            groups = [personalGroup] + remoteGroups
+            
+            if selectedId == nil {
+                selectedId = "personal"
             }
-            if let id = selectedId {
+            if let id = selectedId, id != "personal" && !id.hasPrefix("group_") {
                 await loadGroupDetail(id: id)
+            } else if let firstSharedId = remoteGroups.first?.id {
+                await loadGroupDetail(id: firstSharedId)
             }
         } catch {
             showInfo("Failed to load groups.", isError: true)
@@ -82,10 +137,10 @@ final class GroupsViewModel: ObservableObject {
         isLoading = false
     }
 
-    func loadGroupDetail(id: Int) async {
-        isDetailLoading = true
+    func loadGroupDetail(id: String) async {
+        guard let idInt = Int32(id) else { return }
         do {
-            let detail = try await apiService.fetchGroupDetail(id: Int32(id))
+            let detail = try await apiService.fetchGroupDetail(id: idInt)
             let currentUserId = AuthManager.shared.currentUser?.id
             let members = detail.members.map { m in
                 GroupMember(
@@ -102,13 +157,22 @@ final class GroupsViewModel: ObservableObject {
             }
         } catch {
         }
-        isDetailLoading = false
     }
 
 
-    func selectGroup(_ id: Int) {
+    func selectGroup(_ id: String) {
         selectedId = id
-        Task { await loadGroupDetail(id: id) }
+        if !id.hasPrefix("group_") && id != "personal" {
+            Task { await loadGroupDetail(id: id) }
+        }
+    }
+    
+    func openRecipe(_ recipe: SharedRecipe) {
+        selectedRecipe = recipe
+    }
+    
+    func closeRecipeDetails() {
+        selectedRecipe = nil
     }
 
 
@@ -138,7 +202,7 @@ final class GroupsViewModel: ObservableObject {
                 dialogMode    = nil
                 joinCodeInput = ""
                 await loadGroups()
-                selectedId = Int(joined.id)
+                selectedId = String(joined.id)
             } catch {
                 showInfo("Invalid code or join failed.", isError: true)
                 dialogMode    = nil
@@ -164,7 +228,7 @@ final class GroupsViewModel: ObservableObject {
                 dialogMode      = nil
                 createNameInput = ""
                 await loadGroups()
-                selectedId = Int(created.id)
+                selectedId = String(created.id)
             } catch {
                 showInfo("Failed to create group.", isError: true)
                 dialogMode      = nil
@@ -180,11 +244,16 @@ final class GroupsViewModel: ObservableObject {
             showInfo("Admins cannot leave their own group. Delete it instead.", isError: true)
             return
         }
+        if group.isPersonal || group.id.hasPrefix("group_") {
+            showInfo("Personal or demo groups cannot be left.", isError: true)
+            return
+        }
+        guard let groupIdInt = Int32(group.id) else { return }
         Task {
             isLoading = true
             do {
-                try await apiService.leaveGroup(id: Int32(group.id))
-                selectedId = nil
+                try await apiService.leaveGroup(id: groupIdInt)
+                selectedId = "personal"
                 showInfo("You left \(group.name).")
                 await loadGroups()
             } catch {
@@ -200,11 +269,16 @@ final class GroupsViewModel: ObservableObject {
             showInfo("Only the group admin can delete this group.", isError: true)
             return
         }
+        if group.isPersonal || group.id.hasPrefix("group_") {
+            showInfo("Personal groups cannot be deleted.", isError: true)
+            return
+        }
+        guard let groupIdInt = Int32(group.id) else { return }
         Task {
             isLoading = true
             do {
-                try await apiService.deleteGroup(id: Int32(group.id))
-                selectedId = nil
+                try await apiService.deleteGroup(id: groupIdInt)
+                selectedId = "personal"
                 showInfo("Group \(group.name) deleted.")
                 await loadGroups()
             } catch {
