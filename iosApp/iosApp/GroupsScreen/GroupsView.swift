@@ -50,18 +50,14 @@ struct GroupsView: View {
                         .buttonStyle(GroupBouncyButtonStyle())
                     }
 
-                    // Your Groups card
-                    GroupCard {
-                        VStack(alignment: .leading, spacing: 12) {
-                            Text("Your groups")
-                                .font(.system(size: 18, weight: .bold))
-                                .foregroundColor(Color.greenPrimary)
+                    if !viewModel.visibleGroups.isEmpty {
+                        // Your Groups card
+                        GroupCard {
+                            VStack(alignment: .leading, spacing: 12) {
+                                Text("Your groups")
+                                    .font(.system(size: 18, weight: .bold))
+                                    .foregroundColor(Color.greenPrimary)
 
-                            if viewModel.visibleGroups.isEmpty && !viewModel.isLoading {
-                                Text("No shared groups yet")
-                                    .font(.system(size: 14))
-                                    .foregroundColor(Color.greenOnBackground.opacity(0.55))
-                            } else {
                                 ScrollView(.horizontal, showsIndicators: false) {
                                     HStack(spacing: 10) {
                                         ForEach(viewModel.visibleGroups) { group in
@@ -115,7 +111,12 @@ struct GroupsView: View {
                                             .foregroundColor(Color.greenPrimary)
                                     }
 
-                                    if group.members.isEmpty {
+                                    if viewModel.isDetailLoading {
+                                        ProgressView()
+                                            .progressViewStyle(CircularProgressViewStyle(tint: Color.greenPrimary))
+                                            .frame(maxWidth: .infinity, alignment: .center)
+                                            .padding(.vertical, 8)
+                                    } else if group.members.isEmpty {
                                         Text("No members yet.")
                                             .font(.system(size: 14))
                                             .foregroundColor(Color.greenOnBackground.opacity(0.55))
@@ -188,6 +189,18 @@ struct GroupsView: View {
                             }
                         }
 
+                    } else {
+                        GroupCard {
+                            VStack(alignment: .leading, spacing: 12) {
+                                Text("No shared groups yet")
+                                    .font(.system(size: 18, weight: .bold))
+                                    .foregroundColor(Color.greenPrimary)
+
+                                Text("Create a new group or join with a code to start collaborating.")
+                                    .font(.system(size: 14))
+                                    .foregroundColor(Color.greenOnBackground.opacity(0.75))
+                            }
+                        }
                     }
 
                     Spacer().frame(height: 96)

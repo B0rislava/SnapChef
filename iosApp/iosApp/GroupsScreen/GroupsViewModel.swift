@@ -44,6 +44,7 @@ final class GroupsViewModel: ObservableObject {
     @Published var isLoading: Bool = false
     @Published var infoMessage: String? = nil
     @Published var isError: Bool = false
+    @Published var isDetailLoading: Bool = false
 
     private var cancellables = Set<AnyCancellable>()
 
@@ -138,7 +139,11 @@ final class GroupsViewModel: ObservableObject {
     }
 
     func loadGroupDetail(id: String) async {
-        guard let idInt = Int32(id) else { return }
+        isDetailLoading = true
+        guard let idInt = Int32(id) else {
+            isDetailLoading = false
+            return
+        }
         do {
             let detail = try await apiService.fetchGroupDetail(id: idInt)
             let currentUserId = AuthManager.shared.currentUser?.id
@@ -157,6 +162,7 @@ final class GroupsViewModel: ObservableObject {
             }
         } catch {
         }
+        isDetailLoading = false
     }
 
 
