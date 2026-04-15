@@ -6,7 +6,6 @@
 //
 
 import SwiftUI
-import PhotosUI
 
 struct EditProfileView: View {
 
@@ -14,19 +13,10 @@ struct EditProfileView: View {
     let userEmail:       String
     let profileImageUri: URL?
 
-    var onPickImage: (URL) -> Void = { _ in }
     var onSave: (String, String, String, String) -> Void = { _, _, _, _ in }
     var onCancel: () -> Void = {}
 
     @StateObject private var viewModel = EditProfileViewModel()
-
-    @State private var selectedPhotoItem: PhotosPickerItem? = nil
-    @State private var pickedImageURL: URL? = nil
-    @State private var showPhotoPicker = false
-    @StateObject private var permissionHandler = CameraPermissionHandler()
-
-    private var displayImageUri: URL? { pickedImageURL ?? profileImageUri }
-
 
     var body: some View {
         ZStack(alignment: .topLeading) {
@@ -74,29 +64,9 @@ struct EditProfileView: View {
                     Spacer().frame(height: 40)
 
                     AvatarPickerView(
-                        imageUri: displayImageUri,
-                        initials: viewModel.uiState.initials,
-                        onEditTap: {
-                            permissionHandler.requestBothPermissions {
-                                showPhotoPicker = true
-                            }
-                        }
+                        imageUri: profileImageUri,
+                        initials: viewModel.uiState.initials
                     )
-                    .photosPicker(
-                        isPresented: $showPhotoPicker,
-                        selection:   $selectedPhotoItem,
-                        matching:    .images
-                    )
-                    .onChange(of: selectedPhotoItem) { _, newItem in
-                        Task {
-                            guard let newItem,
-                                  let data   = try? await newItem.loadTransferable(type: Data.self),
-                                  let tmpURL = saveToTemp(data: data)
-                            else { return }
-                            pickedImageURL = tmpURL
-                            onPickImage(tmpURL)
-                        }
-                    }
 
                     Spacer().frame(height: 40)
 
@@ -210,41 +180,12 @@ struct EditProfileView: View {
         }
         .onChange(of: userName)  { _, v in viewModel.setInitialValues(name: v,       email: userEmail) }
         .onChange(of: userEmail) { _, v in viewModel.setInitialValues(name: userName, email: v) }
-
-        .alert("Camera Access Required",
-               isPresented: $permissionHandler.showCameraDeniedAlert) {
-            Button("Cancel", role: .cancel) {}
-            Button("Settings") { openSettings() }
-        } message: {
-            Text("SnapChef needs camera access to take a profile photo. Please enable it in Settings.")
-        }
-        .alert("Photo Library Access Required",
-               isPresented: $permissionHandler.showPhotosDeniedAlert) {
-            Button("Cancel", role: .cancel) {}
-            Button("Settings") { openSettings() }
-        } message: {
-            Text("SnapChef needs photo library access to pick a profile picture. Please enable it in Settings.")
-        }
-    }
-
-    private func saveToTemp(data: Data) -> URL? {
-        let url = FileManager.default.temporaryDirectory
-            .appendingPathComponent(UUID().uuidString + ".jpg")
-        try? data.write(to: url)
-        return url
-    }
-
-    private func openSettings() {
-        if let url = URL(string: UIApplication.openSettingsURLString) {
-            UIApplication.shared.open(url)
-        }
     }
 }
 
 private struct AvatarPickerView: View {
     let imageUri: URL?
     let initials: String
-    let onEditTap: () -> Void
 
     var body: some View {
         ZStack(alignment: .bottom) {
@@ -255,17 +196,6 @@ private struct AvatarPickerView: View {
                     ProfilePhoto(imageUri: imageUri, initials: initials)
                         .frame(width: 128, height: 128)
                 )
-
-            Button(action: onEditTap) {
-                ZStack {
-                    Circle().fill(Color.white).frame(width: 40, height: 40)
-                    Circle().fill(Color.greenPrimary).frame(width: 32, height: 32)
-                    Image(systemName: "pencil")
-                        .font(.system(size: 14, weight: .semibold))
-                        .foregroundColor(.white)
-                }
-            }
-            .offset(y: 14)
         }
         .padding(.bottom, 14)
     }
