@@ -15,6 +15,7 @@ fun createHttpClient(): HttpClient {
                 ignoreUnknownKeys = true
                 prettyPrint = true
                 isLenient = true
+                coerceInputValues = true
             })
         }
         install(Logging) {

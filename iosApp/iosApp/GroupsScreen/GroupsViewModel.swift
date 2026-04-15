@@ -40,6 +40,7 @@ final class GroupsViewModel: ObservableObject {
     @Published              var isLoading:     Bool              = false
     @Published              var infoMessage:   String?           = nil
     @Published              var isError:       Bool              = false
+    @Published              var isDetailLoading: Bool            = false
 
     var selectedGroup: AppGroup? {
         guard let id = selectedId else { return groups.first }
@@ -82,6 +83,7 @@ final class GroupsViewModel: ObservableObject {
     }
 
     func loadGroupDetail(id: Int) async {
+        isDetailLoading = true
         do {
             let detail = try await apiService.fetchGroupDetail(id: Int32(id))
             let currentUserId = AuthManager.shared.currentUser?.id
@@ -100,6 +102,7 @@ final class GroupsViewModel: ObservableObject {
             }
         } catch {
         }
+        isDetailLoading = false
     }
 
 

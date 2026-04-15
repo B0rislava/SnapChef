@@ -115,7 +115,12 @@ struct GroupsView: View {
                                             .foregroundColor(Color.greenPrimary)
                                     }
 
-                                    if group.members.isEmpty {
+                                    if viewModel.isDetailLoading {
+                                        ProgressView()
+                                            .progressViewStyle(CircularProgressViewStyle(tint: Color.greenPrimary))
+                                            .frame(maxWidth: .infinity, alignment: .center)
+                                            .padding(.vertical, 8)
+                                    } else if group.members.isEmpty {
                                         Text("No members yet.")
                                             .font(.system(size: 14))
                                             .foregroundColor(Color.greenOnBackground.opacity(0.55))

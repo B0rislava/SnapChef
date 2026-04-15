@@ -65,7 +65,7 @@ data class GroupOut(
     val id: Int,
     val name: String,
     @SerialName("created_by_user_id") val createdByUserId: Int,
-    @SerialName("created_at") val createdAt: String,
+    @SerialName("created_at") val createdAt: String? = null,
     val code: String? = null
 )
 
@@ -73,7 +73,7 @@ data class GroupOut(
 data class GroupMemberOut(
     val user: UserOut,
     val role: String,
-    @SerialName("joined_at") val joinedAt: String
+    @SerialName("joined_at") val joinedAt: String? = null
 )
 
 @Serializable
@@ -81,7 +81,7 @@ data class GroupDetailOut(
     val id: Int,
     val name: String,
     @SerialName("created_by_user_id") val createdByUserId: Int,
-    @SerialName("created_at") val createdAt: String,
+    @SerialName("created_at") val createdAt: String? = null,
     val members: List<GroupMemberOut> = emptyList(),
     val code: String? = null
 )

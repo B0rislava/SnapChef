@@ -35,6 +35,7 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Group
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -188,18 +189,34 @@ fun GroupsScreen(
                     fontWeight = FontWeight.ExtraBold,
                 )
 
-                IconButton(
-                    modifier = Modifier
-                        .size(40.dp)
-                        .clip(CircleShape)
-                        .background(GreenPrimary.copy(alpha = 0.10f)),
-                    onClick = { viewModel.openDialog(GroupDialogMode.CHOICE) },
-                ) {
-                    Icon(
-                        imageVector = Icons.Filled.Add,
-                        contentDescription = "Join or create group",
-                        tint = GreenPrimary,
-                    )
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    IconButton(
+                        modifier = Modifier
+                            .size(40.dp)
+                            .clip(CircleShape)
+                            .background(GreenPrimary.copy(alpha = 0.10f)),
+                        onClick = { viewModel.refreshGroups() },
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.Refresh,
+                            contentDescription = "Refresh groups",
+                            tint = GreenPrimary,
+                        )
+                    }
+
+                    IconButton(
+                        modifier = Modifier
+                            .size(40.dp)
+                            .clip(CircleShape)
+                            .background(GreenPrimary.copy(alpha = 0.10f)),
+                        onClick = { viewModel.openDialog(GroupDialogMode.CHOICE) },
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.Add,
+                            contentDescription = "Join or create group",
+                            tint = GreenPrimary,
+                        )
+                    }
                 }
             }
 
@@ -354,7 +371,18 @@ fun GroupsScreen(
                                 )
                             }
 
-                            if (selectedGroup.members.isEmpty()) {
+                            if (uiState.isDetailLoading) {
+                                Box(
+                                    modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    androidx.compose.material3.CircularProgressIndicator(
+                                        modifier = Modifier.size(28.dp),
+                                        color = GreenPrimary,
+                                        strokeWidth = 2.5.dp
+                                    )
+                                }
+                            } else if (selectedGroup.members.isEmpty()) {
                                 Text(
                                     text = "No members yet.",
                                     style = MaterialTheme.typography.bodyMedium,
