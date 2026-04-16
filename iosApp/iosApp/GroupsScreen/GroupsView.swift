@@ -126,7 +126,9 @@ struct GroupsView: View {
                                             ForEach(group.members) { member in
                                                 GroupMemberRow(
                                                     member:  member,
-                                                    isOwner: member.name.lowercased() == (group.ownerName ?? "").lowercased()
+                                                    isOwner: member.name.lowercased() == (group.ownerName ?? "").lowercased(),
+                                                    canKick: group.isAdmin && member.name.lowercased() != "you",
+                                                    onKick: { viewModel.kickMember(id: member.realId) }
                                                 )
                                             }
                                         }
@@ -412,6 +414,8 @@ private struct GroupInfoBadge: View {
 private struct GroupMemberRow: View {
     let member:  GroupMember
     let isOwner: Bool
+    var canKick: Bool = false
+    var onKick: (() -> Void)? = nil
 
     private var initials: String {
         let parts = member.name.components(separatedBy: " ").filter { !$0.isEmpty }
@@ -442,6 +446,12 @@ private struct GroupMemberRow: View {
 
             if isOwner {
                 GroupInfoBadge(label: "Admin", isPrimary: true)
+            } else if canKick {
+                Button("Kick") {
+                    onKick?()
+                }
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundColor(.red)
             }
         }
         .padding(.horizontal, 12)

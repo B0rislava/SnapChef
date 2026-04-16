@@ -9,7 +9,8 @@ import Shared
 import Combine
 
 struct GroupMember: Identifiable {
-    let id   = UUID()
+    let id = UUID()
+    let realId: Int32
     let name: String
     let avatarSeed: String
 }
@@ -149,6 +150,7 @@ final class GroupsViewModel: ObservableObject {
             let currentUserId = AuthManager.shared.currentUser?.id
             let members = detail.members.map { m in
                 GroupMember(
+                    realId:     m.user.id,
                     name:       m.user.id == currentUserId ? "You" : m.user.name,
                     avatarSeed: String(detail.id)
                 )
@@ -306,6 +308,21 @@ final class GroupsViewModel: ObservableObject {
     func clearInfoMessage() {
         infoMessage = nil
         isError     = false
+    }
+
+    func kickMember(id: Int32) {
+        guard let group = selectedSharedGroup, let groupIdInt = Int32(group.id) else { return }
+        Task {
+            isLoading = true
+            do {
+                try await apiService.removeMember(groupId: groupIdInt, userId: id)
+                showInfo("Member removed.")
+                await loadGroupDetail(id: group.id)
+            } catch {
+                showInfo("Failed to remove member.", isError: true)
+            }
+            isLoading = false
+        }
     }
 
     private func showInfo(_ msg: String, isError: Bool = false) {
