@@ -315,7 +315,7 @@ final class GroupsViewModel: ObservableObject {
         Task {
             isLoading = true
             do {
-                try await apiService.removeMember(groupId: groupIdInt, userId: id)
+                try await apiService.kickMember(groupId: groupIdInt, userId: id)
                 showInfo("Member removed.")
                 await loadGroupDetail(id: group.id)
             } catch {

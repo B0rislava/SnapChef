@@ -290,7 +290,7 @@ class GroupsViewModel : ViewModel() {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
             try {
-                apiService.removeMember(groupIdInt, memberId)
+                apiService.kickMember(groupIdInt, memberId)
                 _uiState.update { current ->
                     current.copy(
                         infoMessage = "${member.username} was removed from ${selected.name}.",

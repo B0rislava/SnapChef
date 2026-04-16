@@ -114,7 +114,7 @@ class AuthApiService(private val client: HttpClient) {
     }
 
     @Throws(Exception::class)
-    suspend fun removeMember(groupId: Int, userId: Int) {
+    suspend fun kickMember(groupId: Int, userId: Int) {
         client.post("${AppConfig.BASE_URL}/groups/$groupId/remove-member/$userId") {
             AuthManager.accessToken?.let { token ->
                 header("Authorization", "Bearer $token")
