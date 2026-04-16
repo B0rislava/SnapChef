@@ -686,7 +686,7 @@ fun GroupsScreen(
             confirmButton = {
                 TextButton(
                     onClick = {
-                        viewModel.kickMemberFromSelectedGroup(member.username)
+                        viewModel.kickMemberFromSelectedGroup(member)
                         memberToKick = null
                     }
                 ) { Text("Remove") }

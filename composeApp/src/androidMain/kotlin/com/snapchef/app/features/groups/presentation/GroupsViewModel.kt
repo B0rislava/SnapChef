@@ -128,7 +128,8 @@ class GroupsViewModel : ViewModel() {
                                 members = detail.members.map { m ->
                                     GroupMember(
                                         username = if (m.user.id == AuthManager.currentUser?.id) "You" else m.user.name,
-                                        avatarSeed = m.user.name
+                                        avatarSeed = m.user.name,
+                                        id = m.user.id
                                     )
                                 }
                             )
@@ -268,35 +269,45 @@ class GroupsViewModel : ViewModel() {
         }
     }
 
-    fun kickMemberFromSelectedGroup(username: String) {
+    fun kickMemberFromSelectedGroup(member: GroupMember) {
         val state = _uiState.value
         val selected = state.groups.firstOrNull { it.id == state.selectedGroupId } ?: return
+        val groupIdInt = selected.id.toIntOrNull() ?: return
+        val memberId = member.id ?: return
 
         if (!selected.ownerUsername.equals("You", ignoreCase = true)) {
             _uiState.update { it.copy(infoMessage = "Only the group admin can remove members.") }
             return
         }
 
-        if (username.equals("You", ignoreCase = true) ||
-            username.equals(selected.ownerUsername, ignoreCase = true)
+        if (member.username.equals("You", ignoreCase = true) ||
+            member.username.equals(selected.ownerUsername, ignoreCase = true)
         ) {
             _uiState.update { it.copy(infoMessage = "Admin cannot be removed from the group.") }
             return
         }
 
-        val updatedMembers = selected.members.filterNot { it.username.equals(username, ignoreCase = true) }
-        if (updatedMembers.size == selected.members.size) {
-            _uiState.update { it.copy(infoMessage = "Member not found in this group.") }
-            return
-        }
-
-        _uiState.update { current ->
-            current.copy(
-                groups = current.groups.map { group ->
-                    if (group.id == selected.id) group.copy(members = updatedMembers) else group
-                },
-                infoMessage = "$username was removed from ${selected.name}.",
-            )
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true) }
+            try {
+                apiService.removeMember(groupIdInt, memberId)
+                _uiState.update { current ->
+                    current.copy(
+                        infoMessage = "${member.username} was removed from ${selected.name}.",
+                        isLoading = false
+                    )
+                }
+                refreshSelectedGroupDetail()
+            } catch (e: Exception) {
+                e.printStackTrace()
+                _uiState.update { 
+                    it.copy(
+                        isLoading = false,
+                        infoMessage = "Failed to remove member. Error: ${e.message}",
+                        isError = true
+                    )
+                }
+            }
         }
     }
 

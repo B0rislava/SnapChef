@@ -3,6 +3,7 @@ package com.snapchef.app.features.groups.presentation
 data class GroupMember(
     val username: String,
     val avatarSeed: String = username,
+    val id: Int? = null,
 )
 
 data class RecipeGroup(
