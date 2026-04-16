@@ -128,7 +128,7 @@ struct GroupsView: View {
                                                     member:  member,
                                                     isOwner: member.name.lowercased() == (group.ownerName ?? "").lowercased(),
                                                     canKick: group.isAdmin && member.name.lowercased() != "you",
-                                                    onKick: { viewModel.kickMember(id: member.realId) }
+                                                    onKick: { viewModel.kickGroupMember(id: member.realId) }
                                                 )
                                             }
                                         }

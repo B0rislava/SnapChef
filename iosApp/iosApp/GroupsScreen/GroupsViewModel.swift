@@ -117,7 +117,7 @@ final class GroupsViewModel: ObservableObject {
                 name: "Your recipes",
                 code: nil,
                 ownerName: "You",
-                members: [GroupMember(name: "You", avatarSeed: "You")],
+                members: [GroupMember(realId: currentUserId ?? 0, name: "You", avatarSeed: "You")],
                 isAdmin: false,
                 recipes: RecipeStore.shared.personalRecipes,
                 isPersonal: true
@@ -310,7 +310,7 @@ final class GroupsViewModel: ObservableObject {
         isError     = false
     }
 
-    func kickMember(id: Int32) {
+    func kickGroupMember(id: Int32) {
         guard let group = selectedSharedGroup, let groupIdInt = Int32(group.id) else { return }
         Task {
             isLoading = true
