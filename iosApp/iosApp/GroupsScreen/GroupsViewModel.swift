@@ -100,12 +100,13 @@ final class GroupsViewModel: ObservableObject {
             let currentUserId = AuthManager.shared.currentUser?.id
             let remoteGroups = raw.map { g in
                 let isAdmin = (g.createdByUserId == currentUserId)
+                let existing = self.groups.first(where: { $0.id == String(g.id) })
                 return AppGroup(
                     id: String(g.id),
                     name: g.name,
                     code: g.code,
-                    ownerName: isAdmin ? "You" : nil,
-                    members: [],
+                    ownerName: isAdmin ? "You" : (existing?.ownerName ?? nil),
+                    members: existing?.members ?? [],
                     isAdmin: isAdmin,
                     recipes: RecipeStore.shared.sharedRecipes,
                     isPersonal: false
@@ -128,10 +129,17 @@ final class GroupsViewModel: ObservableObject {
             if selectedId == nil {
                 selectedId = "personal"
             }
+            
+            // Determine which group detail to load
+            let idToLoad: String?
             if let id = selectedId, id != "personal" && !id.hasPrefix("group_") {
+                idToLoad = id
+            } else {
+                idToLoad = remoteGroups.first?.id
+            }
+            
+            if let id = idToLoad {
                 await loadGroupDetail(id: id)
-            } else if let firstSharedId = remoteGroups.first?.id {
-                await loadGroupDetail(id: firstSharedId)
             }
         } catch {
             showInfo("Failed to load groups.", isError: true)
@@ -196,7 +204,7 @@ final class GroupsViewModel: ObservableObject {
 
     func joinGroup() {
         guard !isLoading else { return }
-        let code = joinCodeInput.trimmingCharacters(in: .whitespaces).uppercased()
+        let code = joinCodeInput.trimmingCharacters(in: .whitespaces)
         guard code.count >= 4 else {
             showInfo("Please enter a valid group code.", isError: true)
             dialogMode   = nil
