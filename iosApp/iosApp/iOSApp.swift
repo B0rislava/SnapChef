@@ -5,11 +5,17 @@ import GoogleSignIn
 struct iOSApp: App {
 
     init() {
-        guard let clientID = Bundle.main.object(forInfoDictionaryKey: "GIDSignIn") as? String else {
-            print("GIDSignIn key missing from Info.plist")
-            return
+        let clientID = Bundle.main.object(forInfoDictionaryKey: "GIDClientID") as? String ?? ""
+        let serverClientID = Bundle.main.object(forInfoDictionaryKey: "GIDServerClientID") as? String ?? ""
+        
+        if clientID.isEmpty {
+            print("GIDClientID missing from Info.plist")
         }
-        GIDSignIn.sharedInstance.configuration = GIDConfiguration(clientID: clientID)
+        
+        GIDSignIn.sharedInstance.configuration = GIDConfiguration(
+            clientID: clientID,
+            serverClientID: serverClientID
+        )
     }
 
     var body: some Scene {

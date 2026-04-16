@@ -44,6 +44,7 @@ final class GroupsViewModel: ObservableObject {
     @Published var isLoading: Bool = false
     @Published var infoMessage: String? = nil
     @Published var isError: Bool = false
+    @Published var isDetailLoading: Bool = false
 
     private var cancellables = Set<AnyCancellable>()
 
@@ -99,18 +100,18 @@ final class GroupsViewModel: ObservableObject {
             let remoteGroups = raw.map { g in
                 let isAdmin = (g.createdByUserId == currentUserId)
                 return AppGroup(
-                    id:        String(g.id),
-                    name:      g.name,
-                    code:      g.code,
+                    id: String(g.id),
+                    name: g.name,
+                    code: g.code,
                     ownerName: isAdmin ? "You" : nil,
-                    members:   [],
-                    isAdmin:   isAdmin,
-                    recipes:   RecipeStore.shared.sharedRecipes,
+                    members: [],
+                    isAdmin: isAdmin,
+                    recipes: RecipeStore.shared.sharedRecipes,
                     isPersonal: false
                 )
             }
             
-            var personalGroup = AppGroup(
+            let personalGroup = AppGroup(
                 id: "personal",
                 name: "Your recipes",
                 code: nil,
@@ -138,25 +139,37 @@ final class GroupsViewModel: ObservableObject {
     }
 
     func loadGroupDetail(id: String) async {
-        guard let idInt = Int32(id) else { return }
+        isDetailLoading = true
+        guard let idInt = Int32(id) else {
+            isDetailLoading = false
+            return
+        }
         do {
             let detail = try await apiService.fetchGroupDetail(id: idInt)
             let currentUserId = AuthManager.shared.currentUser?.id
             let members = detail.members.map { m in
                 GroupMember(
                     name:       m.user.id == currentUserId ? "You" : m.user.name,
-                    avatarSeed: m.user.name
+                    avatarSeed: String(detail.id)
                 )
             }
+            
+            let owner = detail.members.first { Int($0.user.id) == Int(detail.createdByUserId) }
+            let ownerName = (owner?.user.id == currentUserId) ? "You" : owner?.user.name
+            
             groups = groups.map { g in
                 guard g.id == id else { return g }
                 var updated = g
                 updated.code    = detail.code
                 updated.members = members
+                if let name = ownerName {
+                    updated.ownerName = name
+                }
                 return updated
             }
         } catch {
         }
+        isDetailLoading = false
     }
 
 
@@ -180,6 +193,7 @@ final class GroupsViewModel: ObservableObject {
     func closeDialog() { dialogMode = nil }
 
     func joinGroup() {
+        guard !isLoading else { return }
         let code = joinCodeInput.trimmingCharacters(in: .whitespaces).uppercased()
         guard code.count >= 4 else {
             showInfo("Please enter a valid group code.", isError: true)
@@ -213,6 +227,7 @@ final class GroupsViewModel: ObservableObject {
     }
     
     func createGroup() {
+        guard !isLoading else { return }
         let name = createNameInput.trimmingCharacters(in: .whitespaces)
         guard !name.isEmpty else {
             showInfo("Group name cannot be empty.", isError: true)

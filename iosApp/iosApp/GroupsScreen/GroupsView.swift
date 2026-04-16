@@ -48,20 +48,17 @@ struct GroupsView: View {
                                 .clipShape(Circle())
                         }
                         .buttonStyle(GroupBouncyButtonStyle())
+                        .disabled(viewModel.isLoading)
                     }
 
-                    // Your Groups card
-                    GroupCard {
-                        VStack(alignment: .leading, spacing: 12) {
-                            Text("Your groups")
-                                .font(.system(size: 18, weight: .bold))
-                                .foregroundColor(Color.greenPrimary)
+                    if !viewModel.visibleGroups.isEmpty {
+                        // Your Groups card
+                        GroupCard {
+                            VStack(alignment: .leading, spacing: 12) {
+                                Text("Your groups")
+                                    .font(.system(size: 18, weight: .bold))
+                                    .foregroundColor(Color.greenPrimary)
 
-                            if viewModel.visibleGroups.isEmpty && !viewModel.isLoading {
-                                Text("No shared groups yet")
-                                    .font(.system(size: 14))
-                                    .foregroundColor(Color.greenOnBackground.opacity(0.55))
-                            } else {
                                 ScrollView(.horizontal, showsIndicators: false) {
                                     HStack(spacing: 10) {
                                         ForEach(viewModel.visibleGroups) { group in
@@ -148,6 +145,7 @@ struct GroupsView: View {
                                         content:   Color.greenPrimary,
                                         action:    { showLeaveConfirm = true }
                                     )
+                                    .disabled(viewModel.isLoading)
                                     if group.isAdmin {
                                         GroupActionButton(
                                             text:      "Delete",
@@ -156,6 +154,7 @@ struct GroupsView: View {
                                             content:   Color.red,
                                             action:    { showDeleteConfirm = true }
                                         )
+                                        .disabled(viewModel.isLoading)
                                     }
                                 }
                             }
@@ -193,6 +192,18 @@ struct GroupsView: View {
                             }
                         }
 
+                    } else if !viewModel.isLoading {
+                        GroupCard {
+                            VStack(alignment: .leading, spacing: 12) {
+                                Text("No shared groups yet")
+                                    .font(.system(size: 18, weight: .bold))
+                                    .foregroundColor(Color.greenPrimary)
+
+                                Text("Create a new group or join with a code to start collaborating.")
+                                    .font(.system(size: 14))
+                                    .foregroundColor(Color.greenOnBackground.opacity(0.75))
+                            }
+                        }
                     }
 
                     Spacer().frame(height: 96)
@@ -270,8 +281,10 @@ struct GroupsView: View {
                 HStack(spacing: 12) {
                     Button("Create group") { viewModel.openDialog(.create) }
                         .buttonStyle(GroupSheetButtonStyle(isPrimary: false))
+                        .disabled(viewModel.isLoading)
                     Button("Join group") { viewModel.openDialog(.join) }
                         .buttonStyle(GroupSheetButtonStyle(isPrimary: true))
+                        .disabled(viewModel.isLoading)
                 }
             }
             .padding(32)
@@ -285,9 +298,8 @@ struct GroupsView: View {
                 Text("Enter an invite code to join an existing group.")
                     .font(.system(size: 14))
                     .foregroundColor(Color.greenOnBackground.opacity(0.7))
-                TextField("e.g. A7K2P1", text: $viewModel.joinCodeInput)
+                TextField("e.g. A7K2P1gg", text: $viewModel.joinCodeInput)
                     .font(.system(size: 16, design: .monospaced))
-                    .textInputAutocapitalization(.characters)
                     .autocorrectionDisabled()
                     .padding(14)
                     .background(Color.greenSecondary.opacity(0.20))
@@ -302,6 +314,8 @@ struct GroupsView: View {
                     Spacer()
                     Button("Join") { viewModel.joinGroup() }
                         .buttonStyle(GroupSheetButtonStyle(isPrimary: true))
+                        .disabled(viewModel.isLoading)
+                        .opacity(viewModel.isLoading ? 0.6 : 1.0)
                 }
             }
             .padding(32)
@@ -330,6 +344,8 @@ struct GroupsView: View {
                     Spacer()
                     Button("Create") { viewModel.createGroup() }
                         .buttonStyle(GroupSheetButtonStyle(isPrimary: true))
+                        .disabled(viewModel.isLoading)
+                        .opacity(viewModel.isLoading ? 0.6 : 1.0)
                 }
             }
             .padding(32)

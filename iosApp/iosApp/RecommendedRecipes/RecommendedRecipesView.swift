@@ -87,7 +87,7 @@ struct RecommendedRecipesView: View {
                     )
 
                 VStack(alignment: .leading, spacing: 0) {
-                    Text(NSLocalizedString("choose_yours_next_meal", comment: ""))
+                    Text("Choose your next meal")
                         .font(.system(size: 20, weight: .bold))
                         .foregroundColor(Color.greenPrimary)
                         .padding(.bottom, 16)
