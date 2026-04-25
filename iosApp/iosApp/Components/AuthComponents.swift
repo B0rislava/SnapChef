@@ -1,13 +1,6 @@
-//
-//  AuthComponents.swift
-//  iosApp
-//
-//  Created by gergana on 3/26/26.
-//
 
 import SwiftUI
 
-// Reusable Auth Text Field
 struct AuthTextField: View {
     @Binding var value: String
     var placeholder: String
@@ -63,7 +56,6 @@ struct AuthTextField: View {
     }
 }
 
-// Or Divider
 struct OrDivider: View {
     var body: some View {
         HStack(spacing: 0) {
@@ -84,7 +76,6 @@ struct OrDivider: View {
     }
 }
 
-// Social Button 
 struct SocialButton: View {
     var label: String
     var emoji: String

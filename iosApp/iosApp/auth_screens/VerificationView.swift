@@ -1,9 +1,3 @@
-//
-//  VerificationView.swift
-//  iosApp
-//
-//  Created by gergana on 3/28/26.
-//
 
 import SwiftUI
 
@@ -72,7 +66,6 @@ struct VerificationView: View {
                             keyboardType: .numberPad
                         )
 
-                        // Error
                         if let error = viewModel.errorMessage {
                             Text(error)
                                 .font(.system(size: 13))
@@ -80,7 +73,6 @@ struct VerificationView: View {
                                 .multilineTextAlignment(.center)
                         }
 
-                        // Verify button
                         Button(action: {
                             viewModel.verify(email: email, onSuccess: onSuccess)
                         }) {

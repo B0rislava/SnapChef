@@ -1,9 +1,3 @@
-//
-//  SessionManager.swift
-//  iosApp
-//
-//  Created by gergana on 3/28/26.
-//
 
 import SwiftUI
 import Shared

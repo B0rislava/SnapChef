@@ -1,9 +1,3 @@
-//
-//  GroupsView.swift
-//  iosApp
-//
-//  Created by gergana on 3/27/26.
-//
 
 import SwiftUI
 
@@ -26,12 +20,10 @@ struct GroupsView: View {
                 .frame(width: 240, height: 240)
                 .offset(x: UIScreen.main.bounds.width - 60, y: -40)
 
-            // Main scroll content
             ScrollView(showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 16) {
                     Spacer().frame(height: 24)
 
-                    // Header
                     HStack {
                         Text("Groups")
                             .font(.system(size: 28, weight: .heavy))
@@ -52,7 +44,6 @@ struct GroupsView: View {
                     }
 
                     if !viewModel.visibleGroups.isEmpty {
-                        // Your Groups card
                         GroupCard {
                             VStack(alignment: .leading, spacing: 12) {
                                 Text("Your groups")
@@ -75,12 +66,10 @@ struct GroupsView: View {
                         }
                     }
 
-                    // Selected group detail card
                     if let group = viewModel.selectedSharedGroup {
                         GroupCard {
                             VStack(alignment: .leading, spacing: 20) {
 
-                                // Group name + badges row
                                 VStack(alignment: .leading, spacing: 10) {
                                     Text(group.name)
                                         .font(.system(size: 22, weight: .heavy))
@@ -101,7 +90,6 @@ struct GroupsView: View {
                                 Divider()
                                     .background(Color.greenSecondary.opacity(0.25))
 
-                                // Members section
                                 VStack(alignment: .leading, spacing: 12) {
                                     HStack(spacing: 8) {
                                         Image(systemName: "person.3.fill")
@@ -138,7 +126,6 @@ struct GroupsView: View {
                                 Divider()
                                     .background(Color.greenSecondary.opacity(0.25))
 
-                                // Action buttons
                                 HStack(spacing: 12) {
                                     GroupActionButton(
                                         text:      "Leave",
@@ -162,7 +149,6 @@ struct GroupsView: View {
                             }
                         }
 
-                        // Join Code card
                         if group.isAdmin {
                             GroupCard {
                                 VStack(spacing: 10) {
@@ -250,11 +236,9 @@ struct GroupsView: View {
                 .zIndex(100)
             }
         }
-        // Dialogs
         .sheet(item: $viewModel.dialogMode) { mode in
             dialogSheet(for: mode)
         }
-        // Confirmations
         .alert("Leave group?", isPresented: $showLeaveConfirm) {
             Button("Leave", role: .destructive) { viewModel.leaveGroup() }
             Button("Cancel", role: .cancel) {}
@@ -428,7 +412,6 @@ private struct GroupMemberRow: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            // Avatar bubble
             ZStack {
                 Circle()
                     .fill(isAlt ? Color.greenSecondary : Color.greenPrimary.opacity(0.20))

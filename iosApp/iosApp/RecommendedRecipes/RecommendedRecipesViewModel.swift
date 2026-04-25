@@ -11,6 +11,8 @@ struct RecommendedRecipeItem: Identifiable, Equatable {
     var minutes: Int?
     var uses: [String]
     var extra: [String]
+    var shareSessionRecipeId: Int? = nil
+    var shareCatalogRecipeId: Int? = nil
 
     static func fromLibrary(_ r: LibraryRecipeOut) -> RecommendedRecipeItem {
         let u = toStringsFromAny(r.uses)
@@ -85,7 +87,8 @@ struct RecommendedRecipeItem: Identifiable, Equatable {
             isQuick: isQuick,
             minutes: minutes,
             uses: u,
-            extra: e
+            extra: e,
+            shareCatalogRecipeId: rid > 0 ? rid : nil
         )
     }
 
@@ -93,6 +96,12 @@ struct RecommendedRecipeItem: Identifiable, Equatable {
         let u = toStringsFromAny(r.uses)
         let e = toStringsFromAny(r.extra)
         let steps = toStringsFromAny(r.steps)
+        let nameOpt = (r as AnyObject).value(forKey: "name") as? String
+        let titleOpt = (r as AnyObject).value(forKey: "title") as? String
+        let resolvedTitle: String
+        if let n = nameOpt?.trimmingCharacters(in: .whitespacesAndNewlines), !n.isEmpty { resolvedTitle = n }
+        else if let t = titleOpt?.trimmingCharacters(in: .whitespacesAndNewlines), !t.isEmpty { resolvedTitle = t }
+        else { resolvedTitle = "Recipe" }
         let all = u + e
         let mInt: Int? = {
             let o = (r as AnyObject).value(forKey: "minutes")
@@ -120,16 +129,18 @@ struct RecommendedRecipeItem: Identifiable, Equatable {
         } else {
             desc = "\(mLabel) · you have \(u.count); shop \(e.count) more."
         }
+        let sid = intFromKotlin(r.id)
         return RecommendedRecipeItem(
-            id: intFromKotlin(r.id),
-            title: r.name,
+            id: sid,
+            title: resolvedTitle,
             description: desc,
             instructions: steps,
             ingredients: all,
             isQuick: isQuick,
             minutes: mInt,
             uses: u,
-            extra: e
+            extra: e,
+            shareSessionRecipeId: sid
         )
     }
 
@@ -141,7 +152,9 @@ struct RecommendedRecipeItem: Identifiable, Equatable {
             missingItems: extra,
             availableItems: uses.map { "\($0) (from you)" },
             instructions: instructions,
-            perishableProducts: []
+            perishableProducts: [],
+            sessionRecipeId: shareSessionRecipeId,
+            catalogRecipeId: shareCatalogRecipeId
         )
     }
 
@@ -206,7 +219,6 @@ final class RecommendedRecipesViewModel: ObservableObject {
     private let homeService = SnapChefServiceLocator.shared.homeApiService
     private var loadGeneration: Int = 0
 
-    /// Loads the recommended tab (`GET /recipes/recommended`) and merges in-session `groq-recipes` when a Home scan session exists.
     func loadRecommendations(flow: AppFlowState) {
         loadGeneration &+= 1
         let gen = loadGeneration

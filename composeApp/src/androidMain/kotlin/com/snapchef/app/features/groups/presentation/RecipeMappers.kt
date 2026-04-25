@@ -3,6 +3,7 @@ package com.snapchef.app.features.groups.presentation
 import com.snapchef.app.features.auth.data.remote.RecipeOut
 import com.snapchef.app.features.auth.data.remote.SharedRecipeOut
 import com.snapchef.app.features.home.data.remote.SessionRecipeOut
+import com.snapchef.app.features.home.data.remote.resolvedTitle
 
 fun SharedRecipeOut.toUiSharedRecipe(currentUserId: Int?): SharedRecipe {
     val owner = when {
@@ -35,7 +36,7 @@ fun RecipeOut.toUiSharedRecipe(): SharedRecipe {
 
 fun SessionRecipeOut.toUiSharedRecipe(): SharedRecipe {
     return SharedRecipe(
-        title = name,
+        title = resolvedTitle(),
         description = "Ready in ${minutes ?: "?"} mins",
         ownerName = "You",
         missingItems = extra,

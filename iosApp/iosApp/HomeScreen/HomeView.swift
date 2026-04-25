@@ -1,9 +1,3 @@
-//
-//  HomeView.swift
-//  iosApp
-//
-//  Created by gergana on 3/26/26.
-//
 import SwiftUI
 import PhotosUI
 
@@ -16,7 +10,6 @@ struct HomeView: View {
     @State private var showModal     = false
     @State private var newIngredient = ""
 
-    // Photo pickers
     @State private var selectedPhotoItem: PhotosPickerItem? = nil
     @State private var showPhotoPicker  = false
     @State private var showCameraPicker = false
@@ -33,7 +26,6 @@ struct HomeView: View {
             VStack(spacing: 0) {
                 Spacer()
 
-                // Hero icon
                 ZStack {
                     Circle()
                         .fill(Color.greenPrimary.opacity(0.10))
@@ -60,7 +52,6 @@ struct HomeView: View {
                 Spacer().frame(height: 40)
 
                 HStack(spacing: 16) {
-                    // Camera button
                     Button(action: onCameraSnap) {
                         VStack(spacing: 10) {
                             Image(systemName: "camera.fill")
@@ -82,7 +73,6 @@ struct HomeView: View {
                     }
                     .buttonStyle(.plain)
 
-                    // Gallery button
                     Button(action: onGalleryPick) {
                         VStack(spacing: 10) {
                             Image(systemName: "photo.on.rectangle.angled")
@@ -131,12 +121,10 @@ struct HomeView: View {
                         viewModel.errorMessage = "Failed to load the selected image."
                     }
                 }
-                // Clear selection so the same image can be picked again if needed
                 selectedPhotoItem = nil
             }
         }
 
-        // Ingredients sheet
         .sheet(isPresented: $showModal) {
             IngredientsSheet(
                 isAnalyzing:   $viewModel.isAnalyzing,
@@ -157,7 +145,6 @@ struct HomeView: View {
             .presentationDragIndicator(.visible)
         }
         
-        // Camera sheet
         .fullScreenCover(isPresented: $showCameraPicker) {
             ImagePicker(sourceType: .camera) { image in
                 showModal = true
@@ -166,7 +153,6 @@ struct HomeView: View {
             .ignoresSafeArea()
         }
         
-        // Error alert
         .alert("Error", isPresented: Binding(
             get: { viewModel.errorMessage != nil },
             set: { if !$0 { viewModel.errorMessage = nil } }
@@ -176,7 +162,6 @@ struct HomeView: View {
             Text(viewModel.errorMessage ?? "An unknown error occurred.")
         }
 
-        // Camera denied alert
         .alert("Camera Access Required", isPresented: $permissions.showCameraDeniedAlert) {
             Button("Open Settings") { openSettings() }
             Button("Cancel", role: .cancel) {}
@@ -184,7 +169,6 @@ struct HomeView: View {
             Text("SnapChef needs access to your camera to take photos of ingredients. Please enable Camera access in Settings.")
         }
 
-        // Photos denied alert
         .alert("Photo Library Access Required", isPresented: $permissions.showPhotosDeniedAlert) {
             Button("Open Settings") { openSettings() }
             Button("Cancel", role: .cancel) {}
@@ -250,7 +234,6 @@ private struct IngredientsSheet: View {
                         .transition(.opacity)
 
                     } else {
-                        // results state
                         VStack(spacing: 16) {
                             Text("Confirm the items below, or remove any mistakes before generating recipes.")
                                 .font(.system(size: 14))
@@ -258,7 +241,6 @@ private struct IngredientsSheet: View {
                                 .multilineTextAlignment(.center)
                                 .frame(maxWidth: .infinity)
 
-                            // ingredient list
                             VStack(spacing: 12) {
                                 ForEach(ingredients, id: \.self) { item in
                                     HStack {
@@ -289,7 +271,6 @@ private struct IngredientsSheet: View {
                                 }
                             }
 
-                            // add ingredient row
                             HStack(spacing: 12) {
                                 AuthTextField(
                                     value: $newIngredient,
@@ -306,7 +287,6 @@ private struct IngredientsSheet: View {
                                 }
                             }
 
-                            // generate button
                             Button(action: onGenerate) {
                                 Text("Generate Recipes")
                                     .font(.system(size: 15, weight: .semibold))
