@@ -146,6 +146,15 @@ class AuthApiService(private val client: HttpClient) {
     }
 
     @Throws(Exception::class)
+    suspend fun deleteSharedRecipe(sharedRecipeId: Int) {
+        client.delete("${AppConfig.BASE_URL}/share/recipe/$sharedRecipeId") {
+            AuthManager.accessToken?.let { token ->
+                header("Authorization", "Bearer $token")
+            }
+        }
+    }
+
+    @Throws(Exception::class)
     suspend fun getRecommendedRecipes(count: Int = 6): RecommendedRecipesOut {
         return client.get("${AppConfig.BASE_URL}/recipes/recommended") {
             AuthManager.accessToken?.let { token ->
