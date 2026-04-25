@@ -2,7 +2,7 @@ import SwiftUI
 import Shared
 
 struct RecipesView: View {
-    @StateObject private var viewModel = GroupsViewModel()
+    @EnvironmentObject private var viewModel: GroupsViewModel
 
     var body: some View {
         ZStack(alignment: .top) {
@@ -28,6 +28,45 @@ struct RecipesView: View {
                             .font(.system(size: 28, weight: .heavy))
                             .foregroundColor(Color.greenPrimary)
                             .padding(.horizontal, 24)
+                        
+                        if let g = viewModel.selectedSharedGroup, !g.isPersonal {
+                            VStack(alignment: .leading, spacing: 10) {
+                                Text("Group kitchens together")
+                                    .font(.system(size: 16, weight: .bold))
+                                    .foregroundColor(Color.greenPrimary)
+                                if viewModel.isCombinedLoading {
+                                    ProgressView()
+                                        .tint(Color.greenPrimary)
+                                        .padding(.vertical, 4)
+                                } else if let line = viewModel.combinedPantryLabel[g.id] {
+                                    Text(line)
+                                        .font(.system(size: 13))
+                                        .foregroundColor(Color.greenOnBackground.opacity(0.8))
+                                        .fixedSize(horizontal: false, vertical: true)
+                                } else {
+                                    Text("We combine every member’s pantry to plan meals. Pull to load or open another group to refresh.")
+                                        .font(.system(size: 13))
+                                        .foregroundColor(Color.greenOnBackground.opacity(0.65))
+                                }
+                                Button {
+                                    viewModel.addCombinedGroupMealIdeas()
+                                } label: {
+                                    Text("Get AI meal ideas from your group’s food")
+                                        .font(.system(size: 15, weight: .bold))
+                                        .foregroundColor(.white)
+                                        .frame(maxWidth: .infinity)
+                                        .padding(.vertical, 14)
+                                        .background(Color.greenPrimary)
+                                        .clipShape(RoundedRectangle(cornerRadius: 16))
+                                }
+                            }
+                            .padding(16)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .background(Color.white)
+                            .clipShape(RoundedRectangle(cornerRadius: 20))
+                            .shadow(color: .black.opacity(0.05), radius: 6, x: 0, y: 3)
+                            .padding(.horizontal, 24)
+                        }
                         
                         // Group Selection
                         ScrollView(.horizontal, showsIndicators: false) {
@@ -70,7 +109,10 @@ struct RecipesView: View {
                                 .padding(.top, 8)
                             
                             if validGroup.recipes.isEmpty {
-                                Text("No recipes saved yet.")
+                                Text(validGroup.isPersonal
+                                    ? "No recipes saved yet."
+                                    : "Nothing shared in this group yet. Open a recipe and tap “Share with a group”, or use the AI meal button above."
+                                )
                                     .font(.system(size: 15))
                                     .foregroundColor(Color.greenOnBackground.opacity(0.6))
                                     .frame(maxWidth: .infinity, alignment: .center)
@@ -90,6 +132,27 @@ struct RecipesView: View {
                         Spacer().frame(height: 96)
                     }
                 }
+                .refreshable {
+                    viewModel.loadCombinedGroupPantrySummary()
+                }
+            }
+        }
+        .onAppear {
+            if viewModel.selectedSharedGroup != nil {
+                viewModel.loadCombinedGroupPantrySummary()
+            }
+        }
+        .overlay(alignment: .top) {
+            if let msg = viewModel.infoMessage, viewModel.selectedRecipe != nil {
+                Text(msg)
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 10)
+                    .background(viewModel.isError ? Color.red.opacity(0.9) : Color.greenPrimary)
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                    .padding(.top, 8)
+                    .padding(.horizontal, 16)
             }
         }
     }
@@ -162,7 +225,6 @@ struct GroupRecipeDetailsView: View {
     let recipe: SharedRecipe
     @ObservedObject var viewModel: GroupsViewModel
     @State private var showGroupSelection = false
-    @State private var inviteMessage: String? = nil
 
     var body: some View {
         ScrollView(showsIndicators: false) {
@@ -212,21 +274,13 @@ struct GroupRecipeDetailsView: View {
                         Spacer().frame(height: 12)
                         
                         Button(action: { showGroupSelection = true }) {
-                            Text("Invite to cook together")
+                            Text("Share with a group")
                                 .font(.system(size: 15, weight: .bold))
                                 .foregroundColor(.white)
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 14)
                                 .background(Color.greenPrimary)
                                 .clipShape(RoundedRectangle(cornerRadius: 16))
-                        }
-                        
-                        if let msg = inviteMessage {
-                            Text(msg)
-                                .font(.system(size: 13, weight: .semibold))
-                                .foregroundColor(Color.greenPrimary)
-                                .frame(maxWidth: .infinity, alignment: .center)
-                                .padding(.top, 8)
                         }
                     }
                     .padding(24)
@@ -291,7 +345,7 @@ struct GroupRecipeDetailsView: View {
         }
         .sheet(isPresented: $showGroupSelection) {
             GroupSelectionSheet(viewModel: viewModel) { group in
-                inviteMessage = "Invitation shared with \(group.name)!"
+                viewModel.shareRecipeToGroup(recipe, to: group)
                 showGroupSelection = false
             }
         }
@@ -371,7 +425,7 @@ struct GroupSelectionSheet: View {
                 .foregroundColor(Color.greenPrimary)
                 .padding(.top, 16)
             
-            Text("Which group would you like to invite to cook this recipe?")
+            Text("Pick a group. Everyone in it will see this recipe in the group list.")
                 .font(.system(size: 15))
                 .foregroundColor(Color.greenOnBackground.opacity(0.7))
             

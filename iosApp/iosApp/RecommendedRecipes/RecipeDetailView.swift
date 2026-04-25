@@ -10,10 +10,12 @@ struct RecipeDetailView: View {
     let recipe:              RecommendedRecipeItem
     @Binding var checkedIngredients: [String: Bool]
     let infoMessage:         String?
+    var isFavorite:          Bool
     let onBack:              () -> Void
     let onToggle:            (String, Bool) -> Void
     var onSave:              () -> Void = {}
     var onShare:             () -> Void = {}
+    var onToggleFavorite:    () -> Void = {}
 
     var body: some View {
         ScrollView(showsIndicators: false) {
@@ -37,6 +39,16 @@ struct RecipeDetailView: View {
                     Text(NSLocalizedString("recipe_details", comment: ""))
                         .font(.system(size: 17, weight: .bold))
                         .foregroundColor(Color.greenPrimary)
+                    Spacer()
+                    Button(action: onToggleFavorite) {
+                        Image(systemName: isFavorite ? "heart.fill" : "heart")
+                            .font(.system(size: 20, weight: .semibold))
+                            .foregroundColor(Color.greenPrimary)
+                            .frame(width: 40, height: 40)
+                            .background(Color.greenPrimary.opacity(0.10))
+                            .clipShape(Circle())
+                    }
+                    .buttonStyle(.plain)
                 }
 
                 // Detail card
@@ -141,7 +153,7 @@ struct RecipeDetailView: View {
                     .buttonStyle(RecipeBouncyButtonStyle())
 
                     Button(action: onShare) {
-                        Text("Share")
+                        Text("Share to group")
                             .font(.system(size: 15, weight: .semibold))
                             .foregroundColor(Color.greenPrimary)
                             .frame(maxWidth: .infinity)

@@ -1,14 +1,11 @@
-//
-//  RecommendedRecipesView.swift
-//  iosApp
-//
-//  Created by gergana on 4/8/26.
-//
-
 import SwiftUI
 
 struct RecommendedRecipesView: View {
     @StateObject private var viewModel = RecommendedRecipesViewModel()
+    @EnvironmentObject private var appFlow: AppFlowState
+    @EnvironmentObject private var groupsViewModel: GroupsViewModel
+    @ObservedObject private var favoriteStore = FavoritesStore.shared
+    @State private var showGroupShareSheet = false
 
     var body: some View {
         ZStack(alignment: .top) {
@@ -24,30 +21,53 @@ struct RecommendedRecipesView: View {
                 .frame(width: 240, height: 240)
                 .offset(x: UIScreen.main.bounds.width - 60, y: -40)
 
-            if let idx = viewModel.uiState.openedRecipeIdx,
-               let recipe = viewModel.uiState.recipes[safe: idx] {
-                // Detail view
+            if let recipe = viewModel.uiState.openedRecipe {
                 RecipeDetailView(
                     recipe: recipe,
                     checkedIngredients: $viewModel.uiState.checkedIngredients,
                     infoMessage: viewModel.uiState.infoMessage,
+                    isFavorite: favoriteStore.isFavorite(id: recipe.id),
                     onBack: { viewModel.closeRecipe() },
                     onToggle: { viewModel.toggleIngredient($0, checked: $1) },
-                    onSave: {
-                        viewModel.setInfoMessage(NSLocalizedString("saved", comment: ""))
-                    },
-                    onShare:            {
-                        viewModel.setInfoMessage(NSLocalizedString("shared_to_your_group", comment: ""))
-                    }
+                    onSave: { viewModel.saveCurrentRecipe() },
+                    onShare: { showGroupShareSheet = true },
+                    onToggleFavorite: { viewModel.toggleFavoriteCurrent() }
                 )
                 .transition(.move(edge: .trailing).combined(with: .opacity))
             } else {
-                // List view
                 recipeListContent
                     .transition(.move(edge: .leading).combined(with: .opacity))
             }
         }
-        .animation(.easeInOut(duration: 0.3), value: viewModel.uiState.openedRecipeIdx)
+        .animation(.easeInOut(duration: 0.3), value: viewModel.uiState.openedRecipe)
+        .onAppear { viewModel.loadRecommendations(flow: appFlow) }
+        .onChange(of: appFlow.recipeSessionVersion) { _, _ in
+            viewModel.loadRecommendations(flow: appFlow)
+        }
+        .sheet(isPresented: $showGroupShareSheet) {
+            if let r = viewModel.uiState.openedRecipe {
+                GroupSelectionSheet(viewModel: groupsViewModel) { group in
+                    groupsViewModel.shareRecipeToGroup(r.toSharedRecipe(), to: group)
+                    showGroupShareSheet = false
+                }
+            } else {
+                VStack { Text("No recipe to share") }
+                    .onAppear { showGroupShareSheet = false }
+            }
+        }
+        .overlay(alignment: .top) {
+            if let msg = groupsViewModel.infoMessage, viewModel.uiState.openedRecipe != nil {
+                Text(msg)
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 10)
+                    .background(groupsViewModel.isError ? Color.red.opacity(0.9) : Color.greenPrimary)
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                    .padding(.top, 8)
+                    .padding(.horizontal, 16)
+            }
+        }
     }
 
     private var recipeListContent: some View {
@@ -64,6 +84,53 @@ struct RecommendedRecipesView: View {
                         .foregroundColor(Color.greenOnBackground.opacity(0.75))
                 }
 
+                if viewModel.uiState.isLoading {
+                    HStack { Spacer(); ProgressView().tint(Color.greenPrimary).scaleEffect(1.1); Spacer() }
+                        .padding(.vertical, 24)
+                } else if let err = viewModel.uiState.errorMessage, viewModel.uiState.recipes.isEmpty {
+                    Text(err)
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundColor(Color.greenOnBackground.opacity(0.85))
+                        .padding(20)
+                        .frame(maxWidth: .infinity, alignment: .center)
+                }
+
+                if !favoriteStore.items.isEmpty {
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text("Favorites")
+                            .font(.system(size: 18, weight: .bold))
+                            .foregroundColor(Color.greenPrimary)
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: 12) {
+                                ForEach(favoriteStore.items) { rec in
+                                    Button {
+                                        viewModel.openFavorite(rec)
+                                    } label: {
+                                        VStack(alignment: .leading, spacing: 4) {
+                                            Text(rec.title)
+                                                .font(.system(size: 14, weight: .bold))
+                                                .foregroundColor(Color.greenOnBackground)
+                                                .lineLimit(2)
+                                            Text("♥")
+                                                .font(.system(size: 12))
+                                                .foregroundColor(Color.greenPrimary)
+                                        }
+                                        .padding(14)
+                                        .frame(width: 160, alignment: .leading)
+                                        .background(Color.white)
+                                        .clipShape(RoundedRectangle(cornerRadius: 16))
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: 16)
+                                                .stroke(Color.greenSecondary, lineWidth: 1.2)
+                                        )
+                                    }
+                                    .buttonStyle(.plain)
+                                }
+                            }
+                        }
+                    }
+                }
+
                 RoundedRectangle(cornerRadius: 20)
                     .fill(Color.greenPrimary)
                     .frame(maxWidth: .infinity)
@@ -74,9 +141,13 @@ struct RecommendedRecipesView: View {
                                 Text(NSLocalizedString("todays_picks", comment: ""))
                                     .font(.system(size: 13, weight: .semibold))
                                     .foregroundColor(.white.opacity(0.9))
-                                Text("\(viewModel.uiState.recipes.count) curated recipes")
-                                    .font(.system(size: 17, weight: .bold))
-                                    .foregroundColor(.white)
+                                Text(
+                                    appFlow.lastSessionId == nil
+                                        ? "AI picks from your history and tastes"
+                                        : "\(viewModel.uiState.recipes.count) ideas · includes your latest scan"
+                                )
+                                .font(.system(size: 17, weight: .bold))
+                                .foregroundColor(.white)
                             }
                             Spacer()
                             Image(systemName: "book.fill")
@@ -92,10 +163,17 @@ struct RecommendedRecipesView: View {
                         .foregroundColor(Color.greenPrimary)
                         .padding(.bottom, 16)
 
+                    if viewModel.uiState.recipes.isEmpty, !viewModel.uiState.isLoading, viewModel.uiState.errorMessage == nil {
+                        Text("Pull to refresh, or run a Home scan to tailor the list to your kitchen.")
+                            .font(.system(size: 15))
+                            .foregroundColor(Color.greenOnBackground.opacity(0.65))
+                            .padding(.vertical, 8)
+                    }
+
                     VStack(spacing: 12) {
                         ForEach(Array(viewModel.uiState.recipes.enumerated()), id: \.element.id) { index, recipe in
                             RecipeCard(recipe: recipe) {
-                                viewModel.openRecipe(index: index)
+                                viewModel.openRecipeIndex(index)
                             }
                         }
                     }
@@ -109,35 +187,42 @@ struct RecommendedRecipesView: View {
             }
             .padding(.horizontal, 24)
         }
+        .refreshable { await viewModel.refreshRecommendations(flow: appFlow) }
     }
 }
 
-//Recipe Card
 private struct RecipeCard: View {
     let recipe: RecommendedRecipeItem
     let onPress: () -> Void
-
-    @State private var isPressed = false
 
     var body: some View {
         Button(action: onPress) {
             VStack(alignment: .leading, spacing: 12) {
 
-                // time
                 HStack {
                     RecipePill(isQuick: recipe.isQuick)
                     Spacer()
-                    HStack(spacing: 4) {
-                        Image(systemName: "clock")
-                            .font(.system(size: 12))
-                            .foregroundColor(Color.greenPrimary)
-                        Text(recipe.isQuick ? "15-20 min" : "30-40 min")
-                            .font(.system(size: 12, weight: .semibold))
-                            .foregroundColor(Color.greenOnBackground.opacity(0.75))
+                    if let m = recipe.minutes {
+                        HStack(spacing: 4) {
+                            Image(systemName: "clock")
+                                .font(.system(size: 12))
+                                .foregroundColor(Color.greenPrimary)
+                            Text("\(m) min")
+                                .font(.system(size: 12, weight: .semibold))
+                                .foregroundColor(Color.greenOnBackground.opacity(0.75))
+                        }
+                    } else {
+                        HStack(spacing: 4) {
+                            Image(systemName: "clock")
+                                .font(.system(size: 12))
+                                .foregroundColor(Color.greenPrimary)
+                            Text(recipe.isQuick ? "15-20 min" : "30+ min")
+                                .font(.system(size: 12, weight: .semibold))
+                                .foregroundColor(Color.greenOnBackground.opacity(0.75))
+                        }
                     }
                 }
 
-                // Title + description
                 Text(recipe.title)
                     .font(.system(size: 16, weight: .bold))
                     .foregroundColor(Color.greenOnBackground)
@@ -146,7 +231,6 @@ private struct RecipeCard: View {
                     .font(.system(size: 14))
                     .foregroundColor(Color.greenOnBackground.opacity(0.72))
 
-                // Bottom row
                 HStack {
                     Text("\(recipe.ingredients.count) ingredients")
                         .font(.system(size: 13, weight: .semibold))
