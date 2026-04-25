@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct GroupsView: View {
-    @StateObject private var viewModel = GroupsViewModel()
+    @EnvironmentObject private var viewModel: GroupsViewModel
 
     @State private var showLeaveConfirm:  Bool = false
     @State private var showDeleteConfirm: Bool = false

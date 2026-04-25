@@ -10,10 +10,11 @@ import Combine
 import Shared
 
 struct ProfileInventoryItem: Identifiable {
-    let id       = UUID()
-    let name:     String
-    let category: String
-    let quantity: String
+    let id         = UUID()
+    let backendId: Int
+    let name:      String
+    let category:  String
+    let quantity:  String
 }
 
 
@@ -59,6 +60,7 @@ final class ProfileViewModel: ObservableObject {
                         qty = "\(item.quantity)"
                     }
                     return ProfileInventoryItem(
+                        backendId: Int(item.id),
                         name:     item.name,
                         category: categoryFromSource(item.source),
                         quantity: qty
@@ -81,6 +83,38 @@ final class ProfileViewModel: ObservableObject {
                 name:  name
             )
         }
+    }
+
+    @discardableResult
+    func updateProfile(name: String, email: String, newPassword: String) async -> Bool {
+        isLoading    = true
+        errorMessage = nil
+        let pw: String? = newPassword.isEmpty ? nil : newPassword
+        let request = UserUpdateRequest(name: name, email: email, password: pw)
+        do {
+            let u = try await authApiService.updateMe(request: request)
+            userName  = u.name
+            userEmail = u.email
+            AuthManager.shared.currentUser = u
+            isLoading = false
+            return true
+        } catch {
+            errorMessage = error.localizedDescription
+            isLoading    = false
+            return false
+        }
+    }
+
+    func removePantryItem(backendId: Int) async {
+        isLoading    = true
+        errorMessage = nil
+        do {
+            try await authApiService.deletePantryItem(id: Int32(backendId))
+            inventoryItems.removeAll { $0.backendId == backendId }
+        } catch {
+            errorMessage = "Could not remove item. \(error.localizedDescription)"
+        }
+        isLoading = false
     }
 
     func logout() {

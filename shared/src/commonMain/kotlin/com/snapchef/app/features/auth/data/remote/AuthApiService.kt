@@ -59,6 +59,17 @@ class AuthApiService(private val client: HttpClient) {
     }
 
     @Throws(Exception::class)
+    suspend fun updateMe(request: UserUpdateRequest): UserOut {
+        return client.patch("${AppConfig.BASE_URL}/auth/me") {
+            contentType(ContentType.Application.Json)
+            AuthManager.accessToken?.let { token ->
+                header("Authorization", "Bearer $token")
+            }
+            setBody(request)
+        }.body()
+    }
+
+    @Throws(Exception::class)
     suspend fun fetchPantryItems(): List<PantryItemOut> {
         return client.get("${AppConfig.BASE_URL}/pantry") {
             AuthManager.accessToken?.let { token ->
@@ -68,8 +79,8 @@ class AuthApiService(private val client: HttpClient) {
     }
 
     @Throws(Exception::class)
-    suspend fun deletePantryItem(pantryItemId: Int) {
-        client.delete("${AppConfig.BASE_URL}/pantry/$pantryItemId") {
+    suspend fun deletePantryItem(id: Int) {
+        client.delete("${AppConfig.BASE_URL}/pantry/$id") {
             AuthManager.accessToken?.let { token ->
                 header("Authorization", "Bearer $token")
             }

@@ -65,29 +65,21 @@ final class GroupsViewModel: ObservableObject {
     }
 
     private let apiService = SnapChefServiceLocator.shared.authApiService
+    private let groupSharing = SnapChefServiceLocator.shared.groupSharingApiService
     private var infoTask: Task<Void, Never>?
+    /// Server-backed recipes for each real group (not the fake "personal" row).
+    private var groupServerRecipes: [String: [SharedRecipe]] = [:]
+    @Published var combinedPantryLabel: [String: String] = [:]
+    @Published var isCombinedLoading: Bool = false
 
     init() {
         Task { await loadGroups() }
-        
         RecipeStore.shared.$personalRecipes
             .receive(on: DispatchQueue.main)
             .sink { [weak self] recipes in
                 guard let self = self else { return }
                 if let idx = self.groups.firstIndex(where: { $0.isPersonal }) {
                     self.groups[idx].recipes = recipes
-                }
-            }
-            .store(in: &cancellables)
-            
-        RecipeStore.shared.$sharedRecipes
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] recipes in
-                guard let self = self else { return }
-                for i in 0..<self.groups.count {
-                    if !self.groups[i].isPersonal && !self.groups[i].id.hasPrefix("group_") {
-                        self.groups[i].recipes = recipes
-                    }
                 }
             }
             .store(in: &cancellables)
@@ -100,15 +92,16 @@ final class GroupsViewModel: ObservableObject {
             let currentUserId = AuthManager.shared.currentUser?.id
             let remoteGroups = raw.map { g in
                 let isAdmin = (g.createdByUserId == currentUserId)
-                let existing = self.groups.first(where: { $0.id == String(g.id) })
+                let idStr = String(g.id)
+                let existing = self.groups.first(where: { $0.id == idStr })
                 return AppGroup(
-                    id: String(g.id),
+                    id: idStr,
                     name: g.name,
                     code: g.code,
                     ownerName: isAdmin ? "You" : (existing?.ownerName ?? nil),
                     members: existing?.members ?? [],
                     isAdmin: isAdmin,
-                    recipes: RecipeStore.shared.sharedRecipes,
+                    recipes: self.groupServerRecipes[idStr] ?? [],
                     isPersonal: false
                 )
             }
@@ -141,10 +134,195 @@ final class GroupsViewModel: ObservableObject {
             if let id = idToLoad {
                 await loadGroupDetail(id: id)
             }
+            await refreshAllGroupRecipes(remoteGroups: remoteGroups)
         } catch {
             showInfo("Failed to load groups.", isError: true)
         }
         isLoading = false
+    }
+
+    private func refreshAllGroupRecipes(remoteGroups: [AppGroup]) async {
+        for g in remoteGroups {
+            let list = await fetchSharedRecipesList(groupId: g.id)
+            groupServerRecipes[g.id] = list
+            if let i = self.groups.firstIndex(where: { $0.id == g.id && !$0.isPersonal }) {
+                self.groups[i].recipes = list
+            }
+        }
+    }
+
+    private func fetchSharedRecipesList(groupId: String) async -> [SharedRecipe] {
+        guard let gid = Int32(groupId) else { return [] }
+        do {
+            let out = try await groupSharing.listSharedRecipesForGroup(groupId: gid)
+            return out.map { self.mapGroupSharedOut($0) }
+        } catch {
+            return groupServerRecipes[groupId] ?? []
+        }
+    }
+
+    private func mapGroupSharedOut(_ o: GroupSharedRecipeOut) -> SharedRecipe {
+        let title: String
+        if let t = o.title, !t.isEmpty { title = t }
+        else if let n = o.name, !n.isEmpty { title = n }
+        else { title = "Recipe" }
+        var desc: String = ""
+        if let d = (o as AnyObject).value(forKey: "description_") as? String, !d.isEmpty { desc = d }
+        else if let b = o.body, !b.isEmpty { desc = b }
+        let steps: [String] = toKotlinStringList((o as AnyObject).value(forKey: "instructions")) ?? []
+        let altSteps: [String] = toKotlinStringList((o as AnyObject).value(forKey: "steps")) ?? []
+        let instructions = !steps.isEmpty ? steps : altSteps
+        let ings: [String] = toKotlinStringList((o as AnyObject).value(forKey: "ingredients")) ?? []
+        let have = ings.map { "\($0) (from group)" }
+        let who: String
+        if let a = o.authorName, !a.isEmpty { who = a }
+        else if let a = o.ownerName, !a.isEmpty { who = a }
+        else if let a = o.sharedBy, !a.isEmpty { who = a }
+        else if let a = o.sharerName, !a.isEmpty { who = a }
+        else { who = "Group member" }
+        let sid = intFromK(o.id)
+        return SharedRecipe(
+            id: "srv-\(sid)",
+            title: title,
+            description: desc,
+            ownerName: who,
+            missingItems: [],
+            availableItems: have,
+            instructions: instructions,
+            perishableProducts: [],
+            serverSharedRecipeId: sid
+        )
+    }
+
+    private func toKotlinStringList(_ v: Any?) -> [String]? {
+        guard let v = v, !(v is NSNull) else { return [] }
+        if let a = v as? [String] { return a }
+        if let a = v as? NSArray { return a.compactMap { $0 as? String } }
+        return nil
+    }
+
+    private func intFromK(_ v: Any?) -> Int {
+        guard let v = v, !(v is NSNull) else { return 0 }
+        if let n = v as? Int { return n }
+        if let n = v as? Int32 { return Int(n) }
+        if let n = v as? NSNumber { return n.intValue }
+        if let n = v as? KotlinInt { return Int(n.intValue) }
+        return 0
+    }
+
+    func shareRecipeToGroup(_ recipe: SharedRecipe, to group: AppGroup) {
+        if group.isPersonal {
+            showInfo("Pick a real group, not “Your recipes”.", isError: true)
+            return
+        }
+        guard let gid = Int32(group.id) else { return }
+        Task {
+            isLoading = true
+            do {
+                let ings = recipe.allIngredientPhrasesForShare()
+                let _ = try await groupSharing.shareRecipeToGroup(
+                    request: ShareRecipeToGroupRequest(
+                        groupId: gid,
+                        title: recipe.title,
+                        description: recipe.description,
+                        ingredients: ings,
+                        instructions: recipe.instructions,
+                        recipeId: nil,
+                        sessionRecipeId: nil
+                    )
+                )
+                let list = await fetchSharedRecipesList(groupId: group.id)
+                groupServerRecipes[group.id] = list
+                if let i = self.groups.firstIndex(where: { $0.id == group.id }) {
+                    self.groups[i].recipes = list
+                }
+                showInfo("Shared to \(group.name).")
+            } catch {
+                showInfo("Could not share recipe. \(error.localizedDescription)", isError: true)
+            }
+            isLoading = false
+        }
+    }
+
+    /// Loads combined group pantry (all members’ products) and stores a one-line summary for the selected group card.
+    func loadCombinedGroupPantrySummary() {
+        Task {
+            isCombinedLoading = true
+            do {
+                let res = try await groupSharing.fetchCombinedGroupPantry()
+                let items = res.items
+                let line: String
+                if items.isEmpty {
+                    line = "No items yet from your group pantries. Add food in the app or run scans."
+                } else {
+                    let names = items.prefix(20).map { nameForPantryItem($0) }
+                    line = names.joined(separator: " · ") + (items.count > 20 ? " …" : "")
+                }
+                let key = selectedSharedGroup?.id ?? ""
+                if !key.isEmpty { combinedPantryLabel[key] = line }
+            } catch {
+                let key = selectedSharedGroup?.id ?? ""
+                if !key.isEmpty { combinedPantryLabel[key] = "Couldn’t load combined pantry." }
+            }
+            isCombinedLoading = false
+        }
+    }
+
+    private func nameForPantryItem(_ p: CombinedPantryItemOut) -> String {
+        let n: String
+        if let t = p.itemName, !t.isEmpty { n = t }
+        else if !p.name.isEmpty { n = p.name }
+        else { n = "Item" }
+        if let w = p.fromUser, !w.isEmpty { return "\(n) (\(w))" }
+        if let w = p.userName, !w.isEmpty { return "\(n) (\(w))" }
+        if let w = p.contributedBy, !w.isEmpty { return "\(n) (\(w))" }
+        return n
+    }
+
+    /// AI meal ideas using all group members’ pantry items together (`POST /ai/groups/combined-meal`).
+    func addCombinedGroupMealIdeas() {
+        guard let g = selectedSharedGroup else {
+            showInfo("Select a group first.", isError: true)
+            return
+        }
+        Task {
+            isLoading = true
+            do {
+                let res = try await groupSharing.requestCombinedGroupMeal(count: 6)
+                let fromAi = res.recipes.map { mapSessionRecipeToShared($0) }
+                var current = groupServerRecipes[g.id] ?? self.groups.first(where: { $0.id == g.id })?.recipes ?? []
+                for r in fromAi {
+                    if !current.contains(where: { $0.id == r.id }) { current.insert(r, at: 0) }
+                }
+                groupServerRecipes[g.id] = current
+                if let i = self.groups.firstIndex(where: { $0.id == g.id && !$0.isPersonal }) {
+                    self.groups[i].recipes = current
+                }
+                showInfo("Added group meal ideas from your combined kitchens.")
+            } catch {
+                showInfo("Couldn’t get group meal ideas. \(error.localizedDescription)", isError: true)
+            }
+            isLoading = false
+        }
+    }
+
+    private func mapSessionRecipeToShared(_ r: SessionRecipeOut) -> SharedRecipe {
+        let u = toKotlinStringList((r as AnyObject).value(forKey: "uses")) ?? []
+        let e = toKotlinStringList((r as AnyObject).value(forKey: "extra")) ?? []
+        let steps = toKotlinStringList((r as AnyObject).value(forKey: "steps")) ?? []
+        let have = u.map { "\($0) (from group)" }
+        let name = (r as AnyObject).value(forKey: "name") as? String ?? "Meal"
+        return SharedRecipe(
+            id: "gmeal-\(intFromK((r as AnyObject).value(forKey: "id")))-\(name.hashValue)",
+            title: name,
+            description: "From everyone’s combined pantry in your groups.",
+            ownerName: "AI Suggestion",
+            missingItems: e,
+            availableItems: have,
+            instructions: steps,
+            perishableProducts: [],
+            serverSharedRecipeId: nil
+        )
     }
 
     func loadGroupDetail(id: String) async {
@@ -187,6 +365,7 @@ final class GroupsViewModel: ObservableObject {
         selectedId = id
         if !id.hasPrefix("group_") && id != "personal" {
             Task { await loadGroupDetail(id: id) }
+            loadCombinedGroupPantrySummary()
         }
     }
     

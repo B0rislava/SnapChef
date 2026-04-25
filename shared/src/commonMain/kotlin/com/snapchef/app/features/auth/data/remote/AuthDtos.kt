@@ -97,6 +97,13 @@ data class JoinGroupRequest(
 )
 
 @Serializable
+data class UserUpdateRequest(
+    val name: String? = null,
+    val email: String? = null,
+    val password: String? = null
+)
+
+@Serializable
 data class UpdateProfileRequest(
     val name: String,
 )

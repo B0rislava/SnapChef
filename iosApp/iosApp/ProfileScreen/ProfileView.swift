@@ -47,9 +47,15 @@ struct ProfileView: View {
                     userName:        viewModel.userName,
                     userEmail:       viewModel.userEmail,
                     profileImageUri: viewModel.profileImageUri,
-                    onSave: { name, email, _, _ in
-                        viewModel.updateUser(name: name, email: email)
-                        withAnimation { isEditingProfile = false }
+                    onSave: { name, email, password, _ in
+                        Task {
+                            let ok = await viewModel.updateProfile(
+                                name:        name,
+                                email:       email,
+                                newPassword: password
+                            )
+                            if ok { await MainActor.run { withAnimation { isEditingProfile = false } } }
+                        }
                     },
                     onCancel: {
                         withAnimation { isEditingProfile = false }
@@ -178,7 +184,12 @@ struct ProfileView: View {
                     Spacer().frame(height: 24)
 
                     ZStack {
-                        IngredientInventoryCard(items: viewModel.inventoryItems)
+                        IngredientInventoryCard(
+                            items: viewModel.inventoryItems,
+                            onRemoveItem: { item in
+                                Task { await viewModel.removePantryItem(backendId: item.backendId) }
+                            }
+                        )
                         if viewModel.isLoading {
                             RoundedRectangle(cornerRadius: 24)
                                 .fill(Color.white.opacity(0.6))
@@ -260,6 +271,7 @@ private struct ReadOnlyProfileField: View {
 
 private struct IngredientInventoryCard: View {
     let items: [ProfileInventoryItem]
+    var onRemoveItem: (ProfileInventoryItem) -> Void
 
     @State private var selectedCategory: String = "All"
 
@@ -314,7 +326,9 @@ private struct IngredientInventoryCard: View {
 
             VStack(spacing: 10) {
                 ForEach(filtered) { item in
-                    IngredientRow(item: item)
+                    IngredientRow(item: item) {
+                        onRemoveItem(item)
+                    }
                 }
             }
 
@@ -339,6 +353,7 @@ private struct IngredientInventoryCard: View {
 
 private struct IngredientRow: View {
     let item: ProfileInventoryItem
+    var onRemove: () -> Void = {}
 
     private var categoryIcon: String {
         switch item.category.lowercased() {
@@ -387,6 +402,11 @@ private struct IngredientRow: View {
             RoundedRectangle(cornerRadius: 16)
                 .stroke(Color.greenSecondary.opacity(0.65), lineWidth: 1)
         )
+        .contextMenu {
+            Button(role: .destructive) { onRemove() } label: {
+                Label("Remove (eaten or gone)", systemImage: "trash")
+            }
+        }
     }
 }
 

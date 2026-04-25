@@ -2,6 +2,7 @@ package com.snapchef.app.core.di
 
 import com.snapchef.app.core.data.remote.createHttpClient
 import com.snapchef.app.features.auth.data.remote.AuthApiService
+import com.snapchef.app.features.groups.data.remote.GroupSharingApiService
 import com.snapchef.app.features.home.data.remote.HomeApiService
 
 /**
@@ -21,4 +22,5 @@ object SnapChefServiceLocator {
 
     val authApiService: AuthApiService by lazy { AuthApiService(httpClient) }
     val homeApiService: HomeApiService by lazy { HomeApiService(httpClient) }
+    val groupSharingApiService: GroupSharingApiService by lazy { GroupSharingApiService(httpClient) }
 }
