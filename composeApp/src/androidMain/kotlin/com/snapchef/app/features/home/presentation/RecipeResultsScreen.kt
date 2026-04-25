@@ -53,7 +53,7 @@ fun RecipeResultsScreen(
     sessionId: Int,
     ingredients: List<String>,
     onBack: () -> Unit,
-    onSaveRecipe: (SharedRecipe, Boolean) -> Unit,
+    onSaveRecipe: (SharedRecipe, Boolean, String?) -> Unit,
     viewModel: RecipeResultsViewModel = viewModel()
 ) {
     var selectedTabIndex by remember { mutableStateOf(0) }
@@ -80,25 +80,21 @@ fun RecipeResultsScreen(
     
 
 
-    val groupRecipes = remember(ingredients) {
-        listOf(
+    val groupRecipes = remember(uiState.recipes) {
+        uiState.recipes.map { recipe ->
             GroupRecipeResult(
-                title = "Hero's Feast",
+                title = recipe.title,
                 contributors = listOf(
-                    GroupRecipeContribution("You", ingredients.joinToString(), GreenPrimary)
+                    GroupRecipeContribution(
+                        name = "You",
+                        items = recipe.availableItems.ifEmpty { ingredients }.joinToString(),
+                        color = GreenPrimary
+                    )
                 ),
-                missingItems = listOf("Cheese", "Milk"),
-                description = "You started this! If someone adds milk and cheese, we can make it a feast."
-            ),
-            GroupRecipeResult(
-                title = "Big Salad Bowl",
-                contributors = listOf(
-                    GroupRecipeContribution("You", ingredients.take(1).joinToString(), GreenPrimary)
-                ),
-                missingItems = listOf("Cucumbers", "Olive oil", "Olives"),
-                description = "Just a few more items needed. Share with your group to find them."
+                missingItems = recipe.missingItems,
+                description = "Share this recipe with your group so everyone can contribute ingredients."
             )
-        )
+        }
     }
 
     var actionMessage by remember { mutableStateOf<String?>(null) }
@@ -244,7 +240,7 @@ private fun SoloRecipeList(
     perishableIngredients: List<String>,
     onPreview: (Int) -> Unit,
     onActionMessage: (String) -> Unit,
-    onSave: (SharedRecipe, Boolean) -> Unit
+    onSave: (SharedRecipe, Boolean, String?) -> Unit
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -373,7 +369,7 @@ private fun SoloRecipeList(
                     Spacer(modifier = Modifier.height(16.dp))
                     
                     Button(
-                        onClick = { onSave(recipe, false); onActionMessage("Recipe saved!") },
+                        onClick = { onSave(recipe, false, null); onActionMessage("Recipe saved!") },
                         shape = RoundedCornerShape(16.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = GreenPrimary),
                         modifier = Modifier.fillMaxWidth(),

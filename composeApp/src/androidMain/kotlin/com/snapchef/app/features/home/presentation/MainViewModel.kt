@@ -6,8 +6,10 @@ import androidx.lifecycle.viewModelScope
 import com.snapchef.app.core.auth.AuthManager
 import com.snapchef.app.core.di.SnapChefServiceLocator
 import com.snapchef.app.core.presentation.components.MainTab
+import com.snapchef.app.features.auth.data.remote.ShareRecipeRequest
 import com.snapchef.app.features.groups.presentation.RecipeStore
 import com.snapchef.app.features.groups.presentation.SharedRecipe
+import com.snapchef.app.features.groups.presentation.toUiSharedRecipe
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -15,6 +17,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 data class ProfileInventoryItem(
+    val pantryItemIds: List<Int> = emptyList(),
     val name: String,
     val category: String,
     val quantity: String,
@@ -44,6 +47,11 @@ class MainViewModel : ViewModel() {
     )
     val uiState: StateFlow<MainUiState> = _uiState.asStateFlow()
 
+    init {
+        // Ensure saved/favorite recipes are always loaded for the current user on app start.
+        RecipeStore.reloadFromStorageForCurrentUser()
+    }
+
     fun selectTab(tab: MainTab) {
         _uiState.update {
             it.copy(
@@ -72,6 +80,7 @@ class MainViewModel : ViewModel() {
                             val quantityStr = if (firstUnit != null) "$totalQty $firstUnit" else "$totalQty"
                             
                             ProfileInventoryItem(
+                                pantryItemIds = group.map { it.id },
                                 name = firstName,
                                 category = if (group.any { it.source == "scan" }) "Scanned" else "Manual",
                                 quantity = quantityStr
@@ -89,8 +98,35 @@ class MainViewModel : ViewModel() {
     fun startEditProfile() = _uiState.update { it.copy(isEditingProfile = true) }
     fun cancelEditProfile() = _uiState.update { it.copy(isEditingProfile = false) }
 
-    fun saveProfile(name: String, email: String, password: String, confirmPassword: String) {
-        _uiState.update { it.copy(userName = name, userEmail = email, isEditingProfile = false) }
+    fun saveProfile(
+        name: String,
+        email: String,
+        password: String,
+        confirmPassword: String,
+        currentPassword: String,
+    ) {
+        viewModelScope.launch {
+            runCatching { apiService.updateProfile(name = name) }
+            if (password.isNotBlank()) {
+                runCatching {
+                    apiService.changePassword(
+                        currentPassword = currentPassword,
+                        newPassword = password,
+                    )
+                }
+            }
+            val me = runCatching { apiService.getCurrentUser() }.getOrNull()
+            val resolvedName = me?.name ?: name
+            val resolvedEmail = me?.email ?: email
+
+            AuthManager.currentUser?.let { current ->
+                AuthManager.currentUser = current.copy(name = resolvedName, email = resolvedEmail)
+            }
+
+            _uiState.update {
+                it.copy(userName = resolvedName, userEmail = resolvedEmail, isEditingProfile = false)
+            }
+        }
     }
 
     fun setProfileImage(uri: Uri) = _uiState.update { it.copy(profileImageUri = uri) }
@@ -122,6 +158,15 @@ class MainViewModel : ViewModel() {
         }
     }
 
+    fun markInventoryItemEaten(item: ProfileInventoryItem) {
+        viewModelScope.launch {
+            item.pantryItemIds.forEach { pantryItemId ->
+                runCatching { apiService.deletePantryItem(pantryItemId) }
+            }
+            refreshPantryItems()
+        }
+    }
+
     fun openRecipeResults(sessionId: Int, ingredients: List<String>) {
         _uiState.update { it.copy(activeRecipeSession = ActiveRecipeSessionSession(sessionId, ingredients)) }
     }
@@ -134,17 +179,45 @@ class MainViewModel : ViewModel() {
         _uiState.update { it.copy(isCameraActive = active) }
     }
     
-    fun saveGeneratedRecipe(recipe: SharedRecipe, isShared: Boolean) {
-        if (isShared) {
-            RecipeStore.addSharedRecipe(recipe)
-        } else {
-            RecipeStore.addPersonalRecipe(recipe)
-        }
-        _uiState.update {
-            it.copy(
-                activeRecipeSession = null,
-                currentTab = MainTab.RECIPES,
-            )
+    fun saveGeneratedRecipe(recipe: SharedRecipe, isShared: Boolean, targetGroupId: String? = null) {
+        viewModelScope.launch {
+            if (isShared) {
+                val gid = targetGroupId?.toIntOrNull() ?: return@launch
+                val ingredients = when {
+                    recipe.availableItems.isNotEmpty() || recipe.missingItems.isNotEmpty() ->
+                        (recipe.availableItems + recipe.missingItems).distinct()
+                    else -> listOfNotNull(recipe.title.takeIf { it.isNotBlank() })
+                }
+                runCatching {
+                    apiService.shareRecipe(
+                        ShareRecipeRequest(
+                            groupId = gid,
+                            title = recipe.title,
+                            description = recipe.description.ifBlank { null },
+                            ingredients = ingredients,
+                            steps = recipe.instructions,
+                            minutes = null,
+                            note = null,
+                            sessionRecipeId = recipe.sessionRecipeId,
+                            recipeId = recipe.catalogRecipeId,
+                        )
+                    )
+                }
+                val shared = runCatching { apiService.listGroupSharedRecipes(gid) }
+                    .getOrNull()
+                    .orEmpty()
+                    .map { it.toUiSharedRecipe(AuthManager.currentUser?.id) }
+                RecipeStore.setSharedRecipesForGroup(gid.toString(), shared)
+            } else {
+                // Save must not implicitly favorite. It only adds to saved recipes.
+                RecipeStore.addPersonalRecipe(recipe.copy(isCatalogStarred = false))
+            }
+            _uiState.update {
+                it.copy(
+                    activeRecipeSession = null,
+                    currentTab = MainTab.RECIPES,
+                )
+            }
         }
     }
 

@@ -34,7 +34,9 @@ class RecipeResultsViewModel : ViewModel() {
                         description = "Ready in ${backendRecipe.minutes ?: "?"} mins",
                         ownerName = "AI Magic",
                         instructions = backendRecipe.steps,
-                        missingItems = emptyList() // or parse from 'extra'
+                        availableItems = backendRecipe.uses,
+                        missingItems = backendRecipe.extra,
+                        sessionRecipeId = backendRecipe.id,
                     )
                 }
                 _uiState.update { 

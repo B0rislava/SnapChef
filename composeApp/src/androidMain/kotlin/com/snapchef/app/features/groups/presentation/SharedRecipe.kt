@@ -21,6 +21,14 @@ data class SharedRecipe(
     val availableItems: List<String> = emptyList(),
     val instructions: List<String> = emptyList(),
     val perishableProducts: List<PerishableProduct> = emptyList(),
+    /** Shared recipe post id from `GET /share/group/{id}/recipes` */
+    val backendSharedId: Int? = null,
+    /** AI session recipe id (for `POST /ai/recipes/{id}/favorite`) */
+    val sessionRecipeId: Int? = null,
+    /** Starred catalog recipe from `GET /recipes/favorites` / recommended */
+    val catalogRecipeId: Int? = null,
+    /** When set, heart uses `GET /recipes/favorites` star state */
+    val isCatalogStarred: Boolean? = null,
 )
 
 fun SharedRecipe.earliestDaysLeft(): Int? = perishableProducts.minOfOrNull { it.daysLeft() }

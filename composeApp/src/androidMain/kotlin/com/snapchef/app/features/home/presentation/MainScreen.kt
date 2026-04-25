@@ -43,7 +43,9 @@ fun MainScreen(
                 sessionId = session.sessionId,
                 ingredients = session.ingredients,
                 onBack = viewModel::closeRecipeResults,
-                onSaveRecipe = viewModel::saveGeneratedRecipe,
+                onSaveRecipe = { recipe, isShared, targetGroupId ->
+                    viewModel.saveGeneratedRecipe(recipe, isShared, targetGroupId)
+                },
             )
         } else {
             Box(
@@ -75,7 +77,9 @@ fun MainScreen(
                         }
                         MainTab.RECOMMENDED -> {
                             RecommendedRecipesScreen(
-                                onSaveRecipe = viewModel::saveGeneratedRecipe,
+                                onSaveRecipe = { recipe, isShared, targetGroupId ->
+                                    viewModel.saveGeneratedRecipe(recipe, isShared, targetGroupId)
+                                },
                                 onDetailsVisibilityChanged = { isViewingRecommendedRecipeDetails = it },
                             )
                         }
@@ -96,6 +100,7 @@ fun MainScreen(
                                         userEmail = uiState.userEmail,
                                         profileImageUri = uiState.profileImageUri,
                                         inventoryItems = uiState.inventoryItems,
+                                        onMarkInventoryItemEaten = viewModel::markInventoryItemEaten,
                                         onLogout = viewModel::logout,
                                         onDeleteAccount = viewModel::deleteAccount,
                                         onEditProfile = viewModel::startEditProfile

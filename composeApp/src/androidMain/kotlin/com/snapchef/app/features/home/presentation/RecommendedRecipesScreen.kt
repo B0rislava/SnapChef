@@ -34,15 +34,18 @@ import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -58,6 +61,7 @@ import com.snapchef.app.core.theme.GreenBackground
 import com.snapchef.app.core.theme.GreenOnBackground
 import com.snapchef.app.core.theme.GreenPrimary
 import com.snapchef.app.core.theme.GreenSecondary
+import com.snapchef.app.features.groups.presentation.GroupsViewModel
 import com.snapchef.app.features.groups.presentation.SharedRecipe
 import kotlinx.coroutines.delay
 
@@ -245,14 +249,18 @@ private fun BouncyAction(
 
 @Composable
 fun RecommendedRecipesScreen(
-    onSaveRecipe: (SharedRecipe, Boolean) -> Unit,
+    onSaveRecipe: (SharedRecipe, Boolean, String?) -> Unit,
     onDetailsVisibilityChanged: (Boolean) -> Unit = {},
     modifier: Modifier = Modifier,
     viewModel: RecommendedRecipesViewModel = viewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val groupsViewModel: GroupsViewModel = viewModel()
+    val groupsUiState by groupsViewModel.uiState.collectAsStateWithLifecycle()
+    val shareableGroups = groupsUiState.groups.filter { !it.isPersonal }
     val recipes = uiState.recipes
     val selected = uiState.openedRecipeIdx?.let { recipes.getOrNull(it) }
+    var showShareGroupDialog by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
 
     LaunchedEffect(selected) {
         onDetailsVisibilityChanged(selected != null)
@@ -362,12 +370,37 @@ fun RecommendedRecipesScreen(
                         )
                         Spacer(modifier = Modifier.height(16.dp))
 
-                        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                            recipes.forEachIndexed { index, recipe ->
-                                RecipeCard(
-                                    recipe = recipe,
-                                    onPress = { viewModel.openRecipe(index) },
+                        when {
+                            uiState.isLoading -> {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(32.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    CircularProgressIndicator(color = GreenPrimary)
+                                }
+                            }
+                            uiState.errorMessage != null -> {
+                                Text(
+                                    text = uiState.errorMessage.orEmpty(),
+                                    color = MaterialTheme.colorScheme.error,
+                                    style = MaterialTheme.typography.bodyMedium,
                                 )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                TextButton(onClick = { viewModel.refresh() }) {
+                                    Text("Retry", color = GreenPrimary, fontWeight = FontWeight.SemiBold)
+                                }
+                            }
+                            else -> {
+                                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                                    recipes.forEachIndexed { index, recipe ->
+                                        RecipeCard(
+                                            recipe = recipe,
+                                            onPress = { viewModel.openRecipe(index) },
+                                        )
+                                    }
+                                }
                             }
                         }
                     }
@@ -551,8 +584,10 @@ fun RecommendedRecipesScreen(
                                     missingItems = needs,
                                     availableItems = has,
                                     instructions = selected.instructions,
+                                    catalogRecipeId = selected.catalogRecipeId,
                                 ),
                                 false,
+                                null,
                             )
                             viewModel.setInfoMessage("Saved.")
                         },
@@ -563,20 +598,7 @@ fun RecommendedRecipesScreen(
                         container = GreenSecondary.copy(alpha = 0.5f),
                         content = GreenPrimary,
                         onClick = {
-                            val has = selected.ingredients.filter { uiState.checkedIngredients[it] == true }
-                            val needs = selected.ingredients.filter { uiState.checkedIngredients[it] != true }
-                            onSaveRecipe(
-                                SharedRecipe(
-                                    title = selected.title,
-                                    description = selected.description,
-                                    ownerName = "You",
-                                    missingItems = needs,
-                                    availableItems = has,
-                                    instructions = selected.instructions,
-                                ),
-                                true,
-                            )
-                            viewModel.setInfoMessage("Shared to your group.")
+                            showShareGroupDialog = true
                         },
                     )
                 }
@@ -599,5 +621,61 @@ fun RecommendedRecipesScreen(
                 Spacer(modifier = Modifier.height(96.dp))
             }
         }
+    }
+
+    if (showShareGroupDialog && selected != null) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { showShareGroupDialog = false },
+            title = { Text("Share to group") },
+            text = {
+                if (shareableGroups.isEmpty()) {
+                    Text("No groups found. Join or create a group first.")
+                } else {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        shareableGroups.forEach { group ->
+                            Surface(
+                                shape = RoundedCornerShape(12.dp),
+                                color = GreenBackground,
+                                border = BorderStroke(1.dp, GreenSecondary.copy(alpha = 0.8f)),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        val has = selected.ingredients.filter { uiState.checkedIngredients[it] == true }
+                                        val needs = selected.ingredients.filter { uiState.checkedIngredients[it] != true }
+                                        onSaveRecipe(
+                                            SharedRecipe(
+                                                title = selected.title,
+                                                description = selected.description,
+                                                ownerName = "You",
+                                                missingItems = needs,
+                                                availableItems = has,
+                                                instructions = selected.instructions,
+                                                catalogRecipeId = selected.catalogRecipeId,
+                                            ),
+                                            true,
+                                            group.id,
+                                        )
+                                        viewModel.setInfoMessage("Shared to ${group.name}.")
+                                        showShareGroupDialog = false
+                                    }
+                            ) {
+                                Text(
+                                    text = group.name,
+                                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+                                    color = GreenPrimary,
+                                    fontWeight = FontWeight.SemiBold,
+                                )
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {},
+            dismissButton = {
+                TextButton(onClick = { showShareGroupDialog = false }) {
+                    Text("Cancel", color = GreenPrimary)
+                }
+            },
+        )
     }
 }

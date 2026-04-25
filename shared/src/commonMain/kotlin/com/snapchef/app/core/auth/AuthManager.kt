@@ -52,6 +52,13 @@ object AuthManager {
     // Helpers
 
     fun isLoggedIn(): Boolean = accessToken != null
+
+    fun putString(key: String, value: String) {
+        settings[key] = value
+    }
+
+    fun getString(key: String): String? = settings.getStringOrNull(key)
+    fun removeKey(key: String) = settings.remove(key)
     
     fun logout() {
         accessToken = null

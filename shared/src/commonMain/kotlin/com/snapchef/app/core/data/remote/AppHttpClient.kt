@@ -14,7 +14,7 @@ fun createHttpClient(): HttpClient {
         install(ContentNegotiation) {
             json(Json {
                 ignoreUnknownKeys = true
-                prettyPrint = true
+                prettyPrint = false
                 isLenient = true
                 coerceInputValues = true
             })
@@ -25,7 +25,7 @@ fun createHttpClient(): HttpClient {
             socketTimeoutMillis = 15000
         }
         install(Logging) {
-            level = LogLevel.ALL
+            level = LogLevel.NONE
         }
     }
 }
