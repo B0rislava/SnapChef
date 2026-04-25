@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.snapchef.app.core.auth.AuthManager
 import com.snapchef.app.core.di.SnapChefServiceLocator
+import com.snapchef.app.features.auth.data.remote.ShareRecipeRequest
 import io.ktor.client.plugins.ClientRequestException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -49,20 +50,6 @@ class GroupsViewModel : ViewModel() {
                 }
             }
         }
-        viewModelScope.launch {
-            RecipeStore.sharedRecipes.collect { shared ->
-                _uiState.update { state ->
-                    val updatedGroups = state.groups.map { group ->
-                        if (group.id != "personal" && !group.id.startsWith("group_")) {
-                            group.copy(recipes = shared)
-                        } else {
-                            group
-                        }
-                    }
-                    state.copy(groups = updatedGroups)
-                }
-            }
-        }
     }
 
     fun refreshGroups() {
@@ -93,6 +80,7 @@ class GroupsViewModel : ViewModel() {
                         isLoading = false
                     )
                 }
+                loadPersonalFavoritesFromBackend()
                 refreshSelectedGroupDetail()
             } catch (e: Exception) {
                 e.printStackTrace()
@@ -111,15 +99,39 @@ class GroupsViewModel : ViewModel() {
         }
     }
 
+    private fun loadPersonalFavoritesFromBackend() {
+        viewModelScope.launch {
+            if (!AuthManager.isLoggedIn()) return@launch
+            val catalog = runCatching { apiService.listCatalogFavoriteRecipes() }.getOrDefault(emptyList())
+                .map { it.toUiSharedRecipe() }
+            val session = runCatching { apiService.listFavoriteSessionRecipes() }.getOrDefault(emptyList())
+                .map { it.toUiSharedRecipe() }
+            val backendKnownRecipes = (session + catalog).distinctBy { it.favoriteKey() }
+            val favoriteKeys = (session + catalog).map { it.favoriteKey() }.toSet()
+            // Backward compatibility: older app versions used favorite endpoints as "saved".
+            // Import those backend recipes into the saved list so users can still see old data in All.
+            RecipeStore.replacePersonalRecipes(backendKnownRecipes)
+            RecipeStore.setFavoriteKeys(favoriteKeys)
+        }
+    }
+
     private fun refreshSelectedGroupDetail() {
         val selectedId = _uiState.value.selectedGroupId
-        if (selectedId == "personal") return
+        if (selectedId == "personal") {
+            loadPersonalFavoritesFromBackend()
+            return
+        }
         val idInt = selectedId.toIntOrNull() ?: return
 
         viewModelScope.launch {
             _uiState.update { it.copy(isDetailLoading = true) }
             try {
                 val detail = apiService.fetchGroupDetail(idInt)
+                val sharedOut = runCatching {
+                    apiService.listGroupSharedRecipes(idInt)
+                }.getOrNull().orEmpty()
+                val uid = AuthManager.currentUser?.id
+                val sharedUi = sharedOut.map { it.toUiSharedRecipe(uid) }
                 _uiState.update { state ->
                     val updatedGroups = state.groups.map { group ->
                         if (group.id == selectedId) {
@@ -131,7 +143,8 @@ class GroupsViewModel : ViewModel() {
                                         avatarSeed = m.user.name,
                                         id = m.user.id
                                     )
-                                }
+                                },
+                                recipes = sharedUi,
                             )
                         } else {
                             group
@@ -139,6 +152,7 @@ class GroupsViewModel : ViewModel() {
                     }
                     state.copy(groups = updatedGroups, isDetailLoading = false)
                 }
+                RecipeStore.setSharedRecipesForGroup(selectedId, sharedUi)
             } catch (e: Exception) {
                 _uiState.update { it.copy(isDetailLoading = false) }
                 e.printStackTrace()
@@ -158,6 +172,89 @@ class GroupsViewModel : ViewModel() {
     fun closeRecipeDetails() = _uiState.update { it.copy(selectedRecipe = null) }
     fun clearInfoMessage() {
         _uiState.update { it.copy(infoMessage = null, isError = false) }
+    }
+
+    fun shareRecipeToGroup(groupId: String, recipe: SharedRecipe) {
+        val gid = groupId.toIntOrNull() ?: return
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true) }
+            val ingredients = when {
+                recipe.availableItems.isNotEmpty() || recipe.missingItems.isNotEmpty() ->
+                    (recipe.availableItems + recipe.missingItems).distinct()
+                else -> listOfNotNull(recipe.title.takeIf { it.isNotBlank() })
+            }
+            val result = runCatching {
+                apiService.shareRecipe(
+                    ShareRecipeRequest(
+                        groupId = gid,
+                        title = recipe.title,
+                        description = recipe.description.ifBlank { null },
+                        ingredients = ingredients,
+                        steps = recipe.instructions,
+                        minutes = null,
+                        note = null,
+                        sessionRecipeId = recipe.sessionRecipeId,
+                        recipeId = recipe.catalogRecipeId,
+                    )
+                )
+            }
+            if (result.isSuccess) {
+                val shared = runCatching { apiService.listGroupSharedRecipes(gid) }
+                    .getOrNull()
+                    .orEmpty()
+                    .map { it.toUiSharedRecipe(AuthManager.currentUser?.id) }
+                RecipeStore.setSharedRecipesForGroup(groupId, shared)
+                _uiState.update { state ->
+                    val updated = state.groups.map { g ->
+                        if (g.id == groupId) g.copy(recipes = shared) else g
+                    }
+                    state.copy(
+                        groups = updated,
+                        selectedGroupId = groupId,
+                        infoMessage = "Recipe shared to group.",
+                        isError = false,
+                        isLoading = false,
+                    )
+                }
+            } else {
+                _uiState.update {
+                    it.copy(
+                        infoMessage = "Could not share recipe. Try again.",
+                        isError = true,
+                        isLoading = false,
+                    )
+                }
+            }
+        }
+    }
+
+    fun toggleRecipeFavorite(recipe: SharedRecipe) {
+        val catalogId = recipe.catalogRecipeId
+        if (catalogId != null) {
+            viewModelScope.launch {
+                runCatching {
+                    if (RecipeStore.isFavoriteLocal(recipe)) {
+                        apiService.unstarCatalogRecipe(catalogId)
+                    } else {
+                        apiService.starCatalogRecipe(catalogId)
+                    }
+                }
+                RecipeStore.toggleFavoriteLocal(recipe)
+            }
+        } else if (recipe.sessionRecipeId != null) {
+            viewModelScope.launch {
+                runCatching {
+                    if (RecipeStore.isFavoriteLocal(recipe)) {
+                        apiService.unfavoriteSessionRecipe(recipe.sessionRecipeId)
+                    } else {
+                        apiService.favoriteSessionRecipe(recipe.sessionRecipeId)
+                    }
+                }
+                RecipeStore.toggleFavoriteLocal(recipe)
+            }
+        } else {
+            RecipeStore.toggleFavoriteLocal(recipe)
+        }
     }
     fun joinGroup() {
         val state = _uiState.value

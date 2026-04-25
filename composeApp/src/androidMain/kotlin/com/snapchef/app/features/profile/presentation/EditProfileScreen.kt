@@ -67,7 +67,7 @@ fun EditProfileScreen(
     userEmail: String,
     profileImageUri: Uri?,
     onPickImage: (Uri) -> Unit,
-    onSave: (String, String, String, String) -> Unit,
+    onSave: (String, String, String, String, String) -> Unit,
     onCancel: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: EditProfileViewModel = viewModel(),
@@ -230,6 +230,19 @@ fun EditProfileScreen(
                         keyboardType = KeyboardType.Email,
                     )
 
+                    if (uiState.editedPassword.isNotEmpty()) {
+                        AuthTextField(
+                            value = uiState.editedCurrentPassword,
+                            onValueChange = viewModel::updateCurrentPassword,
+                            placeholder = "Current Password",
+                            leadingIcon = {
+                                Icon(Icons.Outlined.Lock, null, tint = GreenPrimary)
+                            },
+                            keyboardType = KeyboardType.Password,
+                            visualTransformation = PasswordVisualTransformation(),
+                        )
+                    }
+
                     AuthTextField(
                         value = uiState.editedPassword,
                         onValueChange = viewModel::updatePassword,
@@ -289,7 +302,11 @@ fun EditProfileScreen(
                 }
 
                 Button(
-                    onClick = { viewModel.validateAndSave(onSave) },
+                    onClick = {
+                        viewModel.validateAndSave { a, b, c, d, e ->
+                            onSave(a, b, c, d, e)
+                        }
+                    },
                     modifier = Modifier
                         .weight(1f)
                         .height(56.dp),
@@ -318,7 +335,7 @@ private fun EditProfileScreenPreview() {
             userEmail = "john.doe@snapchef.app",
             profileImageUri = null,
             onPickImage = {},
-            onSave = { _, _, _, _ -> },
+            onSave = { _, _, _, _, _ -> },
             onCancel = {},
         )
     }

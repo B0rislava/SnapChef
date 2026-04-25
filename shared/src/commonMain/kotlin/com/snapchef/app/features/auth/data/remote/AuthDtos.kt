@@ -95,3 +95,57 @@ data class GroupCreateRequest(
 data class JoinGroupRequest(
     val code: String
 )
+
+@Serializable
+data class UpdateProfileRequest(
+    val name: String,
+)
+
+@Serializable
+data class ChangePasswordRequest(
+    @SerialName("current_password") val currentPassword: String,
+    @SerialName("new_password") val newPassword: String,
+)
+
+@Serializable
+data class ShareRecipeRequest(
+    @SerialName("group_id") val groupId: Int,
+    val title: String,
+    val description: String? = null,
+    val ingredients: List<String> = emptyList(),
+    val steps: List<String> = emptyList(),
+    val minutes: Int? = null,
+    val note: String? = null,
+    @SerialName("recipe_id") val recipeId: Int? = null,
+    @SerialName("session_recipe_id") val sessionRecipeId: Int? = null,
+)
+
+@Serializable
+data class SharedRecipeOut(
+    val id: Int,
+    @SerialName("group_id") val groupId: Int,
+    @SerialName("user_id") val userId: Int,
+    val title: String,
+    val description: String? = null,
+    val ingredients: List<String> = emptyList(),
+    val steps: List<String> = emptyList(),
+    val minutes: Int? = null,
+    val note: String? = null,
+    @SerialName("created_at") val createdAt: String? = null,
+)
+
+@Serializable
+data class RecipeOut(
+    val id: Int,
+    val title: String,
+    val description: String? = null,
+    val ingredients: List<String> = emptyList(),
+    val steps: List<String> = emptyList(),
+    val starred: Boolean = false,
+)
+
+@Serializable
+data class RecommendedRecipesOut(
+    @SerialName("based_on") val basedOn: List<String> = emptyList(),
+    val recipes: List<RecipeOut> = emptyList(),
+)

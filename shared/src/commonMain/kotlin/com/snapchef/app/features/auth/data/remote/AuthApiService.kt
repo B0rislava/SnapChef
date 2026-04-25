@@ -2,13 +2,16 @@ package com.snapchef.app.features.auth.data.remote
 
 import com.snapchef.app.AppConfig
 import com.snapchef.app.core.auth.AuthManager
+import com.snapchef.app.features.home.data.remote.SessionRecipeOut
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.request.delete
 import io.ktor.client.request.header
+import io.ktor.client.request.patch
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.client.request.get
+import io.ktor.client.request.parameter
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
 
@@ -61,6 +64,139 @@ class AuthApiService(private val client: HttpClient) {
             AuthManager.accessToken?.let { token ->
                 header("Authorization", "Bearer $token")
             }
+        }.body()
+    }
+
+    @Throws(Exception::class)
+    suspend fun deletePantryItem(pantryItemId: Int) {
+        client.delete("${AppConfig.BASE_URL}/pantry/$pantryItemId") {
+            AuthManager.accessToken?.let { token ->
+                header("Authorization", "Bearer $token")
+            }
+        }
+    }
+
+    @Throws(Exception::class)
+    suspend fun getCurrentUser(): UserOut {
+        return client.get("${AppConfig.BASE_URL}/auth/me") {
+            AuthManager.accessToken?.let { token ->
+                header("Authorization", "Bearer $token")
+            }
+        }.body()
+    }
+
+    @Throws(Exception::class)
+    suspend fun updateProfile(name: String): UserOut {
+        return client.patch("${AppConfig.BASE_URL}/auth/me") {
+            contentType(ContentType.Application.Json)
+            AuthManager.accessToken?.let { token ->
+                header("Authorization", "Bearer $token")
+            }
+            setBody(UpdateProfileRequest(name = name))
+        }.body()
+    }
+
+    @Throws(Exception::class)
+    suspend fun changePassword(currentPassword: String, newPassword: String) {
+        client.post("${AppConfig.BASE_URL}/auth/change-password") {
+            contentType(ContentType.Application.Json)
+            AuthManager.accessToken?.let { token ->
+                header("Authorization", "Bearer $token")
+            }
+            setBody(
+                ChangePasswordRequest(
+                    currentPassword = currentPassword,
+                    newPassword = newPassword,
+                )
+            )
+        }
+    }
+
+    @Throws(Exception::class)
+    suspend fun shareRecipe(request: ShareRecipeRequest): SharedRecipeOut {
+        return client.post("${AppConfig.BASE_URL}/share/recipe") {
+            contentType(ContentType.Application.Json)
+            AuthManager.accessToken?.let { token ->
+                header("Authorization", "Bearer $token")
+            }
+            setBody(request)
+        }.body()
+    }
+
+    @Throws(Exception::class)
+    suspend fun listGroupSharedRecipes(groupId: Int, limit: Int = 50, offset: Int = 0): List<SharedRecipeOut> {
+        return client.get("${AppConfig.BASE_URL}/share/group/$groupId/recipes") {
+            AuthManager.accessToken?.let { token ->
+                header("Authorization", "Bearer $token")
+            }
+            parameter("limit", limit)
+            parameter("offset", offset)
+        }.body()
+    }
+
+    @Throws(Exception::class)
+    suspend fun getRecommendedRecipes(count: Int = 6): RecommendedRecipesOut {
+        return client.get("${AppConfig.BASE_URL}/recipes/recommended") {
+            AuthManager.accessToken?.let { token ->
+                header("Authorization", "Bearer $token")
+            }
+            parameter("count", count)
+        }.body()
+    }
+
+    @Throws(Exception::class)
+    suspend fun listCatalogFavoriteRecipes(): List<RecipeOut> {
+        return client.get("${AppConfig.BASE_URL}/recipes/favorites") {
+            AuthManager.accessToken?.let { token ->
+                header("Authorization", "Bearer $token")
+            }
+        }.body()
+    }
+
+    @Throws(Exception::class)
+    suspend fun starCatalogRecipe(recipeId: Int) {
+        client.post("${AppConfig.BASE_URL}/recipes/$recipeId/star") {
+            AuthManager.accessToken?.let { token ->
+                header("Authorization", "Bearer $token")
+            }
+        }
+    }
+
+    @Throws(Exception::class)
+    suspend fun unstarCatalogRecipe(recipeId: Int) {
+        client.delete("${AppConfig.BASE_URL}/recipes/$recipeId/star") {
+            AuthManager.accessToken?.let { token ->
+                header("Authorization", "Bearer $token")
+            }
+        }
+    }
+
+    @Throws(Exception::class)
+    suspend fun favoriteSessionRecipe(sessionRecipeId: Int): SessionRecipeOut {
+        return client.post("${AppConfig.BASE_URL}/ai/recipes/$sessionRecipeId/favorite") {
+            AuthManager.accessToken?.let { token ->
+                header("Authorization", "Bearer $token")
+            }
+        }.body()
+    }
+
+    @Throws(Exception::class)
+    suspend fun unfavoriteSessionRecipe(sessionRecipeId: Int): SessionRecipeOut {
+        return client.delete("${AppConfig.BASE_URL}/ai/recipes/$sessionRecipeId/favorite") {
+            AuthManager.accessToken?.let { token ->
+                header("Authorization", "Bearer $token")
+            }
+        }.body()
+    }
+
+    @Throws(Exception::class)
+    suspend fun listFavoriteSessionRecipes(limit: Int = 50, offset: Int = 0): List<SessionRecipeOut> {
+        return client.get("${AppConfig.BASE_URL}/ai/recipes/favorites") {
+            AuthManager.accessToken?.let { token ->
+                header("Authorization", "Bearer $token")
+            }
+            parameter("limit", limit)
+            parameter("offset", offset)
         }.body()
     }
 

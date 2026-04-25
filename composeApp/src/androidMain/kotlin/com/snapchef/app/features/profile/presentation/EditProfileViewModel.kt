@@ -10,6 +10,7 @@ import org.json.JSONObject
 data class EditProfileUiState(
     val editedName: String = "",
     val editedEmail: String = "",
+    val editedCurrentPassword: String = "",
     val editedPassword: String = "",
     val editedConfirmPassword: String = "",
     val errorMessage: String? = null,
@@ -36,12 +37,14 @@ class EditProfileViewModel : ViewModel() {
 
     fun updateName(value: String) = _uiState.update { it.copy(editedName = value, errorMessage = null) }
     fun updateEmail(value: String) = _uiState.update { it.copy(editedEmail = value, errorMessage = null) }
+    fun updateCurrentPassword(value: String) = _uiState.update { it.copy(editedCurrentPassword = value, errorMessage = null) }
     fun updatePassword(value: String) = _uiState.update { it.copy(editedPassword = value, errorMessage = null) }
     fun updateConfirmPassword(value: String) = _uiState.update { it.copy(editedConfirmPassword = value, errorMessage = null) }
 
-    fun validateAndSave(onValidSave: (String, String, String, String) -> Unit) {
+    fun validateAndSave(onValidSave: (String, String, String, String, String) -> Unit) {
         val name = _uiState.value.editedName.trim()
         val email = _uiState.value.editedEmail.trim()
+        val currentPassword = _uiState.value.editedCurrentPassword
         val password = _uiState.value.editedPassword
         val confirmPassword = _uiState.value.editedConfirmPassword
 
@@ -62,6 +65,10 @@ class EditProfileViewModel : ViewModel() {
         }
 
         if (password.isNotEmpty()) {
+            if (currentPassword.isBlank()) {
+                _uiState.update { it.copy(errorMessage = "Enter your current password to set a new one.") }
+                return
+            }
             if (password.length < 8) {
                 _uiState.update { it.copy(errorMessage = "Password must be at least 8 characters long.") }
                 return
@@ -73,7 +80,7 @@ class EditProfileViewModel : ViewModel() {
         }
 
         _uiState.update { it.copy(errorMessage = null) }
-        onValidSave(name, email, password, confirmPassword)
+        onValidSave(name, email, password, confirmPassword, currentPassword)
     }
 
     fun applyBackendJson(json: String) {

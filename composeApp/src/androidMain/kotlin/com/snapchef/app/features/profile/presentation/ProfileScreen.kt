@@ -35,6 +35,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.IconButton
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Email
 import androidx.compose.material.icons.outlined.Person
@@ -43,6 +44,7 @@ import androidx.compose.material.icons.filled.Inventory2
 import androidx.compose.material.icons.filled.Eco
 import androidx.compose.material.icons.filled.Opacity
 import androidx.compose.material.icons.filled.LocalFlorist
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -71,6 +73,7 @@ import com.snapchef.app.core.theme.SnapChefTheme
 import kotlinx.coroutines.delay
 
 private data class InventoryItem(
+    val pantryItemIds: List<Int>,
     val name: String,
     val category: String,
     val quantity: String,
@@ -84,6 +87,7 @@ fun ProfileScreen(
     userEmail: String,
     profileImageUri: Uri?,
     inventoryItems: List<ProfileInventoryItem>,
+    onMarkInventoryItemEaten: (ProfileInventoryItem) -> Unit,
     onLogout: () -> Unit,
     onDeleteAccount: () -> Unit,
     onEditProfile: () -> Unit,
@@ -99,6 +103,7 @@ fun ProfileScreen(
     val inventory = remember(inventoryItems) {
         inventoryItems.map { item ->
             InventoryItem(
+                pantryItemIds = item.pantryItemIds,
                 name = item.name,
                 category = item.category,
                 quantity = item.quantity,
@@ -340,6 +345,23 @@ fun ProfileScreen(
                                         fontWeight = FontWeight.Bold,
                                     )
                                 }
+                                IconButton(onClick = {
+                                    onMarkInventoryItemEaten(
+                                        ProfileInventoryItem(
+                                            pantryItemIds = item.pantryItemIds,
+                                            name = item.name,
+                                            category = item.category,
+                                            quantity = item.quantity,
+                                        )
+                                    )
+                                    infoMessage = "${item.name} marked as eaten."
+                                }) {
+                                    Icon(
+                                        imageVector = Icons.Default.Check,
+                                        contentDescription = "Mark ${item.name} as eaten",
+                                        tint = GreenPrimary,
+                                    )
+                                }
                             }
                         }
                     }
@@ -525,12 +547,13 @@ private fun ProfileScreenPreview() {
             userEmail = "john.doe@snapchef.app",
             profileImageUri = null,
             inventoryItems = listOf(
-                ProfileInventoryItem("Eggs", "Protein", "6"),
-                ProfileInventoryItem("Milk", "Dairy", "1 L"),
+                ProfileInventoryItem(name = "Eggs", category = "Protein", quantity = "6"),
+                ProfileInventoryItem(name = "Milk", category = "Dairy", quantity = "1 L"),
             ),
             onLogout = {},
             onDeleteAccount = {},
             onEditProfile = {},
+            onMarkInventoryItemEaten = {},
         )
     }
 }

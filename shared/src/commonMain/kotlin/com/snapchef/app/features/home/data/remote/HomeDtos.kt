@@ -49,5 +49,6 @@ data class SessionRecipeOut(
     val extra: List<String> = emptyList(),
     val steps: List<String> = emptyList(),
     val minutes: Int? = null,
-    val rating: Int? = null
+    val rating: Int? = null,
+    val favorited: Boolean = false
 )

@@ -31,6 +31,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Group
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -63,6 +65,7 @@ import com.snapchef.app.core.theme.GreenPrimary
 import com.snapchef.app.core.theme.GreenSecondary
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.snapchef.app.features.groups.presentation.RecipeStore
 
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
@@ -72,9 +75,11 @@ fun RecipesScreen(
     onDetailsVisibilityChanged: (Boolean) -> Unit = {},
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val favoriteRecipeKeys by RecipeStore.favoriteRecipeKeys.collectAsStateWithLifecycle()
     val selectedGroup = uiState.groups.firstOrNull { it.id == uiState.selectedGroupId } ?: uiState.groups.first()
     val selectedRecipe = uiState.selectedRecipe
     val infoMessage = uiState.infoMessage
+    var showFavoritesOnly by remember { mutableStateOf(false) }
     LaunchedEffect(selectedRecipe) {
         onDetailsVisibilityChanged(selectedRecipe != null)
     }
@@ -83,6 +88,7 @@ fun RecipesScreen(
         GroupRecipeDetailsScreen(
             recipe = selectedRecipe,
             onBack = viewModel::closeRecipeDetails,
+            viewModel = viewModel,
             modifier = modifier,
         )
         return
@@ -167,22 +173,70 @@ fun RecipesScreen(
             Spacer(modifier = Modifier.height(16.dp))
 
             Text(
-                text = if (selectedGroup.isPersonal) "Your Saved Recipes" else "${selectedGroup.name} Recipes",
+                text = when {
+                    selectedGroup.isPersonal && showFavoritesOnly -> "Hearted Recipes"
+                    selectedGroup.isPersonal -> "All Saved Recipes"
+                    else -> "${selectedGroup.name} Recipes"
+                },
                 style = MaterialTheme.typography.titleLarge,
                 color = GreenPrimary,
                 fontWeight = FontWeight.Bold,
             )
             Spacer(modifier = Modifier.height(16.dp))
 
-            if (selectedGroup.recipes.isEmpty()) {
+            if (selectedGroup.isPersonal) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = if (!showFavoritesOnly) GreenPrimary else GreenSecondary.copy(alpha = 0.35f),
+                        modifier = Modifier.clickable { showFavoritesOnly = false }
+                    ) {
+                        Text(
+                            text = "All",
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                            color = if (!showFavoritesOnly) Color.White else GreenOnBackground
+                        )
+                    }
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = if (showFavoritesOnly) GreenPrimary else GreenSecondary.copy(alpha = 0.35f),
+                        modifier = Modifier.clickable { showFavoritesOnly = true }
+                    ) {
+                        Text(
+                            text = "Favorites",
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                            color = if (showFavoritesOnly) Color.White else GreenOnBackground
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.height(12.dp))
+            }
+
+            val recipesToShow = if (selectedGroup.isPersonal) {
+                if (showFavoritesOnly) {
+                    selectedGroup.recipes.filter { r -> r.favoriteKey() in favoriteRecipeKeys }
+                } else {
+                    selectedGroup.recipes
+                }
+            } else {
+                selectedGroup.recipes
+            }
+
+            if (recipesToShow.isEmpty()) {
                 Box(
                     modifier = Modifier.fillMaxWidth().padding(top = 32.dp),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text("No recipes saved yet.", color = GreenOnBackground.copy(alpha = 0.6f))
+                    Text(
+                        if (showFavoritesOnly) "No favorites yet." else "No recipes saved yet.",
+                        color = GreenOnBackground.copy(alpha = 0.6f)
+                    )
                 }
             } else {
-                selectedGroup.recipes.forEach { recipe ->
+                recipesToShow.forEach { recipe ->
                     val days = recipe.earliestDaysLeft()
                     val statusColor = when {
                         days == null -> GreenPrimary
@@ -215,12 +269,26 @@ fun RecipesScreen(
                                     .background(statusColor)
                             )
                             Column(modifier = Modifier.padding(16.dp).weight(1f)) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically,
+                                ) {
                                 Text(
                                     text = recipe.title,
                                     style = MaterialTheme.typography.titleMedium,
                                     color = GreenOnBackground,
                                     fontWeight = FontWeight.Bold,
                                 )
+                                    val heartOn = recipe.favoriteKey() in favoriteRecipeKeys
+                                    IconButton(onClick = { viewModel.toggleRecipeFavorite(recipe) }) {
+                                        Icon(
+                                            imageVector = if (heartOn) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
+                                            contentDescription = "Toggle favorite",
+                                            tint = GreenPrimary
+                                        )
+                                    }
+                                }
                                 Spacer(modifier = Modifier.height(6.dp))
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     Icon(
@@ -231,9 +299,9 @@ fun RecipesScreen(
                                     )
                                     Spacer(modifier = Modifier.width(6.dp))
                                     Text(
-                                        text = when {
-                                            recipe.ownerName == "AI Suggestion" -> "AI suggested for your group"
-                                            recipe.ownerName == "You" -> "Saved by you"
+                                        text = when (recipe.ownerName) {
+                                            "AI Suggestion" -> "AI suggested for your group"
+                                            "You" -> "Saved by you"
                                             else -> "Shared by ${recipe.ownerName}"
                                         },
                                         style = MaterialTheme.typography.bodySmall,
@@ -272,8 +340,8 @@ fun RecipesScreen(
 private fun GroupRecipeDetailsScreen(
     recipe: SharedRecipe,
     onBack: () -> Unit,
+    viewModel: GroupsViewModel,
     modifier: Modifier = Modifier,
-    viewModel: GroupsViewModel = viewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var inviteMessage by remember { mutableStateOf<String?>(null) }
@@ -362,9 +430,9 @@ private fun GroupRecipeDetailsScreen(
                                 .padding(horizontal = 12.dp, vertical = 6.dp)
                         ) {
                             Text(
-                                text = when {
-                                    recipe.ownerName == "AI Suggestion" -> "AI Group Suggestion"
-                                    recipe.ownerName == "You" -> "Saved"
+                                text = when (recipe.ownerName) {
+                                    "AI Suggestion" -> "AI Group Suggestion"
+                                    "You" -> "Saved"
                                     else -> "Shared"
                                 },
                                 style = MaterialTheme.typography.labelMedium,
@@ -575,7 +643,8 @@ private fun GroupRecipeDetailsScreen(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .clickable {
-                                        inviteMessage = "Invitation shared with ${group.name}!"
+                                        viewModel.shareRecipeToGroup(group.id, recipe)
+                                        inviteMessage = "Recipe shared with ${group.name}!"
                                         showGroupSelection = false
                                     },
                                 shape = RoundedCornerShape(12.dp),
