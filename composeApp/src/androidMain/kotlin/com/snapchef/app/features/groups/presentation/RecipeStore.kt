@@ -44,6 +44,15 @@ object RecipeStore {
         persistSavedRecipes(merged)
     }
 
+    fun removePersonalRecipe(recipe: SharedRecipe) {
+        _personalRecipes.update { current ->
+            val updated = current.filterNot { it.favoriteKey() == recipe.favoriteKey() }
+            persistSavedRecipes(updated)
+            updated
+        }
+        removeFavoriteLocal(recipe)
+    }
+
     fun addSharedRecipe(groupId: String, recipe: SharedRecipe) {
         _sharedRecipesByGroup.update { current ->
             val groupRecipes = current[groupId].orEmpty()
@@ -55,6 +64,14 @@ object RecipeStore {
         _sharedRecipesByGroup.update { it + (groupId to recipes) }
     }
 
+    fun removeSharedRecipe(groupId: String, recipe: SharedRecipe) {
+        _sharedRecipesByGroup.update { current ->
+            val updatedList = current[groupId].orEmpty().filterNot { it.favoriteKey() == recipe.favoriteKey() }
+            current + (groupId to updatedList)
+        }
+        removeFavoriteLocal(recipe)
+    }
+
     fun sharedRecipesForGroup(groupId: String): List<SharedRecipe> {
         return _sharedRecipesByGroup.value[groupId].orEmpty()
     }
@@ -63,6 +80,15 @@ object RecipeStore {
         val key = recipe.favoriteKey()
         _favoriteRecipeKeys.update { current ->
             val updated = if (key in current) current - key else current + key
+            persistFavoriteKeys(updated)
+            updated
+        }
+    }
+
+    fun removeFavoriteLocal(recipe: SharedRecipe) {
+        val key = recipe.favoriteKey()
+        _favoriteRecipeKeys.update { current ->
+            val updated = current - key
             persistFavoriteKeys(updated)
             updated
         }
@@ -109,6 +135,7 @@ object RecipeStore {
             obj.put("catalogRecipeId", recipe.catalogRecipeId)
             obj.put("backendSharedId", recipe.backendSharedId)
             obj.put("isCatalogStarred", recipe.isCatalogStarred)
+            recipe.sharedByUserId?.let { obj.put("sharedByUserId", it) }
             obj.put("missingItems", JSONArray(recipe.missingItems))
             obj.put("availableItems", JSONArray(recipe.availableItems))
             obj.put("instructions", JSONArray(recipe.instructions))
@@ -136,6 +163,7 @@ object RecipeStore {
                             sessionRecipeId = obj.optInt("sessionRecipeId").takeIf { it != 0 },
                             catalogRecipeId = obj.optInt("catalogRecipeId").takeIf { it != 0 },
                             isCatalogStarred = if (obj.has("isCatalogStarred")) obj.optBoolean("isCatalogStarred") else null,
+                            sharedByUserId = if (obj.has("sharedByUserId")) obj.optInt("sharedByUserId").takeIf { it != 0 } else null,
                         )
                     )
                 }
