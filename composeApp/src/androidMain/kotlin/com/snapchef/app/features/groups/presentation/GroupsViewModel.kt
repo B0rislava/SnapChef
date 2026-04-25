@@ -29,6 +29,10 @@ data class GroupsUiState(
 
 class GroupsViewModel : ViewModel() {
     private val apiService = SnapChefServiceLocator.authApiService
+    private var lastSavedSyncAtMs: Long = 0L
+    private var isSavedSyncRunning: Boolean = false
+    private var lastDetailedGroupId: String? = null
+    private var lastDetailedGroupLoadAtMs: Long = 0L
 
     private val _uiState = MutableStateFlow(defaultState())
     val uiState: StateFlow<GroupsUiState> = _uiState.asStateFlow()
@@ -80,7 +84,7 @@ class GroupsViewModel : ViewModel() {
                         isLoading = false
                     )
                 }
-                loadPersonalFavoritesFromBackend()
+                syncSavedRecipesFromBackend(force = false)
                 refreshSelectedGroupDetail()
             } catch (e: Exception) {
                 e.printStackTrace()
@@ -99,29 +103,35 @@ class GroupsViewModel : ViewModel() {
         }
     }
 
-    private fun loadPersonalFavoritesFromBackend() {
+    private fun syncSavedRecipesFromBackend(force: Boolean) {
         viewModelScope.launch {
             if (!AuthManager.isLoggedIn()) return@launch
+            val now = System.currentTimeMillis()
+            if (!force && (isSavedSyncRunning || (now - lastSavedSyncAtMs) < 20_000L)) return@launch
+            isSavedSyncRunning = true
             val catalog = runCatching { apiService.listCatalogFavoriteRecipes() }.getOrDefault(emptyList())
                 .map { it.toUiSharedRecipe() }
             val session = runCatching { apiService.listFavoriteSessionRecipes() }.getOrDefault(emptyList())
                 .map { it.toUiSharedRecipe() }
             val backendKnownRecipes = (session + catalog).distinctBy { it.favoriteKey() }
-            val favoriteKeys = (session + catalog).map { it.favoriteKey() }.toSet()
-            // Backward compatibility: older app versions used favorite endpoints as "saved".
-            // Import those backend recipes into the saved list so users can still see old data in All.
-            RecipeStore.replacePersonalRecipes(backendKnownRecipes)
-            RecipeStore.setFavoriteKeys(favoriteKeys)
+            // Import server-known saved recipes only when local is empty (upgrade/reinstall restore).
+            if (RecipeStore.personalRecipes.value.isEmpty()) {
+                RecipeStore.replacePersonalRecipes(backendKnownRecipes)
+            }
+            lastSavedSyncAtMs = now
+            isSavedSyncRunning = false
         }
     }
 
     private fun refreshSelectedGroupDetail() {
         val selectedId = _uiState.value.selectedGroupId
         if (selectedId == "personal") {
-            loadPersonalFavoritesFromBackend()
             return
         }
         val idInt = selectedId.toIntOrNull() ?: return
+        val now = System.currentTimeMillis()
+        if (_uiState.value.isDetailLoading) return
+        if (lastDetailedGroupId == selectedId && (now - lastDetailedGroupLoadAtMs) < 10_000L) return
 
         viewModelScope.launch {
             _uiState.update { it.copy(isDetailLoading = true) }
@@ -153,6 +163,8 @@ class GroupsViewModel : ViewModel() {
                     state.copy(groups = updatedGroups, isDetailLoading = false)
                 }
                 RecipeStore.setSharedRecipesForGroup(selectedId, sharedUi)
+                lastDetailedGroupId = selectedId
+                lastDetailedGroupLoadAtMs = now
             } catch (e: Exception) {
                 _uiState.update { it.copy(isDetailLoading = false) }
                 e.printStackTrace()
@@ -229,31 +241,41 @@ class GroupsViewModel : ViewModel() {
     }
 
     fun toggleRecipeFavorite(recipe: SharedRecipe) {
-        val catalogId = recipe.catalogRecipeId
-        if (catalogId != null) {
-            viewModelScope.launch {
-                runCatching {
-                    if (RecipeStore.isFavoriteLocal(recipe)) {
-                        apiService.unstarCatalogRecipe(catalogId)
-                    } else {
-                        apiService.starCatalogRecipe(catalogId)
-                    }
-                }
-                RecipeStore.toggleFavoriteLocal(recipe)
+        // Favorites are intentionally local-only state, independent from "saved" cloud backup.
+        RecipeStore.toggleFavoriteLocal(recipe)
+    }
+
+    fun deleteRecipe(recipe: SharedRecipe) {
+        val selectedId = _uiState.value.selectedGroupId
+        if (selectedId == "personal") {
+            RecipeStore.removePersonalRecipe(recipe)
+            return
+        }
+
+        if (!recipe.canCurrentUserDeleteFromGroup(AuthManager.currentUser?.id)) {
+            _uiState.update {
+                it.copy(
+                    infoMessage = "Only the person who shared this can remove it.",
+                    isError = true,
+                )
             }
-        } else if (recipe.sessionRecipeId != null) {
-            viewModelScope.launch {
-                runCatching {
-                    if (RecipeStore.isFavoriteLocal(recipe)) {
-                        apiService.unfavoriteSessionRecipe(recipe.sessionRecipeId)
-                    } else {
-                        apiService.favoriteSessionRecipe(recipe.sessionRecipeId)
-                    }
-                }
-                RecipeStore.toggleFavoriteLocal(recipe)
+            return
+        }
+
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true) }
+            recipe.backendSharedId?.let { sharedId ->
+                runCatching { apiService.deleteSharedRecipe(sharedId) }
             }
-        } else {
-            RecipeStore.toggleFavoriteLocal(recipe)
+            RecipeStore.removeSharedRecipe(selectedId, recipe)
+            _uiState.update { state ->
+                val updated = state.groups.map { group ->
+                    if (group.id == selectedId) {
+                        group.copy(recipes = group.recipes.filterNot { it.favoriteKey() == recipe.favoriteKey() })
+                    } else group
+                }
+                state.copy(groups = updated, isLoading = false, infoMessage = "Recipe deleted.")
+            }
         }
     }
     fun joinGroup() {

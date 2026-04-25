@@ -38,6 +38,7 @@ data class MainUiState(
 
 class MainViewModel : ViewModel() {
     private val apiService = SnapChefServiceLocator.authApiService
+    private var isCloudBackupSyncRunning: Boolean = false
 
     private val _uiState = MutableStateFlow(
         MainUiState(
@@ -50,6 +51,7 @@ class MainViewModel : ViewModel() {
     init {
         // Ensure saved/favorite recipes are always loaded for the current user on app start.
         RecipeStore.reloadFromStorageForCurrentUser()
+        syncSavedRecipesToCloudBackup()
     }
 
     fun selectTab(tab: MainTab) {
@@ -211,6 +213,7 @@ class MainViewModel : ViewModel() {
             } else {
                 // Save must not implicitly favorite. It only adds to saved recipes.
                 RecipeStore.addPersonalRecipe(recipe.copy(isCatalogStarred = false))
+                syncSavedRecipesToCloudBackup()
             }
             _uiState.update {
                 it.copy(
@@ -218,6 +221,43 @@ class MainViewModel : ViewModel() {
                     currentTab = MainTab.RECIPES,
                 )
             }
+        }
+    }
+
+    private fun syncSavedRecipesToCloudBackup() {
+        if (isCloudBackupSyncRunning || !AuthManager.isLoggedIn()) return
+        viewModelScope.launch {
+            isCloudBackupSyncRunning = true
+            val saved = RecipeStore.personalRecipes.value
+            if (saved.isEmpty()) {
+                isCloudBackupSyncRunning = false
+                return@launch
+            }
+
+            val cloudCatalogIds = runCatching { apiService.listCatalogFavoriteRecipes() }
+                .getOrDefault(emptyList())
+                .map { it.id }
+                .toMutableSet()
+            val cloudSessionIds = runCatching { apiService.listFavoriteSessionRecipes() }
+                .getOrDefault(emptyList())
+                .map { it.id }
+                .toMutableSet()
+
+            saved.forEach { recipe ->
+                recipe.catalogRecipeId?.let { id ->
+                    if (id !in cloudCatalogIds) {
+                        runCatching { apiService.starCatalogRecipe(id) }
+                        cloudCatalogIds.add(id)
+                    }
+                }
+                recipe.sessionRecipeId?.let { id ->
+                    if (id !in cloudSessionIds) {
+                        runCatching { apiService.favoriteSessionRecipe(id) }
+                        cloudSessionIds.add(id)
+                    }
+                }
+            }
+            isCloudBackupSyncRunning = false
         }
     }
 

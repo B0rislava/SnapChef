@@ -32,6 +32,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.Button
@@ -53,9 +54,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -63,6 +67,7 @@ import com.snapchef.app.core.theme.GreenBackground
 import com.snapchef.app.core.theme.GreenOnBackground
 import com.snapchef.app.core.theme.GreenPrimary
 import com.snapchef.app.core.theme.GreenSecondary
+import com.snapchef.app.core.auth.AuthManager
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.snapchef.app.features.groups.presentation.RecipeStore
@@ -217,7 +222,10 @@ fun RecipesScreen(
 
             val recipesToShow = if (selectedGroup.isPersonal) {
                 if (showFavoritesOnly) {
-                    selectedGroup.recipes.filter { r -> r.favoriteKey() in favoriteRecipeKeys }
+                    uiState.groups
+                        .flatMap { it.recipes }
+                        .distinctBy { it.favoriteKey() }
+                        .filter { r -> r.favoriteKey() in favoriteRecipeKeys }
                 } else {
                     selectedGroup.recipes
                 }
@@ -237,6 +245,11 @@ fun RecipesScreen(
                 }
             } else {
                 recipesToShow.forEach { recipe ->
+                    val canDeleteFromList = if (selectedGroup.isPersonal) {
+                        true
+                    } else {
+                        recipe.canCurrentUserDeleteFromGroup(AuthManager.currentUser?.id)
+                    }
                     val days = recipe.earliestDaysLeft()
                     val statusColor = when {
                         days == null -> GreenPrimary
@@ -255,6 +268,9 @@ fun RecipesScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(bottom = 16.dp)
+                            .semantics(mergeDescendants = false) {
+                                contentDescription = "Recipe, ${recipe.title}. Tap the card to open details."
+                            }
                             .clickable { viewModel.openRecipe(recipe) },
                         shape = RoundedCornerShape(20.dp),
                         colors = CardDefaults.cardColors(containerColor = Color.White),
@@ -270,23 +286,45 @@ fun RecipesScreen(
                             )
                             Column(modifier = Modifier.padding(16.dp).weight(1f)) {
                                 Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(bottom = 4.dp),
                                     verticalAlignment = Alignment.CenterVertically,
                                 ) {
-                                Text(
-                                    text = recipe.title,
-                                    style = MaterialTheme.typography.titleMedium,
-                                    color = GreenOnBackground,
-                                    fontWeight = FontWeight.Bold,
-                                )
-                                    val heartOn = recipe.favoriteKey() in favoriteRecipeKeys
-                                    IconButton(onClick = { viewModel.toggleRecipeFavorite(recipe) }) {
-                                        Icon(
-                                            imageVector = if (heartOn) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
-                                            contentDescription = "Toggle favorite",
-                                            tint = GreenPrimary
-                                        )
+                                    Text(
+                                        text = recipe.title,
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .padding(end = 4.dp),
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                        softWrap = false,
+                                        style = MaterialTheme.typography.titleMedium,
+                                        color = GreenOnBackground,
+                                        fontWeight = FontWeight.Bold,
+                                    )
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        val heartOn = recipe.favoriteKey() in favoriteRecipeKeys
+                                        IconButton(
+                                            onClick = { viewModel.toggleRecipeFavorite(recipe) },
+                                        ) {
+                                            Icon(
+                                                imageVector = if (heartOn) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
+                                                contentDescription = "Toggle favorite for ${recipe.title}",
+                                                tint = GreenPrimary
+                                            )
+                                        }
+                                        if (canDeleteFromList) {
+                                            IconButton(
+                                                onClick = { viewModel.deleteRecipe(recipe) },
+                                            ) {
+                                                Icon(
+                                                    imageVector = Icons.Filled.Delete,
+                                                    contentDescription = "Delete ${recipe.title}",
+                                                    tint = Color(0xFFC62828)
+                                                )
+                                            }
+                                        }
                                     }
                                 }
                                 Spacer(modifier = Modifier.height(6.dp))

@@ -29,7 +29,15 @@ data class SharedRecipe(
     val catalogRecipeId: Int? = null,
     /** When set, heart uses `GET /recipes/favorites` star state */
     val isCatalogStarred: Boolean? = null,
+    /** `SharedRecipeOut.userId` for group feed — used to know who can delete a group post */
+    val sharedByUserId: Int? = null,
 )
+
+/** Group feed: only the user who shared the post may delete it. */
+fun SharedRecipe.canCurrentUserDeleteFromGroup(currentUserId: Int?): Boolean {
+    if (sharedByUserId != null) return sharedByUserId == currentUserId
+    return ownerName == "You"
+}
 
 fun SharedRecipe.earliestDaysLeft(): Int? = perishableProducts.minOfOrNull { it.daysLeft() }
 fun SharedRecipe.isExpired(): Boolean = (earliestDaysLeft() ?: Int.MAX_VALUE) < 0

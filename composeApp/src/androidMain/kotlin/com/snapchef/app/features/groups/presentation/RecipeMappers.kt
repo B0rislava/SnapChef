@@ -17,6 +17,7 @@ fun SharedRecipeOut.toUiSharedRecipe(currentUserId: Int?): SharedRecipe {
         availableItems = ingredients,
         instructions = steps,
         backendSharedId = id,
+        sharedByUserId = userId,
     )
 }
 
