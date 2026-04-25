@@ -1,9 +1,3 @@
-//
-//  ProfileViewModel.swift
-//  iosApp
-//
-//  Created by gergana on 3/28/26.
-//
 
 import Foundation
 import Combine
@@ -45,7 +39,6 @@ final class ProfileViewModel: ObservableObject {
         userEmail = user.email
     }
 
-    /// Fetches the user's pantry  from the shared /pantry endpoint.
     func loadInventory() {
         isLoading    = true
         errorMessage = nil

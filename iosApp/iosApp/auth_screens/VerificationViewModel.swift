@@ -1,9 +1,3 @@
-//
-//  VerificationViewModel.swift
-//  iosApp
-//
-//  Created by gergana on 3/28/26.
-//
 
 import Foundation
 import Shared

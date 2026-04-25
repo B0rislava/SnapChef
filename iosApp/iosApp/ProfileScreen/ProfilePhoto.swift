@@ -1,9 +1,3 @@
-//
-//  ProfilePhoto.swift
-//  iosApp
-//
-//  Created by gergana on 3/26/26.
-//
 
 import SwiftUI
 
@@ -22,7 +16,6 @@ struct ProfilePhoto: View {
                     .scaledToFill()
                     .clipShape(Circle())
             } else {
-                // Fallback: initials
                 ZStack {
                     Circle()
                         .fill(Color.greenSecondary)
@@ -42,7 +35,6 @@ struct ProfilePhoto: View {
         }
     }
 
-    // Loads from a file URL (local) or remote URL
     private func loadImage(from url: URL) async -> UIImage? {
         if url.isFileURL {
             return UIImage(contentsOfFile: url.path)

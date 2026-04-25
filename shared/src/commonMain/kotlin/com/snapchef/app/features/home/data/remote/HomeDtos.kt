@@ -42,9 +42,11 @@ data class GroqRecipeSuggestResponse(
 
 @Serializable
 data class SessionRecipeOut(
-    val id: Int,
+    val id: Int = 0,
     @SerialName("session_id") val sessionId: Int = 0,
-    val name: String,
+    /** Session Groq responses use this; combined-meal and some endpoints may only send [title]. */
+    val name: String? = null,
+    @SerialName("title") val title: String? = null,
     val uses: List<String> = emptyList(),
     val extra: List<String> = emptyList(),
     val steps: List<String> = emptyList(),
@@ -52,6 +54,11 @@ data class SessionRecipeOut(
     val rating: Int? = null,
     val favorited: Boolean = false
 )
+
+fun SessionRecipeOut.resolvedTitle(): String =
+    name?.trim()?.takeIf { it.isNotEmpty() }
+        ?: title?.trim()?.takeIf { it.isNotEmpty() }
+        ?: "Recipe"
 
 @Serializable
 data class LibraryRecipeOut(

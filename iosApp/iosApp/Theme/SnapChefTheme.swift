@@ -1,12 +1,5 @@
-//
-//  SnapChefTheme.swift
-//  iosApp
-//
-//  Created by gergana on 3/26/26.
-//
 import SwiftUI
 
-// pallete
 extension Color {
     static let greenPrimary       = Color(hex: 0x587E3D)
     static let greenSecondary     = Color(hex: 0xCED8B7)
@@ -18,7 +11,6 @@ extension Color {
     static let greenOnSurface     = Color(hex: 0x1C2B10)
     static let greenError         = Color(hex: 0xB00020)
 
-    // Hex initializer
     init(hex: UInt32) {
         let r = Double((hex >> 16) & 0xFF) / 255
         let g = Double((hex >> 8)  & 0xFF) / 255
@@ -27,7 +19,6 @@ extension Color {
     }
 }
 
-// typography
 extension Font {
     static let snapDisplayLarge    = Font.system(size: 36, weight: .bold,      design: .default)
     static let snapHeadlineMedium  = Font.system(size: 26, weight: .bold,      design: .default)
@@ -49,7 +40,6 @@ extension EnvironmentValues {
 }
 
 struct SnapChefTokens {
-    // Colors
     let primary            = Color.greenPrimary
     let onPrimary          = Color.greenOnPrimary
     let primaryContainer   = Color.greenSecondary
@@ -62,7 +52,6 @@ struct SnapChefTokens {
     let onSurface          = Color.greenOnSurface
     let error              = Color.greenError
 
-    // Typography
     let displayLarge   = Font.snapDisplayLarge
     let headlineMedium = Font.snapHeadlineMedium
     let titleLarge     = Font.snapTitleLarge
