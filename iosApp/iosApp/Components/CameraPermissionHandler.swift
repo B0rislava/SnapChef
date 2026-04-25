@@ -1,9 +1,3 @@
-//
-//  CameraPermissionHandler.swift
-//  iosApp
-//
-//  Created by gergana on 3/26/26.
-//
 
 import AVFoundation
 import Photos
@@ -21,7 +15,6 @@ final class CameraPermissionHandler: ObservableObject {
     @Published var showCameraDeniedAlert = false
     @Published var showPhotosDeniedAlert = false
 
-    // Camera only
 
     func requestCameraPermission(onGranted: @escaping () -> Void) {
         switch AVCaptureDevice.authorizationStatus(for: .video) {
@@ -41,7 +34,6 @@ final class CameraPermissionHandler: ObservableObject {
         }
     }
 
-    // Photos only
 
     func requestPhotosPermission(onGranted: @escaping () -> Void) {
         switch PHPhotoLibrary.authorizationStatus(for: .readWrite) {
@@ -62,7 +54,6 @@ final class CameraPermissionHandler: ObservableObject {
         }
     }
     
-    //Both
     func requestBothPermissions(onGranted: @escaping () -> Void) {
         requestCameraPermission {
             self.requestPhotosPermission {

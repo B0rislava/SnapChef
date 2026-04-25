@@ -19,7 +19,6 @@ struct PerishableProduct: Identifiable, Equatable {
 }
 
 struct SharedRecipe: Identifiable, Equatable {
-    /// Local client id, or `srv-<server id>` for recipes loaded from the API.
     let id: String
     var title: String
     var description: String
@@ -28,8 +27,11 @@ struct SharedRecipe: Identifiable, Equatable {
     var availableItems: [String] = []
     var instructions: [String] = []
     var perishableProducts: [PerishableProduct] = []
-    /// `POST /share/recipe` record id, when this row was loaded from `GET /share/group/{id}/recipes`
     var serverSharedRecipeId: Int?
+    var sessionRecipeId: Int?
+    var catalogRecipeId: Int?
+    var isCatalogStarred: Bool?
+    var isSessionFavorited: Bool?
 
     init(
         id: String = UUID().uuidString,
@@ -40,7 +42,11 @@ struct SharedRecipe: Identifiable, Equatable {
         availableItems: [String] = [],
         instructions: [String] = [],
         perishableProducts: [PerishableProduct] = [],
-        serverSharedRecipeId: Int? = nil
+        serverSharedRecipeId: Int? = nil,
+        sessionRecipeId: Int? = nil,
+        catalogRecipeId: Int? = nil,
+        isCatalogStarred: Bool? = nil,
+        isSessionFavorited: Bool? = nil
     ) {
         self.id = id
         self.title = title
@@ -51,11 +57,29 @@ struct SharedRecipe: Identifiable, Equatable {
         self.instructions = instructions
         self.perishableProducts = perishableProducts
         self.serverSharedRecipeId = serverSharedRecipeId
+        self.sessionRecipeId = sessionRecipeId
+        self.catalogRecipeId = catalogRecipeId
+        self.isCatalogStarred = isCatalogStarred
+        self.isSessionFavorited = isSessionFavorited
     }
 
-    func allIngredientPhrasesForShare() -> [String] {
-        let have = availableItems.map { $0.replacingOccurrences(of: " (from you)", with: "") }
-        return have + missingItems
+    func ingredientsForShareRequest() -> [String] {
+        func strip(_ s: String) -> String {
+            s.replacingOccurrences(of: " (from you)", with: "")
+                .replacingOccurrences(of: " (from group)", with: "")
+        }
+        var seen = Set<String>()
+        var out: [String] = []
+        for x in (availableItems.map(strip) + missingItems) {
+            let t = x.trimmingCharacters(in: .whitespacesAndNewlines)
+            if t.isEmpty { continue }
+            if !seen.insert(t).inserted { continue }
+            out.append(t)
+        }
+        if out.isEmpty, !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            return [title]
+        }
+        return out
     }
 
     func earliestDaysLeft() -> Int? {

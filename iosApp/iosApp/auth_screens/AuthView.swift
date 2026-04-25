@@ -1,9 +1,3 @@
-//
-//  AuthView.swift
-//  iosApp
-//
-//  Created by gergana on 3/26/26.
-//
 import SwiftUI
 
 enum AuthDestination: Int {

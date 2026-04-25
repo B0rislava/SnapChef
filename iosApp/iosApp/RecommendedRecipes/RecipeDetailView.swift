@@ -1,9 +1,3 @@
-//
-//  RecipeDetailView.swift
-//  iosApp
-//
-//  Created by gergana on 4/8/26.
-//
 import SwiftUI
 
 struct RecipeDetailView: View {
@@ -22,7 +16,6 @@ struct RecipeDetailView: View {
             VStack(alignment: .leading, spacing: 16) {
                 Spacer().frame(height: 24)
 
-                // Back button + title
                 HStack(spacing: 10) {
                     Button(action: onBack) {
                         ZStack {
@@ -51,7 +44,6 @@ struct RecipeDetailView: View {
                     .buttonStyle(.plain)
                 }
 
-                // Detail card
                 VStack(alignment: .leading, spacing: 14) {
 
                     Text(recipe.title)
@@ -85,7 +77,6 @@ struct RecipeDetailView: View {
 
                     Divider().background(Color.greenSecondary.opacity(0.4))
 
-                    // Ingredients
                     VStack(alignment: .leading, spacing: 10) {
                         Text(NSLocalizedString("ingredients", comment: ""))
                             .font(.system(size: 14, weight: .semibold))
@@ -119,7 +110,6 @@ struct RecipeDetailView: View {
 
                     Divider().background(Color.greenSecondary.opacity(0.4))
 
-                    // Instructions
                     VStack(alignment: .leading, spacing: 10) {
                         Text(NSLocalizedString("instructions", comment: ""))
                             .font(.system(size: 14, weight: .semibold))
@@ -128,7 +118,6 @@ struct RecipeDetailView: View {
                         InstructionsList(instructions: recipe.instructions)
                     }
 
-                    // Checked count
                     let checkedCount = recipe.ingredients.filter { checkedIngredients[$0] == true }.count
                     Text("You have \(checkedCount) of \(recipe.ingredients.count) ingredients ready.")
                         .font(.system(size: 14))
@@ -139,7 +128,6 @@ struct RecipeDetailView: View {
                 .clipShape(RoundedRectangle(cornerRadius: 24))
                 .shadow(color: .black.opacity(0.07), radius: 8, x: 0, y: 4)
 
-                // Save/Share
                 HStack(spacing: 16) {
                     Button(action: onSave) {
                         Text("Save")
@@ -164,7 +152,6 @@ struct RecipeDetailView: View {
                     .buttonStyle(RecipeBouncyButtonStyle())
                 }
 
-                // Info message
                 if let msg = infoMessage {
                     Text(msg)
                         .font(.system(size: 14, weight: .semibold))

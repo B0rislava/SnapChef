@@ -1,9 +1,3 @@
-//
-//  EditProfileView.swift
-//  iosApp
-//
-//  Created by gergana on 3/26/26.
-//
 
 import SwiftUI
 import Combine
@@ -80,7 +74,6 @@ struct EditProfileView: View {
 
                     VStack(spacing: 16) {
 
-                        // Full Name
                         EditProfileTextField(
                             value: Binding(
                                 get: { viewModel.uiState.editedName },
@@ -93,7 +86,6 @@ struct EditProfileView: View {
                             focusedField: $focusedField
                         )
 
-                        // Email Address
                         EditProfileTextField(
                             value: Binding(
                                 get: { viewModel.uiState.editedEmail },
@@ -106,7 +98,6 @@ struct EditProfileView: View {
                             focusedField: $focusedField
                         )
 
-                        // New Password
                         EditProfileTextField(
                             value: Binding(
                                 get: { viewModel.uiState.editedPassword },
@@ -119,7 +110,6 @@ struct EditProfileView: View {
                             focusedField: $focusedField
                         )
 
-                        // Confirm Password
                         EditProfileTextField(
                             value: Binding(
                                 get: { viewModel.uiState.editedConfirmPassword },
@@ -152,7 +142,6 @@ struct EditProfileView: View {
 
                     Spacer().frame(height: 24)
 
-                    // Cancel / Save buttons
                     HStack(spacing: 16) {
 
                         Button(action: onCancel) {

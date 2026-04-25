@@ -68,7 +68,6 @@ struct RecipesView: View {
                             .padding(.horizontal, 24)
                         }
                         
-                        // Group Selection
                         ScrollView(.horizontal, showsIndicators: false) {
                             HStack(spacing: 12) {
                                 ForEach(viewModel.groups) { group in
@@ -120,7 +119,10 @@ struct RecipesView: View {
                             } else {
                                 VStack(spacing: 16) {
                                     ForEach(validGroup.recipes) { recipe in
-                                        RecipeCardRow(recipe: recipe) {
+                                        RecipeCardRow(
+                                            recipe: recipe,
+                                            viewModel: viewModel
+                                        ) {
                                             viewModel.openRecipe(recipe)
                                         }
                                     }
@@ -160,35 +162,49 @@ struct RecipesView: View {
 
 struct RecipeCardRow: View {
     let recipe: SharedRecipe
+    @ObservedObject var viewModel: GroupsViewModel
     let onTap: () -> Void
+
+    private var canBackendFavorite: Bool {
+        recipe.catalogRecipeId != nil || recipe.sessionRecipeId != nil
+    }
+
+    private var heartOn: Bool {
+        if recipe.catalogRecipeId != nil { return recipe.isCatalogStarred == true }
+        if recipe.sessionRecipeId != nil { return recipe.isSessionFavorited == true }
+        return false
+    }
+
+    private var canDeleteFromGroup: Bool { recipe.serverSharedRecipeId != nil }
     
     var body: some View {
-        Button(action: onTap) {
-            HStack(spacing: 0) {
-                let days = recipe.earliestDaysLeft()
-                let statusColor: Color = {
-                    guard let d = days else { return Color.greenPrimary }
-                    if d < 0 { return Color.gray }
-                    if d == 0 { return Color(red: 0.77, green: 0.16, blue: 0.16) }
-                    return Color.greenPrimary
-                }()
-                let statusText: String = {
-                    guard let d = days else { return "Saved" }
-                    if d < 0 { return "Expired ingredients" }
-                    if d == 0 { return "Requires action today!" }
-                    return "Expires in \(d) days"
-                }()
-                
-                // Left border
-                Rectangle()
-                    .fill(statusColor)
-                    .frame(width: 6)
-                
+        HStack(spacing: 0) {
+            let days = recipe.earliestDaysLeft()
+            let statusColor: Color = {
+                guard let d = days else { return Color.greenPrimary }
+                if d < 0 { return Color.gray }
+                if d == 0 { return Color(red: 0.77, green: 0.16, blue: 0.16) }
+                return Color.greenPrimary
+            }()
+            let statusText: String = {
+                guard let d = days else { return "Saved" }
+                if d < 0 { return "Expired ingredients" }
+                if d == 0 { return "Requires action today!" }
+                return "Expires in \(d) days"
+            }()
+            
+            Rectangle()
+                .fill(statusColor)
+                .frame(width: 6)
+            
+            HStack(alignment: .top, spacing: 8) {
                 VStack(alignment: .leading, spacing: 6) {
                     Text(recipe.title)
                         .font(.system(size: 16, weight: .bold))
                         .foregroundColor(Color.greenOnBackground)
                         .multilineTextAlignment(.leading)
+                        .contentShape(Rectangle())
+                        .onTapGesture(perform: onTap)
                     
                     HStack(spacing: 6) {
                         Image(systemName: "person.fill")
@@ -199,6 +215,8 @@ struct RecipeCardRow: View {
                             .font(.system(size: 12, weight: recipe.ownerName == "AI Suggestion" ? .bold : .regular))
                             .foregroundColor(recipe.ownerName == "AI Suggestion" ? Color.greenPrimary : Color.greenOnBackground.opacity(0.7))
                     }
+                    .contentShape(Rectangle())
+                    .onTapGesture(perform: onTap)
                     
                     Spacer().frame(height: 8)
                     
@@ -209,15 +227,39 @@ struct RecipeCardRow: View {
                         .padding(.vertical, 4)
                         .background(statusColor.opacity(0.1))
                         .clipShape(RoundedRectangle(cornerRadius: 8))
+                        .contentShape(Rectangle())
+                        .onTapGesture(perform: onTap)
                 }
-                .padding(16)
                 .frame(maxWidth: .infinity, alignment: .leading)
+                HStack(spacing: 4) {
+                    if canDeleteFromGroup {
+                        Button {
+                            viewModel.deleteSharedRecipeFromGroup(recipe)
+                        } label: {
+                            Image(systemName: "trash")
+                                .font(.system(size: 18))
+                                .foregroundColor(Color.greenOnBackground.opacity(0.45))
+                        }
+                        .buttonStyle(.borderless)
+                    }
+                    if canBackendFavorite {
+                        Button {
+                            viewModel.toggleRecipeFavorite(recipe)
+                        } label: {
+                            Image(systemName: heartOn ? "heart.fill" : "heart")
+                                .font(.system(size: 20))
+                                .foregroundColor(Color.greenPrimary)
+                        }
+                        .buttonStyle(.borderless)
+                    }
+                }
+                .padding(.top, 2)
             }
-            .background(Color.white)
-            .clipShape(RoundedRectangle(cornerRadius: 20))
-            .shadow(color: .black.opacity(0.05), radius: 6, x: 0, y: 3)
+            .padding(16)
         }
-        .buttonStyle(.plain)
+        .background(Color.white)
+        .clipShape(RoundedRectangle(cornerRadius: 20))
+        .shadow(color: .black.opacity(0.05), radius: 6, x: 0, y: 3)
     }
 }
 
@@ -225,6 +267,19 @@ struct GroupRecipeDetailsView: View {
     let recipe: SharedRecipe
     @ObservedObject var viewModel: GroupsViewModel
     @State private var showGroupSelection = false
+
+    private var canBackendFavorite: Bool {
+        recipe.catalogRecipeId != nil || recipe.sessionRecipeId != nil
+    }
+    private var heartOn: Bool {
+        if recipe.catalogRecipeId != nil { return recipe.isCatalogStarred == true }
+        if recipe.sessionRecipeId != nil { return recipe.isSessionFavorited == true }
+        return false
+    }
+
+    private var canRemoveFromGroup: Bool {
+        recipe.serverSharedRecipeId != nil && !(viewModel.selectedGroup?.isPersonal ?? true)
+    }
 
     var body: some View {
         ScrollView(showsIndicators: false) {
@@ -246,15 +301,24 @@ struct GroupRecipeDetailsView: View {
                 }
                 .padding(.horizontal, 24)
                 
-                // Header Card
                 RecipesCardView {
                     VStack(alignment: .leading, spacing: 12) {
-                        HStack {
+                        HStack(alignment: .top) {
                             Text(recipe.title)
                                 .font(.system(size: 20, weight: .heavy))
                                 .foregroundColor(Color.greenPrimary)
                                 .lineLimit(nil)
-                            Spacer()
+                            Spacer(minLength: 8)
+                            if canBackendFavorite {
+                                Button {
+                                    viewModel.toggleRecipeFavorite(recipe)
+                                } label: {
+                                    Image(systemName: heartOn ? "heart.fill" : "heart")
+                                        .font(.system(size: 22))
+                                        .foregroundColor(Color.greenPrimary)
+                                }
+                                .buttonStyle(.borderless)
+                            }
                             Text(recipe.ownerName == "AI Suggestion" ? "AI Group Suggestion" : 
                                     (recipe.ownerName == "You" ? "Saved" : "Shared"))
                                 .font(.system(size: 12, weight: .bold))
@@ -273,6 +337,18 @@ struct GroupRecipeDetailsView: View {
                         
                         Spacer().frame(height: 12)
                         
+                        if canRemoveFromGroup {
+                            Button(action: { viewModel.deleteSharedRecipeFromGroup(recipe) }) {
+                                Text("Remove from group")
+                                    .font(.system(size: 15, weight: .bold))
+                                    .foregroundColor(Color(red: 0.78, green: 0.16, blue: 0.16))
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 14)
+                                    .background(Color(red: 0.78, green: 0.16, blue: 0.16).opacity(0.12))
+                                    .clipShape(RoundedRectangle(cornerRadius: 16))
+                            }
+                            Spacer().frame(height: 12)
+                        }
                         Button(action: { showGroupSelection = true }) {
                             Text("Share with a group")
                                 .font(.system(size: 15, weight: .bold))
@@ -287,7 +363,6 @@ struct GroupRecipeDetailsView: View {
                 }
                 .padding(.horizontal, 24)
                 
-                // Ingredients Card
                 RecipesCardView {
                     VStack(alignment: .leading, spacing: 16) {
                         Text("Ingredients")

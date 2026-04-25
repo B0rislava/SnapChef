@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.snapchef.app.core.di.SnapChefServiceLocator
 import com.snapchef.app.features.groups.presentation.SharedRecipe
+import com.snapchef.app.features.home.data.remote.resolvedTitle
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -30,7 +31,7 @@ class RecipeResultsViewModel : ViewModel() {
                 val response = apiService.suggestRecipes(sessionId)
                 val mappedRecipes = response.recipes.map { backendRecipe ->
                     SharedRecipe(
-                        title = backendRecipe.name,
+                        title = backendRecipe.resolvedTitle(),
                         description = "Ready in ${backendRecipe.minutes ?: "?"} mins",
                         ownerName = "AI Magic",
                         instructions = backendRecipe.steps,
