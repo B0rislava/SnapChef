@@ -5,6 +5,7 @@ struct ScreenWrapper: View {
     @State private var currentTab: MainTab = .home
     @StateObject private var appFlow = AppFlowState()
     @StateObject private var groupsViewModel = GroupsViewModel()
+    @StateObject private var mainChrome = MainChromeState()
 
     var body: some View {
         ZStack(alignment: .bottom) {
@@ -46,8 +47,20 @@ struct ScreenWrapper: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .opacity(currentTab == .profile ? 1 : 0)
             }
+            .environmentObject(mainChrome)
 
-            SnapChefBottomBar(currentTab: $currentTab)
+            if !mainChrome.hideTabBar {
+                SnapChefBottomBar(currentTab: $currentTab)
+            }
+        }
+        .onChange(of: currentTab) { _, _ in
+            mainChrome.hideTabBar = false
+        }
+        .onAppear {
+            Task { @MainActor in
+                RecipeStore.shared.reloadFromStorageForCurrentUser()
+                SavedRecipesCloudSync.run()
+            }
         }
         .ignoresSafeArea(edges: .bottom)
     }

@@ -81,7 +81,7 @@
 		1259B47E2F776A5D00B9ECB7 /* 0_remote.knm */ = {isa = PBXFileReference; lastKnownFileType = file; path = 0_remote.knm; sourceTree = "<group>"; };
 		1259B47F2F776A5D00B9ECB7 /* 1_remote.knm */ = {isa = PBXFileReference; lastKnownFileType = text; path = 1_remote.knm; sourceTree = "<group>"; };
 		1259B4812F776A5D00B9ECB7 /* 0_remote.knm */ = {isa = PBXFileReference; lastKnownFileType = file; path = 0_remote.knm; sourceTree = "<group>"; };
-		1259B4822F776A5D00B9ECB7 /* 1_remote.knm */ = {isa = PBXFileReference; lastKnownFileType = file; path = 1_remote.knm; sourceTree = "<group>"; };
+		1259B4822F776A5D00B9ECB7 /* 1_remote.knm */ = {isa = PBXFileReference; lastKnownFileType = text; path = 1_remote.knm; sourceTree = "<group>"; };
 		1259B4842F776A5D00B9ECB7 /* module */ = {isa = PBXFileReference; lastKnownFileType = text; path = module; sourceTree = "<group>"; };
 		1259B4852F776A5D00B9ECB7 /* package_com.snapchef.app */ = {isa = PBXFileReference; lastKnownFileType = wrapper.application; path = package_com.snapchef.app; sourceTree = "<group>"; };
 		1259B48C2F776A5D00B9ECB7 /* manifest */ = {isa = PBXFileReference; lastKnownFileType = text; path = manifest; sourceTree = "<group>"; };
@@ -99,7 +99,7 @@
 		1259B4A12F776A5D00B9ECB7 /* 0_remote.knm */ = {isa = PBXFileReference; lastKnownFileType = file; path = 0_remote.knm; sourceTree = "<group>"; };
 		1259B4A22F776A5D00B9ECB7 /* 1_remote.knm */ = {isa = PBXFileReference; lastKnownFileType = text; path = 1_remote.knm; sourceTree = "<group>"; };
 		1259B4A42F776A5D00B9ECB7 /* 0_remote.knm */ = {isa = PBXFileReference; lastKnownFileType = file; path = 0_remote.knm; sourceTree = "<group>"; };
-		1259B4A52F776A5D00B9ECB7 /* 1_remote.knm */ = {isa = PBXFileReference; lastKnownFileType = file; path = 1_remote.knm; sourceTree = "<group>"; };
+		1259B4A52F776A5D00B9ECB7 /* 1_remote.knm */ = {isa = PBXFileReference; lastKnownFileType = text; path = 1_remote.knm; sourceTree = "<group>"; };
 		1259B4A72F776A5D00B9ECB7 /* module */ = {isa = PBXFileReference; lastKnownFileType = text; path = module; sourceTree = "<group>"; };
 		1259B4A82F776A5D00B9ECB7 /* package_com.snapchef.app */ = {isa = PBXFileReference; lastKnownFileType = wrapper.application; path = package_com.snapchef.app; sourceTree = "<group>"; };
 		1259B4AF2F776A5D00B9ECB7 /* manifest */ = {isa = PBXFileReference; lastKnownFileType = text; path = manifest; sourceTree = "<group>"; };
@@ -117,7 +117,7 @@
 		1259B4C42F776A5D00B9ECB7 /* 0_remote.knm */ = {isa = PBXFileReference; lastKnownFileType = file; path = 0_remote.knm; sourceTree = "<group>"; };
 		1259B4C52F776A5D00B9ECB7 /* 1_remote.knm */ = {isa = PBXFileReference; lastKnownFileType = text; path = 1_remote.knm; sourceTree = "<group>"; };
 		1259B4C72F776A5D00B9ECB7 /* 0_remote.knm */ = {isa = PBXFileReference; lastKnownFileType = file; path = 0_remote.knm; sourceTree = "<group>"; };
-		1259B4C82F776A5D00B9ECB7 /* 1_remote.knm */ = {isa = PBXFileReference; lastKnownFileType = file; path = 1_remote.knm; sourceTree = "<group>"; };
+		1259B4C82F776A5D00B9ECB7 /* 1_remote.knm */ = {isa = PBXFileReference; lastKnownFileType = text; path = 1_remote.knm; sourceTree = "<group>"; };
 		1259B4CA2F776A5D00B9ECB7 /* module */ = {isa = PBXFileReference; lastKnownFileType = text; path = module; sourceTree = "<group>"; };
 		1259B4CB2F776A5D00B9ECB7 /* package_com.snapchef.app */ = {isa = PBXFileReference; lastKnownFileType = wrapper.application; path = package_com.snapchef.app; sourceTree = "<group>"; };
 		1259B4D22F776A5D00B9ECB7 /* manifest */ = {isa = PBXFileReference; lastKnownFileType = text; path = manifest; sourceTree = "<group>"; };

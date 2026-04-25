@@ -3,6 +3,7 @@ import Shared
 
 struct RecipesView: View {
     @EnvironmentObject private var viewModel: GroupsViewModel
+    @EnvironmentObject private var mainChrome: MainChromeState
 
     var body: some View {
         ZStack(alignment: .top) {
@@ -139,7 +140,11 @@ struct RecipesView: View {
                 }
             }
         }
+        .onChange(of: viewModel.selectedRecipe) { _, r in
+            mainChrome.hideTabBar = (r != nil)
+        }
         .onAppear {
+            mainChrome.hideTabBar = (viewModel.selectedRecipe != nil)
             if viewModel.selectedSharedGroup != nil {
                 viewModel.loadCombinedGroupPantrySummary()
             }

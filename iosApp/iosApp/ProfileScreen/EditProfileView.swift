@@ -15,7 +15,7 @@ struct EditProfileView: View {
     @StateObject private var keyboardResponder = KeyboardResponder()
     
     enum Field: Hashable {
-        case name, email, password, confirmPassword
+        case name, email, currentPassword, password, confirmPassword
     }
     
     @FocusState private var focusedField: Field?
@@ -100,6 +100,18 @@ struct EditProfileView: View {
 
                         EditProfileTextField(
                             value: Binding(
+                                get: { viewModel.uiState.editedCurrentPassword },
+                                set: { viewModel.updateCurrentPassword($0) }
+                            ),
+                            placeholder: "Current password (if changing password)",
+                            icon: "key",
+                            isSecure: true,
+                            field: .currentPassword,
+                            focusedField: $focusedField
+                        )
+
+                        EditProfileTextField(
+                            value: Binding(
                                 get: { viewModel.uiState.editedPassword },
                                 set: { viewModel.updatePassword($0) }
                             ),
@@ -157,8 +169,8 @@ struct EditProfileView: View {
                         .buttonStyle(BouncyStyle())
 
                         Button {
-                            viewModel.validateAndSave { name, email, password, confirm in
-                                onSave(name, email, password, confirm)
+                            viewModel.validateAndSave { name, email, newPassword, currentPassword in
+                                onSave(name, email, newPassword, currentPassword)
                             }
                         } label: {
                             Text("Save")
@@ -239,6 +251,8 @@ struct AdaptiveKeyboardModifier: ViewModifier {
             return -keyboard.currentHeight * 0.1
         case .email:
             return -keyboard.currentHeight * 0.2
+        case .currentPassword:
+            return -keyboard.currentHeight * 0.3
         case .password:
             return -keyboard.currentHeight * 0.4
         case .confirmPassword:
@@ -337,9 +351,7 @@ private struct EditProfileTextField: View {
     
     private func getSubmitLabel() -> SubmitLabel {
         switch field {
-        case .name: return .next
-        case .email: return .next
-        case .password: return .next
+        case .name, .email, .currentPassword, .password: return .next
         case .confirmPassword: return .done
         }
     }
@@ -349,6 +361,8 @@ private struct EditProfileTextField: View {
         case .name:
             focusedField = .email
         case .email:
+            focusedField = .currentPassword
+        case .currentPassword:
             focusedField = .password
         case .password:
             focusedField = .confirmPassword

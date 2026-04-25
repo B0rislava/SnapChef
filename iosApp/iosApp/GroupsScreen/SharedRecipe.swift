@@ -97,4 +97,13 @@ struct SharedRecipe: Identifiable, Equatable {
     func spoiledProducts() -> [String] {
         return perishableProducts.filter { $0.daysLeft() < 0 }.map { $0.name }
     }
+
+    func favoriteKey() -> String {
+        if let id = catalogRecipeId { return "cat:\(id)" }
+        if let id = sessionRecipeId { return "sess:\(id)" }
+        if let id = serverSharedRecipeId { return "share:\(id)" }
+        let t = title.lowercased()
+        let s = instructions.joined(separator: "|").lowercased()
+        return "local:\(t)::\(s)"
+    }
 }

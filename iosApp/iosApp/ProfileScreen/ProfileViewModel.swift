@@ -4,11 +4,11 @@ import Combine
 import Shared
 
 struct ProfileInventoryItem: Identifiable {
-    let id         = UUID()
-    let backendId: Int
-    let name:      String
-    let category:  String
-    let quantity:  String
+    var id: String { "\(name.lowercased())|\(quantity)" }
+    let pantryItemIds: [Int]
+    let name: String
+    let category: String
+    let quantity: String
 }
 
 
@@ -45,20 +45,43 @@ final class ProfileViewModel: ObservableObject {
         Task {
             do {
                 let items = try await authApiService.fetchPantryItems()
-                inventoryItems = items.map { item in
-                    let qty: String
-                    if let unit = item.unit, !unit.isEmpty {
-                        qty = "\(item.quantity) \(unit)"
+                let grouped = Dictionary(grouping: items) {
+                    $0.name.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+                }
+                inventoryItems = grouped.values.compactMap { group -> ProfileInventoryItem? in
+                    guard let first = group.first else { return nil }
+                    let displayName = first.name.trimmingCharacters(in: .whitespacesAndNewlines)
+                    let totalQty = group.map { p -> Int in
+                        let o = p as AnyObject
+                        guard let n = o.value(forKey: "quantity") else { return 0 }
+                        if let k = n as? KotlinInt { return Int(k.intValue) }
+                        if let v = n as? Int { return v }
+                        if let v = n as? NSNumber { return v.intValue }
+                        return 0
+                    }.reduce(0, +)
+                    let unit = group.first { u in u.unit != nil && !(u.unit?.isEmpty ?? true) }?.unit
+                    let qtyStr: String
+                    if let u = unit, !u.isEmpty {
+                        qtyStr = "\(totalQty) \(u)"
                     } else {
-                        qty = "\(item.quantity)"
+                        qtyStr = "\(totalQty)"
+                    }
+                    let cat: String
+                    if group.contains(where: { $0.source.lowercased() == "scan" }) {
+                        cat = "Scanned"
+                    } else if group.contains(where: { $0.source.lowercased() == "manual" }) {
+                        cat = "Manual"
+                    } else {
+                        cat = categoryFromSource(first.source)
                     }
                     return ProfileInventoryItem(
-                        backendId: Int(item.id),
-                        name:     item.name,
-                        category: categoryFromSource(item.source),
-                        quantity: qty
+                        pantryItemIds: group.map { Int($0.id) },
+                        name: displayName,
+                        category: cat,
+                        quantity: qtyStr
                     )
                 }
+                .sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
             } catch {
                 errorMessage = "Could not load inventory: \(error.localizedDescription)"
             }
@@ -79,13 +102,19 @@ final class ProfileViewModel: ObservableObject {
     }
 
     @discardableResult
-    func updateProfile(name: String, email: String, newPassword: String) async -> Bool {
+    func updateProfile(name: String, email: String, newPassword: String, currentPassword: String) async -> Bool {
         isLoading    = true
         errorMessage = nil
-        let pw: String? = newPassword.isEmpty ? nil : newPassword
-        let request = UserUpdateRequest(name: name, email: email, password: pw)
         do {
-            let u = try await authApiService.updateMe(request: request)
+            let u = try await authApiService.updateMe(
+                request: UserUpdateRequest(name: name, email: email, password: nil)
+            )
+            if !newPassword.isEmpty {
+                try await authApiService.changePassword(
+                    currentPassword: currentPassword,
+                    newPassword: newPassword
+                )
+            }
             userName  = u.name
             userEmail = u.email
             AuthManager.shared.currentUser = u
@@ -98,16 +127,16 @@ final class ProfileViewModel: ObservableObject {
         }
     }
 
-    func removePantryItem(backendId: Int) async {
-        isLoading    = true
+    func removeInventoryGroup(_ item: ProfileInventoryItem) async {
         errorMessage = nil
-        do {
-            try await authApiService.deletePantryItem(id: Int32(backendId))
-            inventoryItems.removeAll { $0.backendId == backendId }
-        } catch {
-            errorMessage = "Could not remove item. \(error.localizedDescription)"
+        for id in item.pantryItemIds {
+            do {
+                try await authApiService.deletePantryItem(id: Int32(id))
+            } catch {
+                errorMessage = "Could not remove some items. \(error.localizedDescription)"
+            }
         }
-        isLoading = false
+        loadInventory()
     }
 
     func logout() {

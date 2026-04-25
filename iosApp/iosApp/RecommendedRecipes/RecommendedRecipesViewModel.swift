@@ -327,8 +327,24 @@ final class RecommendedRecipesViewModel: ObservableObject {
 
     func saveCurrentRecipe() {
         guard let r = uiState.openedRecipe else { return }
-        let shared = r.toSharedRecipe()
-        RecipeStore.shared.addPersonalRecipe(shared)
+        let m = r.toSharedRecipe()
+        let saved = SharedRecipe(
+            id: m.id,
+            title: m.title,
+            description: m.description,
+            ownerName: m.ownerName,
+            missingItems: m.missingItems,
+            availableItems: m.availableItems,
+            instructions: m.instructions,
+            perishableProducts: m.perishableProducts,
+            serverSharedRecipeId: m.serverSharedRecipeId,
+            sessionRecipeId: m.sessionRecipeId,
+            catalogRecipeId: m.catalogRecipeId,
+            isCatalogStarred: false,
+            isSessionFavorited: m.isSessionFavorited
+        )
+        RecipeStore.shared.addPersonalRecipe(saved)
+        SavedRecipesCloudSync.run()
         uiState.infoMessage = NSLocalizedString("saved", comment: "")
     }
 

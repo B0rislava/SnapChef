@@ -15,5 +15,7 @@ final class SessionManager: ObservableObject {
 
     func onAuthSuccess() {
         isLoggedIn = true
+        RecipeStore.shared.reloadFromStorageForCurrentUser()
+        SavedRecipesCloudSync.run()
     }
 }

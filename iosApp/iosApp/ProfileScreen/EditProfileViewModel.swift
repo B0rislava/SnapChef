@@ -6,6 +6,7 @@ import Combine
 struct EditProfileUiState {
     var editedName:            String  = ""
     var editedEmail:           String  = ""
+    var editedCurrentPassword: String  = ""
     var editedPassword:        String  = ""
     var editedConfirmPassword: String  = ""
     var errorMessage:          String? = nil
@@ -42,6 +43,11 @@ final class EditProfileViewModel: ObservableObject {
         uiState.errorMessage = nil
     }
 
+    func updateCurrentPassword(_ value: String) {
+        uiState.editedCurrentPassword = value
+        uiState.errorMessage = nil
+    }
+
     func updatePassword(_ value: String) {
         uiState.editedPassword = value
         uiState.errorMessage   = nil
@@ -55,6 +61,7 @@ final class EditProfileViewModel: ObservableObject {
     func validateAndSave(onValidSave: (String, String, String, String) -> Void) {
         let name            = uiState.editedName.trimmingCharacters(in: .whitespaces)
         let email           = uiState.editedEmail.trimmingCharacters(in: .whitespaces)
+        let currentPassword = uiState.editedCurrentPassword
         let password        = uiState.editedPassword
         let confirmPassword = uiState.editedConfirmPassword
 
@@ -75,6 +82,10 @@ final class EditProfileViewModel: ObservableObject {
         }
 
         if !password.isEmpty {
+            guard currentPassword.count >= 1 else {
+                uiState.errorMessage = "Enter your current password to set a new one."
+                return
+            }
             guard password.count >= 8 else {
                 uiState.errorMessage = "Password must be at least 8 characters long."
                 return
@@ -86,7 +97,7 @@ final class EditProfileViewModel: ObservableObject {
         }
 
         uiState.errorMessage = nil
-        onValidSave(name, email, password, confirmPassword)
+        onValidSave(name, email, password, currentPassword)
     }
 
     func applyBackendJson(_ json: String) {

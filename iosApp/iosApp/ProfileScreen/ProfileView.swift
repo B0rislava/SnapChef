@@ -21,6 +21,7 @@ private enum IngredientCategory: String, CaseIterable {
 struct ProfileView: View {
 
     @StateObject private var viewModel = ProfileViewModel()
+    @EnvironmentObject private var mainChrome: MainChromeState
 
     @State private var isEditingProfile  = false
     @State private var showLogoutDialog  = false
@@ -41,12 +42,13 @@ struct ProfileView: View {
                     userName:        viewModel.userName,
                     userEmail:       viewModel.userEmail,
                     profileImageUri: viewModel.profileImageUri,
-                    onSave: { name, email, password, _ in
+                    onSave: { name, email, newPassword, currentPassword in
                         Task {
                             let ok = await viewModel.updateProfile(
-                                name:        name,
-                                email:       email,
-                                newPassword: password
+                                name:            name,
+                                email:           email,
+                                newPassword:     newPassword,
+                                currentPassword: currentPassword
                             )
                             if ok { await MainActor.run { withAnimation { isEditingProfile = false } } }
                         }
@@ -66,6 +68,10 @@ struct ProfileView: View {
                 infoMessage = nil
             }
         }
+        .onChange(of: isEditingProfile) { _, v in
+            mainChrome.hideTabBar = v
+        }
+        .onAppear { mainChrome.hideTabBar = isEditingProfile }
         .alert("Log out", isPresented: $showLogoutDialog) {
             Button("Yes", role: .destructive) {
                 viewModel.logout()
@@ -181,7 +187,7 @@ struct ProfileView: View {
                         IngredientInventoryCard(
                             items: viewModel.inventoryItems,
                             onRemoveItem: { item in
-                                Task { await viewModel.removePantryItem(backendId: item.backendId) }
+                                Task { await viewModel.removeInventoryGroup(item) }
                             }
                         )
                         if viewModel.isLoading {

@@ -4,6 +4,7 @@ struct RecommendedRecipesView: View {
     @StateObject private var viewModel = RecommendedRecipesViewModel()
     @EnvironmentObject private var appFlow: AppFlowState
     @EnvironmentObject private var groupsViewModel: GroupsViewModel
+    @EnvironmentObject private var mainChrome: MainChromeState
     @ObservedObject private var favoriteStore = FavoritesStore.shared
     @State private var showGroupShareSheet = false
 
@@ -40,7 +41,13 @@ struct RecommendedRecipesView: View {
             }
         }
         .animation(.easeInOut(duration: 0.3), value: viewModel.uiState.openedRecipe)
-        .onAppear { viewModel.loadRecommendations(flow: appFlow) }
+        .onChange(of: viewModel.uiState.openedRecipe) { _, r in
+            mainChrome.hideTabBar = (r != nil)
+        }
+        .onAppear {
+            if viewModel.uiState.openedRecipe != nil { mainChrome.hideTabBar = true }
+            viewModel.loadRecommendations(flow: appFlow)
+        }
         .onChange(of: appFlow.recipeSessionVersion) { _, _ in
             viewModel.loadRecommendations(flow: appFlow)
         }
