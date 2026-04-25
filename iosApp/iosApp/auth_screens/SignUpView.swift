@@ -111,7 +111,32 @@ struct SignUpView: View {
                     .clipShape(RoundedRectangle(cornerRadius: 24))
                     .shadow(color: .black.opacity(0.08), radius: 12, x: 0, y: 4)
 
-                    Spacer().frame(height: 16)
+                    Spacer().frame(height: 12)
+
+                    HStack(alignment: .top, spacing: 10) {
+                        Toggle(
+                            isOn: Binding(
+                                get: { viewModel.agreeTerms },
+                                set: { viewModel.setAgreeTerms($0) }
+                            )
+                        ) {
+                            EmptyView()
+                        }
+                        .labelsHidden()
+                        .toggleStyle(CheckboxToggleStyle())
+
+                        (Text(NSLocalizedString("i_agree", comment: "")) + Text(NSLocalizedString("terms_privacy", comment: ""))
+                            .fontWeight(.semibold)
+                            .foregroundColor(Color.greenPrimary))
+                        .font(.system(size: 13))
+                        .foregroundColor(Color.greenOnBackground.opacity(0.75))
+                        .multilineTextAlignment(.leading)
+                        .onTapGesture { viewModel.setAgreeTerms(!viewModel.agreeTerms) }
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 2)
+
+                    Spacer().frame(height: 8)
 
                     if let error = viewModel.errorMessage {
                         Text(error)

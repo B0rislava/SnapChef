@@ -6,7 +6,9 @@ import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.request.forms.MultiPartFormDataContent
 import io.ktor.client.request.forms.formData
+import io.ktor.client.request.get
 import io.ktor.client.request.header
+import io.ktor.client.request.parameter
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
@@ -99,6 +101,17 @@ class HomeApiService(private val client: HttpClient) {
     suspend fun suggestRecipes(sessionId: Int): GroqRecipeSuggestResponse {
         return client.post("${AppConfig.BASE_URL}/ai/sessions/$sessionId/groq-recipes") {
             AuthManager.accessToken?.let { token -> 
+                header("Authorization", "Bearer $token")
+            }
+        }.body()
+    }
+
+    @Throws(Exception::class)
+    suspend fun fetchRecommendedTabRecipes(count: Int = 8): RecommendedTabResponse {
+        val safeCount = count.coerceIn(1, 8)
+        return client.get("${AppConfig.BASE_URL}/recipes/recommended") {
+            parameter("count", safeCount)
+            AuthManager.accessToken?.let { token ->
                 header("Authorization", "Bearer $token")
             }
         }.body()

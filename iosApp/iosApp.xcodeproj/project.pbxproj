@@ -140,20 +140,20 @@
 		1259B54A2F776A5D00B9ECB7 /* classes.dex */ = {isa = PBXFileReference; lastKnownFileType = file; path = classes.dex; sourceTree = "<group>"; };
 		1259B56E2F776A5D00B9ECB7 /* compile-file-map.properties */ = {isa = PBXFileReference; lastKnownFileType = text; path = "compile-file-map.properties"; sourceTree = "<group>"; };
 		1259B56F2F776A5D00B9ECB7 /* merger.xml */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = merger.xml; sourceTree = "<group>"; };
-		1259B5732F776A5D00B9ECB7 /* merge-state */ = {isa = PBXFileReference; lastKnownFileType = file; path = "merge-state"; sourceTree = "<group>"; };
+		1259B5732F776A5D00B9ECB7 /* merge-state */ = {isa = PBXFileReference; lastKnownFileType = text; path = "merge-state"; sourceTree = "<group>"; };
 		1259B5772F776A5D00B9ECB7 /* compile-file-map.properties */ = {isa = PBXFileReference; lastKnownFileType = text; path = "compile-file-map.properties"; sourceTree = "<group>"; };
 		1259B5782F776A5D00B9ECB7 /* merger.xml */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = merger.xml; sourceTree = "<group>"; };
-		1259B57B2F776A5D00B9ECB7 /* cLhPa4i96Fnufak+53bcmt4WDMg= */ = {isa = PBXFileReference; lastKnownFileType = file; path = "cLhPa4i96Fnufak+53bcmt4WDMg="; sourceTree = "<group>"; };
-		1259B57C2F776A5D00B9ECB7 /* yHSGhRUXmn1e6v+10ecriEttGdY= */ = {isa = PBXFileReference; lastKnownFileType = file; path = "yHSGhRUXmn1e6v+10ecriEttGdY="; sourceTree = "<group>"; };
-		1259B57E2F776A5D00B9ECB7 /* merge-state */ = {isa = PBXFileReference; lastKnownFileType = file; path = "merge-state"; sourceTree = "<group>"; };
+		1259B57B2F776A5D00B9ECB7 /* cLhPa4i96Fnufak+53bcmt4WDMg= */ = {isa = PBXFileReference; lastKnownFileType = text; path = "cLhPa4i96Fnufak+53bcmt4WDMg="; sourceTree = "<group>"; };
+		1259B57C2F776A5D00B9ECB7 /* yHSGhRUXmn1e6v+10ecriEttGdY= */ = {isa = PBXFileReference; lastKnownFileType = text; path = "yHSGhRUXmn1e6v+10ecriEttGdY="; sourceTree = "<group>"; };
+		1259B57E2F776A5D00B9ECB7 /* merge-state */ = {isa = PBXFileReference; lastKnownFileType = text; path = "merge-state"; sourceTree = "<group>"; };
 		1259B5802F776A5D00B9ECB7 /* merger.xml */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = merger.xml; sourceTree = "<group>"; };
 		1259B5822F776A5D00B9ECB7 /* merger.xml */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = merger.xml; sourceTree = "<group>"; };
 		1259B5842F776A5D00B9ECB7 /* merger.xml */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = merger.xml; sourceTree = "<group>"; };
 		1259B5862F776A5D00B9ECB7 /* merger.xml */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = merger.xml; sourceTree = "<group>"; };
 		1259B5882F776A5D00B9ECB7 /* merger.xml */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = merger.xml; sourceTree = "<group>"; };
 		1259B58A2F776A5D00B9ECB7 /* merger.xml */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = merger.xml; sourceTree = "<group>"; };
-		1259B58C2F776A5D00B9ECB7 /* androidResources */ = {isa = PBXFileReference; lastKnownFileType = file; path = androidResources; sourceTree = "<group>"; };
-		1259B58D2F776A5D00B9ECB7 /* javaResources0 */ = {isa = PBXFileReference; lastKnownFileType = file; path = javaResources0; sourceTree = "<group>"; };
+		1259B58C2F776A5D00B9ECB7 /* androidResources */ = {isa = PBXFileReference; lastKnownFileType = text; path = androidResources; sourceTree = "<group>"; };
+		1259B58D2F776A5D00B9ECB7 /* javaResources0 */ = {isa = PBXFileReference; lastKnownFileType = text; path = javaResources0; sourceTree = "<group>"; };
 		1259B58F2F776A5D00B9ECB7 /* dex-renamer-state.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = "dex-renamer-state.txt"; sourceTree = "<group>"; };
 		1259B59E2F776A5D00B9ECB7 /* shared_debug.kotlin_module */ = {isa = PBXFileReference; lastKnownFileType = file; path = shared_debug.kotlin_module; sourceTree = "<group>"; };
 		1259B5AC2F776A5D00B9ECB7 /* linked-resources-binary-format.ap_ */ = {isa = PBXFileReference; lastKnownFileType = file; path = "linked-resources-binary-format.ap_"; sourceTree = "<group>"; };
@@ -467,28 +467,16 @@
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
-				Local.xcconfig,
 			);
 			target = 8B1252DEEBB1FC3A99345899 /* iosApp */;
 		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
-
-/* Begin PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet section */
-		12F5691A2F8657A50012AB47 /* Exceptions for "iosApp" folder in "Compile Sources" phase from "iosApp" target */ = {
-			isa = PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet;
-			buildPhase = AF1C0E94E9C2CF1EB5F9D21E /* Sources */;
-			membershipExceptions = (
-				Local.xcconfig,
-			);
-		};
-/* End PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		66B9D5E7BC5BF2ED145B4573 /* iosApp */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
 				A5B34184E89A5CF22DA00593 /* Exceptions for "iosApp" folder in "iosApp" target */,
-				12F5691A2F8657A50012AB47 /* Exceptions for "iosApp" folder in "Compile Sources" phase from "iosApp" target */,
 			);
 			path = iosApp;
 			sourceTree = "<group>";
@@ -5135,8 +5123,8 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
-				LastSwiftUpdateCheck = 1620;
-				LastUpgradeCheck = 1620;
+				LastSwiftUpdateCheck = 1700;
+				LastUpgradeCheck = 1700;
 				TargetAttributes = {
 					8B1252DEEBB1FC3A99345899 = {
 						CreatedOnToolsVersion = 16.2;
@@ -5193,7 +5181,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "if [ \"YES\" = \"$OVERRIDE_KOTLIN_BUILD_IDE_SUPPORTED\" ]; then\n  echo \"Skipping Gradle build task invocation due to OVERRIDE_KOTLIN_BUILD_IDE_SUPPORTED environment variable set to \\\"YES\\\"\"\n  exit 0\nfi\ncd \"$SRCROOT/..\"\n./gradlew :shared:embedAndSignAppleFrameworkForXcode\n";
+			shellScript = "if [ \"YES\" = \"$OVERRIDE_KOTLIN_BUILD_IDE_SUPPORTED\" ]; then\n  echo \"Skipping Gradle build task invocation due to OVERRIDE_KOTLIN_BUILD_IDE_SUPPORTED environment variable set to \\\"YES\\\"\"\n  exit 0\nfi\nif [ -z \"$JAVA_HOME\" ] || [ ! -x \"$JAVA_HOME/bin/java\" ]; then\n  if [ -x \"/Applications/Android Studio.app/Contents/jbr/Contents/Home/bin/java\" ]; then\n    export JAVA_HOME=\"/Applications/Android Studio.app/Contents/jbr/Contents/Home\"\n  elif [ -x \"/Applications/Android Studio Preview.app/Contents/jbr/Contents/Home/bin/java\" ]; then\n    export JAVA_HOME=\"/Applications/Android Studio Preview.app/Contents/jbr/Contents/Home\"\n  else\n    j=$(/usr/libexec/java_home 2>/dev/null)\n    if [ -n \"$j\" ] && [ -x \"$j/bin/java\" ]; then\n      export JAVA_HOME=\"$j\"\n    fi\n  fi\nfi\n[ -n \"$JAVA_HOME\" ] && export PATH=\"$JAVA_HOME/bin:$PATH\"\n[ -z \"$DEVELOPER_DIR\" ] && [ -d \"/Applications/Xcode.app/Contents/Developer\" ] && export DEVELOPER_DIR=\"/Applications/Xcode.app/Contents/Developer\"\ncommand -v java >/dev/null 2>&1 || { echo \"error: Java not found. Install a JDK, Android Studio, or set JAVA_HOME.\"; exit 1; }\ncd \"$SRCROOT/..\"\nif [ \"$CONFIGURATION\" = \"Release\" ]; then\n  ./gradlew :shared:assembleSharedReleaseXCFramework\nelse\n  ./gradlew :shared:assembleSharedDebugXCFramework\nfi\n./gradlew :shared:embedAndSignAppleFrameworkForXcode\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
@@ -5210,16 +5198,14 @@
 /* Begin XCBuildConfiguration section */
 		0EE3F7740255968CA69CDDE3 /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReferenceAnchor = 66B9D5E7BC5BF2ED145B4573 /* iosApp */;
+			baseConfigurationReferenceAnchor = D0A8CBB69F90BA97AE8E224F /* Configuration */;
 			baseConfigurationReferenceRelativePath = Local.xcconfig;
 			buildSettings = {
-				ARCHS = arm64;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_ASSET_PATHS = "\"iosApp/Preview Content\"";
-				DEVELOPMENT_TEAM = "${TEAM_ID}";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = iosApp/Info.plist;
@@ -5275,6 +5261,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = 8K523C6KA4;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = NO;
@@ -5298,6 +5285,7 @@
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 			};
@@ -5305,16 +5293,14 @@
 		};
 		5B181D25B86D77D329F27C23 /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReferenceAnchor = 66B9D5E7BC5BF2ED145B4573 /* iosApp */;
+			baseConfigurationReferenceAnchor = D0A8CBB69F90BA97AE8E224F /* Configuration */;
 			baseConfigurationReferenceRelativePath = Local.xcconfig;
 			buildSettings = {
-				ARCHS = arm64;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_ASSET_PATHS = "\"iosApp/Preview Content\"";
-				DEVELOPMENT_TEAM = "${TEAM_ID}";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = iosApp/Info.plist;
@@ -5370,6 +5356,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = 8K523C6KA4;
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = NO;
@@ -5386,6 +5373,7 @@
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_COMPILATION_MODE = wholemodule;
 				VALIDATE_PRODUCT = YES;
 			};

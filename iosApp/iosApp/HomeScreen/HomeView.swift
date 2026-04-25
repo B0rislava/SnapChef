@@ -8,7 +8,7 @@ import SwiftUI
 import PhotosUI
 
 struct HomeView: View {
-    var onGenerateRecipes: ([String]) -> Void = { _ in }
+    var onSessionReady: (Int32, [String]) -> Void = { _, _ in }
 
     @StateObject private var permissions = CameraPermissionHandler()
     @StateObject private var viewModel   = HomeViewModel()
@@ -142,9 +142,15 @@ struct HomeView: View {
                 isAnalyzing:   $viewModel.isAnalyzing,
                 ingredients:   $viewModel.ingredients,
                 newIngredient: $newIngredient,
+                hasSession:    viewModel.sessionId != nil,
                 onGenerate: {
+                    guard let sid = viewModel.sessionId else {
+                        viewModel.errorMessage = "Run AI scan (camera or gallery) first."
+                        return
+                    }
+                    guard !viewModel.ingredients.isEmpty else { return }
                     showModal = false
-                    onGenerateRecipes(viewModel.ingredients)
+                    onSessionReady(sid, viewModel.ingredients)
                 }
             )
             .presentationDetents([.medium, .large])
@@ -210,6 +216,7 @@ private struct IngredientsSheet: View {
     @Binding var isAnalyzing:   Bool
     @Binding var ingredients:   [String]
     @Binding var newIngredient: String
+    var hasSession:    Bool
     var onGenerate: () -> Void
 
     var body: some View {
@@ -306,13 +313,14 @@ private struct IngredientsSheet: View {
                                     .foregroundColor(.white)
                                     .frame(maxWidth: .infinity)
                                     .frame(height: 56)
-                                    .background(ingredients.isEmpty
+                                    .background((ingredients.isEmpty || !hasSession)
                                         ? Color.greenPrimary.opacity(0.4)
                                         : Color.greenPrimary)
                                     .clipShape(Capsule())
                             }
-                            .disabled(ingredients.isEmpty)
+                            .disabled(ingredients.isEmpty || !hasSession)
                             .animation(.easeInOut(duration: 0.2), value: ingredients.isEmpty)
+                            .animation(.easeInOut(duration: 0.2), value: hasSession)
                         }
                         .transition(.opacity)
                     }

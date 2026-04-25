@@ -1,46 +1,308 @@
-//
-//  RecommendedRecipesViewModel.swift
-//  iosApp
-//
-//  Created by gergana on 4/8/26.
-//
-
 import Foundation
+import Shared
 
-struct RecommendedRecipeItem: Identifiable {
-    let id          = UUID()
-    let title:       String
-    let description: String
-    let instructions: [String]
-    let ingredients:  [String]
-    let isQuick:      Bool
+struct RecommendedRecipeItem: Identifiable, Equatable {
+    let id: Int
+    var title: String
+    var description: String
+    var instructions: [String]
+    var ingredients: [String]
+    var isQuick: Bool
+    var minutes: Int?
+    var uses: [String]
+    var extra: [String]
+
+    static func fromLibrary(_ r: LibraryRecipeOut) -> RecommendedRecipeItem {
+        let u = toStringsFromAny(r.uses)
+        let e = toStringsFromAny(r.extra)
+        let steps = toStringsFromAny(r.steps)
+        let instr = toStringsFromAny(r.instructions)
+        let ings = toStringsFromAny(r.ingredients)
+        let stepList: [String]
+        if !steps.isEmpty {
+            stepList = steps
+        } else if !instr.isEmpty {
+            stepList = instr
+        } else {
+            stepList = []
+        }
+        let pantryLine: [String] = (u.isEmpty && e.isEmpty) ? ings : (u + e)
+        let mInt: Int? = {
+            let o = (r as AnyObject).value(forKey: "minutes")
+            if o is NSNull || o == nil { return nil }
+            if let n = o as? Int { return n }
+            if let n = o as? Int32 { return Int(n) }
+            if let n = o as? NSNumber { return n.intValue }
+            return (o as? KotlinInt).map { Int($0.intValue) }
+        }()
+        let mFromCook: Int? = {
+            let o = (r as AnyObject).value(forKey: "cookTimeMinutes")
+            if o is NSNull || o == nil { return nil }
+            if let n = o as? Int { return n }
+            if let n = o as? Int32 { return Int(n) }
+            if let n = o as? NSNumber { return n.intValue }
+            return (o as? KotlinInt).map { Int($0.intValue) }
+        }()
+        let minutes: Int? = mInt ?? mFromCook
+        let isQuick: Bool
+        if let m = minutes {
+            isQuick = m < 30
+        } else {
+            isQuick = stepList.count < 4
+        }
+        let name = (r as AnyObject).value(forKey: "name") as? String
+        let titleField = (r as AnyObject).value(forKey: "title") as? String
+        let titleText: String
+        if let n = name, !n.isEmpty { titleText = n }
+        else if let t = titleField, !t.isEmpty { titleText = t }
+        else { titleText = "Recipe" }
+        var rid = intFromKotlin(r.id)
+        if rid == 0 {
+            rid = abs(titleText.hashValue) % 2_000_000_000
+            if rid == 0 { rid = 1 }
+        }
+        let blurb: String
+        if let m = minutes {
+            blurb = "\(m) min"
+        } else {
+            blurb = ""
+        }
+        let body: String? = (r as AnyObject).value(forKey: "description_") as? String
+        let desc: String
+        if let b = body, !b.isEmpty {
+            desc = b
+        } else if !blurb.isEmpty {
+            desc = "\(blurb) · picks for you"
+        } else {
+            desc = "Recommended for you"
+        }
+        return RecommendedRecipeItem(
+            id: rid,
+            title: titleText,
+            description: desc,
+            instructions: stepList,
+            ingredients: pantryLine,
+            isQuick: isQuick,
+            minutes: minutes,
+            uses: u,
+            extra: e
+        )
+    }
+
+    static func from(_ r: SessionRecipeOut) -> RecommendedRecipeItem {
+        let u = toStringsFromAny(r.uses)
+        let e = toStringsFromAny(r.extra)
+        let steps = toStringsFromAny(r.steps)
+        let all = u + e
+        let mInt: Int? = {
+            let o = (r as AnyObject).value(forKey: "minutes")
+            if o == nil || o is NSNull { return nil }
+            if let n = o as? Int { return n }
+            if let n = o as? Int32 { return Int(n) }
+            if let n = o as? NSNumber { return n.intValue }
+            return (o as? KotlinInt).map { Int($0.intValue) }
+        }()
+        let isQuick: Bool
+        if let m = mInt {
+            isQuick = m < 30
+        } else {
+            isQuick = steps.count < 4
+        }
+        let mLabel: String
+        if let m = mInt {
+            mLabel = "\(m) min"
+        } else {
+            mLabel = ""
+        }
+        let desc: String
+        if mLabel.isEmpty {
+            desc = "AI-suggested. You have \(u.count) in pantry; \(e.count) to buy."
+        } else {
+            desc = "\(mLabel) · you have \(u.count); shop \(e.count) more."
+        }
+        return RecommendedRecipeItem(
+            id: intFromKotlin(r.id),
+            title: r.name,
+            description: desc,
+            instructions: steps,
+            ingredients: all,
+            isQuick: isQuick,
+            minutes: mInt,
+            uses: u,
+            extra: e
+        )
+    }
+
+    func toSharedRecipe() -> SharedRecipe {
+        SharedRecipe(
+            title: title,
+            description: description,
+            ownerName: "You",
+            missingItems: extra,
+            availableItems: uses.map { "\($0) (from you)" },
+            instructions: instructions,
+            perishableProducts: []
+        )
+    }
+
+    func toFavoriteRecord() -> FavoriteRecipeRecord {
+        FavoriteRecipeRecord(
+            id: id,
+            title: title,
+            description: description,
+            instructions: instructions,
+            ingredients: ingredients,
+            uses: uses,
+            extra: extra,
+            isQuick: isQuick,
+            minutes: minutes
+        )
+    }
+}
+
+extension FavoriteRecipeRecord {
+    func toItem() -> RecommendedRecipeItem {
+        RecommendedRecipeItem(
+            id: id,
+            title: title,
+            description: description,
+            instructions: instructions,
+            ingredients: ingredients,
+            isQuick: isQuick,
+            minutes: minutes,
+            uses: uses,
+            extra: extra
+        )
+    }
+}
+
+private func intFromKotlin(_ v: Any) -> Int {
+    if let n = v as? NSNumber { return n.intValue }
+    if let k = v as? KotlinInt { return Int(k.intValue) }
+    if let i = v as? Int { return i }
+    if let i32 = v as? Int32 { return Int(i32) }
+    return 0
+}
+
+private func toStringsFromAny(_ v: Any?) -> [String] {
+    guard let v = v else { return [] }
+    if let a = v as? [String] { return a }
+    if let a = v as? NSArray { return a.compactMap { $0 as? String } }
+    return []
 }
 
 struct RecommendedRecipesUiState {
     var recipes:            [RecommendedRecipeItem] = []
-    var openedRecipeIdx:    Int?                    = nil
-    var checkedIngredients: [String: Bool]          = [:]
+    var openedRecipe:       RecommendedRecipeItem?  = nil
+    var checkedIngredients:   [String: Bool]         = [:]
     var infoMessage:        String?                 = nil
+    var isLoading:          Bool                    = false
+    var errorMessage:       String?                 = nil
 }
 
 @MainActor
 final class RecommendedRecipesViewModel: ObservableObject {
-    @Published var uiState = RecommendedRecipesUiState(
-        recipes: sampleRecipes()
-    )
+    @Published var uiState = RecommendedRecipesUiState()
+    private let homeService = SnapChefServiceLocator.shared.homeApiService
+    private var loadGeneration: Int = 0
 
-    func openRecipe(index: Int) {
+    /// Loads the recommended tab (`GET /recipes/recommended`) and merges in-session `groq-recipes` when a Home scan session exists.
+    func loadRecommendations(flow: AppFlowState) {
+        loadGeneration &+= 1
+        let gen = loadGeneration
+        Task { await self.performLoad(flow: flow, generation: gen) }
+    }
+
+    func refreshRecommendations(flow: AppFlowState) async {
+        loadGeneration &+= 1
+        let gen = loadGeneration
+        await performLoad(flow: flow, generation: gen)
+    }
+
+    private func mapRecipesFromResponse(_ response: GroqRecipeSuggestResponse) -> [RecommendedRecipeItem] {
+        response.recipes.map { RecommendedRecipeItem.from($0) }
+    }
+
+    private func mapLibraryList(_ res: RecommendedTabResponse) -> [RecommendedRecipeItem] {
+        res.recipes.map { RecommendedRecipeItem.fromLibrary($0) }
+    }
+
+    private func mergeSessionFirst(session: [RecommendedRecipeItem], library: [RecommendedRecipeItem]) -> [RecommendedRecipeItem] {
+        var seen = Set<Int>()
+        var out: [RecommendedRecipeItem] = []
+        for r in session + library {
+            if seen.insert(r.id).inserted { out.append(r) }
+        }
+        return out
+    }
+
+    private func performLoad(flow: AppFlowState, generation: Int) async {
+        if generation != loadGeneration { return }
+        await MainActor.run {
+            if generation == loadGeneration {
+                uiState.isLoading = true
+                uiState.errorMessage = nil
+                uiState.infoMessage = nil
+            }
+        }
+        if generation != loadGeneration { return }
+        var tabError: String?
+        var libraryItems: [RecommendedRecipeItem] = []
+        do {
+            let res = try await homeService.fetchRecommendedTabRecipes(count: 8)
+            if generation != loadGeneration { return }
+            libraryItems = mapLibraryList(res)
+        } catch {
+            tabError = error.localizedDescription
+        }
+        var sessionItems: [RecommendedRecipeItem] = []
+        if let sid = flow.lastSessionId {
+            do {
+                let response = try await homeService.suggestRecipes(sessionId: sid)
+                if generation != loadGeneration { return }
+                sessionItems = mapRecipesFromResponse(response)
+            } catch { }
+        }
+        let merged = mergeSessionFirst(session: sessionItems, library: libraryItems)
+        await MainActor.run {
+            guard generation == loadGeneration else { return }
+            uiState.recipes = merged
+            if merged.isEmpty {
+                if let te = tabError, sessionItems.isEmpty {
+                    uiState.errorMessage = "Could not load recommendations. \(te)"
+                } else if tabError != nil, !sessionItems.isEmpty {
+                    uiState.errorMessage = nil
+                } else {
+                    uiState.errorMessage = "No recommendations right now. Pull to refresh or add a Home scan for tailored ideas."
+                }
+            } else {
+                uiState.errorMessage = nil
+            }
+            uiState.isLoading = false
+        }
+    }
+
+    func openRecipe(_ recipe: RecommendedRecipeItem) {
+        uiState.openedRecipe = recipe
+        uiState.checkedIngredients = Dictionary(
+            uniqueKeysWithValues: recipe.ingredients.map { ($0, true) }
+        )
+        uiState.infoMessage = nil
+    }
+
+    func openRecipeIndex(_ index: Int) {
         guard index < uiState.recipes.count else { return }
-        let recipe = uiState.recipes[index]
-        uiState.openedRecipeIdx    = index
-        uiState.checkedIngredients = Dictionary(uniqueKeysWithValues: recipe.ingredients.map { ($0, true) })
-        uiState.infoMessage        = nil
+        openRecipe(uiState.recipes[index])
+    }
+
+    func openFavorite(_ record: FavoriteRecipeRecord) {
+        openRecipe(record.toItem())
     }
 
     func closeRecipe() {
-        uiState.openedRecipeIdx    = nil
+        uiState.openedRecipe = nil
         uiState.checkedIngredients = [:]
-        uiState.infoMessage        = nil
+        uiState.infoMessage = nil
     }
 
     func toggleIngredient(_ ingredient: String, checked: Bool) {
@@ -50,81 +312,16 @@ final class RecommendedRecipesViewModel: ObservableObject {
     func setInfoMessage(_ value: String?) {
         uiState.infoMessage = value
     }
-}
 
-private func sampleRecipes() -> [RecommendedRecipeItem] {
-    [
-        RecommendedRecipeItem(
-            title:       "Creamy Mushroom Pasta",
-            description: "Quick creamy pasta for weeknights.",
-            instructions: [
-                "Boil pasta in salted water until al dente.",
-                "Cook mushrooms and garlic in olive oil until fragrant.",
-                "Stir in cream (or a dairy-free alternative) and season to taste.",
-                "Toss pasta with the sauce and finish with parmesan."
-            ],
-            ingredients: ["Pasta", "Mushrooms", "Garlic", "Cream", "Parmesan", "Olive oil"],
-            isQuick: true
-        ),
-        RecommendedRecipeItem(
-            title:       "Chicken Veggie Bowl",
-            description: "Balanced protein bowl with fresh vegetables.",
-            instructions: [
-                "Cook rice (or use leftover rice) and keep warm.",
-                "Sear chicken until golden and cooked through.",
-                "Quick-saute bell pepper and onions.",
-                "Combine everything with soy sauce and serve."
-            ],
-            ingredients: ["Chicken breast", "Rice", "Bell pepper", "Soy sauce", "Green onion", "Onion"],
-            isQuick: true
-        ),
-        RecommendedRecipeItem(
-            title:       "Spicy Chickpea Tacos",
-            description: "Smoky, spicy chickpeas with crunchy toppings.",
-            instructions: [
-                "Saute onion and garlic, then toast spices for 30 seconds.",
-                "Simmer chickpeas until saucy and flavorful.",
-                "Warm tortillas and assemble with toppings.",
-                "Finish with lime and a creamy drizzle."
-            ],
-            ingredients: ["Chickpeas", "Tortillas", "Onion", "Garlic", "Cumin", "Chili powder", "Lime", "Yogurt"],
-            isQuick: false
-        ),
-        RecommendedRecipeItem(
-            title:       "Lemon Herb Salmon",
-            description: "Bright lemon-herb salmon with a buttery finish.",
-            instructions: [
-                "Preheat oven and season salmon with salt and pepper.",
-                "Bake until just flaky.",
-                "Mix butter (or olive oil) with lemon zest, juice, and herbs.",
-                "Pour over salmon and serve with greens."
-            ],
-            ingredients: ["Salmon", "Lemon", "Garlic", "Butter", "Dill", "Parsley", "Olive oil"],
-            isQuick: true
-        ),
-        RecommendedRecipeItem(
-            title:       "Tofu Stir-Fry",
-            description: "Crispy tofu with colorful vegetables and a savory sauce.",
-            instructions: [
-                "Press tofu, then pan-sear until crisp.",
-                "Stir-fry vegetables on high heat.",
-                "Add sauce (soy + ginger + garlic) and toss until glossy.",
-                "Serve over rice or noodles."
-            ],
-            ingredients: ["Tofu", "Broccoli", "Carrot", "Soy sauce", "Ginger", "Garlic", "Cornstarch", "Sesame oil"],
-            isQuick: true
-        ),
-        RecommendedRecipeItem(
-            title:       "Greek Quinoa Salad",
-            description: "Fresh quinoa salad with cucumber, feta, and herbs.",
-            instructions: [
-                "Cook quinoa and let it cool slightly.",
-                "Chop cucumber, tomato, and herbs.",
-                "Whisk olive oil with lemon juice and oregano.",
-                "Toss everything and finish with feta."
-            ],
-            ingredients: ["Quinoa", "Cucumber", "Tomato", "Feta", "Olive oil", "Lemon", "Oregano", "Red onion"],
-            isQuick: false
-        ),
-    ]
+    func saveCurrentRecipe() {
+        guard let r = uiState.openedRecipe else { return }
+        let shared = r.toSharedRecipe()
+        RecipeStore.shared.addPersonalRecipe(shared)
+        uiState.infoMessage = NSLocalizedString("saved", comment: "")
+    }
+
+    func toggleFavoriteCurrent() {
+        guard let r = uiState.openedRecipe else { return }
+        FavoritesStore.shared.toggle(r.toFavoriteRecord())
+    }
 }

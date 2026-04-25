@@ -95,3 +95,10 @@ data class GroupCreateRequest(
 data class JoinGroupRequest(
     val code: String
 )
+
+@Serializable
+data class UserUpdateRequest(
+    val name: String? = null,
+    val email: String? = null,
+    val password: String? = null
+)
