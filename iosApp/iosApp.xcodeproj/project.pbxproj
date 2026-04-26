@@ -78,7 +78,7 @@
 		1259B4782F776A5D00B9ECB7 /* 0_auth.knm */ = {isa = PBXFileReference; lastKnownFileType = file; path = 0_auth.knm; sourceTree = "<group>"; };
 		1259B47A2F776A5D00B9ECB7 /* 0_di.knm */ = {isa = PBXFileReference; lastKnownFileType = file; path = 0_di.knm; sourceTree = "<group>"; };
 		1259B47C2F776A5D00B9ECB7 /* 0_remote.knm */ = {isa = PBXFileReference; lastKnownFileType = file; path = 0_remote.knm; sourceTree = "<group>"; };
-		1259B47E2F776A5D00B9ECB7 /* 0_remote.knm */ = {isa = PBXFileReference; lastKnownFileType = file; path = 0_remote.knm; sourceTree = "<group>"; };
+		1259B47E2F776A5D00B9ECB7 /* 0_remote.knm */ = {isa = PBXFileReference; lastKnownFileType = text; path = 0_remote.knm; sourceTree = "<group>"; };
 		1259B47F2F776A5D00B9ECB7 /* 1_remote.knm */ = {isa = PBXFileReference; lastKnownFileType = text; path = 1_remote.knm; sourceTree = "<group>"; };
 		1259B4812F776A5D00B9ECB7 /* 0_remote.knm */ = {isa = PBXFileReference; lastKnownFileType = file; path = 0_remote.knm; sourceTree = "<group>"; };
 		1259B4822F776A5D00B9ECB7 /* 1_remote.knm */ = {isa = PBXFileReference; lastKnownFileType = text; path = 1_remote.knm; sourceTree = "<group>"; };
@@ -96,7 +96,7 @@
 		1259B49B2F776A5D00B9ECB7 /* 0_auth.knm */ = {isa = PBXFileReference; lastKnownFileType = file; path = 0_auth.knm; sourceTree = "<group>"; };
 		1259B49D2F776A5D00B9ECB7 /* 0_di.knm */ = {isa = PBXFileReference; lastKnownFileType = file; path = 0_di.knm; sourceTree = "<group>"; };
 		1259B49F2F776A5D00B9ECB7 /* 0_remote.knm */ = {isa = PBXFileReference; lastKnownFileType = file; path = 0_remote.knm; sourceTree = "<group>"; };
-		1259B4A12F776A5D00B9ECB7 /* 0_remote.knm */ = {isa = PBXFileReference; lastKnownFileType = file; path = 0_remote.knm; sourceTree = "<group>"; };
+		1259B4A12F776A5D00B9ECB7 /* 0_remote.knm */ = {isa = PBXFileReference; lastKnownFileType = text; path = 0_remote.knm; sourceTree = "<group>"; };
 		1259B4A22F776A5D00B9ECB7 /* 1_remote.knm */ = {isa = PBXFileReference; lastKnownFileType = text; path = 1_remote.knm; sourceTree = "<group>"; };
 		1259B4A42F776A5D00B9ECB7 /* 0_remote.knm */ = {isa = PBXFileReference; lastKnownFileType = file; path = 0_remote.knm; sourceTree = "<group>"; };
 		1259B4A52F776A5D00B9ECB7 /* 1_remote.knm */ = {isa = PBXFileReference; lastKnownFileType = text; path = 1_remote.knm; sourceTree = "<group>"; };
@@ -114,7 +114,7 @@
 		1259B4BE2F776A5D00B9ECB7 /* 0_auth.knm */ = {isa = PBXFileReference; lastKnownFileType = file; path = 0_auth.knm; sourceTree = "<group>"; };
 		1259B4C02F776A5D00B9ECB7 /* 0_di.knm */ = {isa = PBXFileReference; lastKnownFileType = file; path = 0_di.knm; sourceTree = "<group>"; };
 		1259B4C22F776A5D00B9ECB7 /* 0_remote.knm */ = {isa = PBXFileReference; lastKnownFileType = file; path = 0_remote.knm; sourceTree = "<group>"; };
-		1259B4C42F776A5D00B9ECB7 /* 0_remote.knm */ = {isa = PBXFileReference; lastKnownFileType = file; path = 0_remote.knm; sourceTree = "<group>"; };
+		1259B4C42F776A5D00B9ECB7 /* 0_remote.knm */ = {isa = PBXFileReference; lastKnownFileType = text; path = 0_remote.knm; sourceTree = "<group>"; };
 		1259B4C52F776A5D00B9ECB7 /* 1_remote.knm */ = {isa = PBXFileReference; lastKnownFileType = text; path = 1_remote.knm; sourceTree = "<group>"; };
 		1259B4C72F776A5D00B9ECB7 /* 0_remote.knm */ = {isa = PBXFileReference; lastKnownFileType = file; path = 0_remote.knm; sourceTree = "<group>"; };
 		1259B4C82F776A5D00B9ECB7 /* 1_remote.knm */ = {isa = PBXFileReference; lastKnownFileType = text; path = 1_remote.knm; sourceTree = "<group>"; };
@@ -5209,6 +5209,8 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = iosApp/Info.plist;
+				INFOPLIST_KEY_NSCameraUsageDescription = "SnapChef needs camera access to identify ingredients in your kitchen.";
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "SnapChef needs photo library access to analyze ingredient photos.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -5218,6 +5220,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.snapchef.app.g.SnapChef;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -5261,7 +5264,6 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = dwarf;
-				DEVELOPMENT_TEAM = 8K523C6KA4;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = NO;
@@ -5304,6 +5306,8 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = iosApp/Info.plist;
+				INFOPLIST_KEY_NSCameraUsageDescription = "SnapChef needs camera access to identify ingredients in your kitchen.";
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "SnapChef needs photo library access to analyze ingredient photos.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -5313,6 +5317,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.snapchef.app.g.SnapChef;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -5356,7 +5361,6 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
-				DEVELOPMENT_TEAM = 8K523C6KA4;
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = NO;
